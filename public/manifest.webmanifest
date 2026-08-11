@@ -1,0 +1,17 @@
+{
+  "name": "Motor de Evidencia Operacional",
+  "short_name": "Evidencia",
+  "description": "Webapp mobile-first para ordens, tarefas e provas operacionais.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f1eb",
+  "theme_color": "#10231f",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
