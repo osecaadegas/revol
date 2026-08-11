@@ -28,7 +28,7 @@ http://localhost:4173
 
 ## First Run
 
-When the app opens, visitors see the public vacancy marketplace first. It should feel like a job network: compact search in the header, wide desktop filters, candidate/company entry cards, search-first landing, subtle motion, quick filters, visible job cards and clear worker/company account actions. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access through `/cliente`.
+When the app opens, visitors see the public vacancy marketplace first. It should feel like a job network: compact search in the header, wide desktop filters, candidate/company entry cards, search-first landing, visible animated network background, quick filters, visible job cards and clear worker/company account actions. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access through `/cliente`.
 
 Use the vacancy filters in the marketplace section to search by company/keyword/contract, cargo or function, location, and radius around known Portuguese cities.
 

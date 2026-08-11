@@ -35,7 +35,7 @@ The app must first behave like a public labor-market board:
 | --- | --- |
 | Public vacancies visible without login | `/api/jobs/public`, public homepage board in `public/app.js` |
 | Public vacancy discovery works like a labor-market board | Shared marketplace filters in `public/app.js` for keyword/company/contract, cargo/function, location, and known-city radius |
-| Public homepage feels like a job network | `/` renders a modern LinkedIn-like landing with compact top search, expanded desktop filters, candidate/company entry cards, market metrics, subtle live motion, vacancy feed, quick filters, polished job cards and account actions before any private project entry |
+| Public homepage feels like a job network | `/` renders a modern LinkedIn-like landing with compact top search, expanded desktop filters, candidate/company entry cards, market metrics, visible animated network background, vacancy feed, quick filters, polished job cards and account actions before any private project entry |
 | Worker registration required to apply | `/api/register/worker`, `/api/job-offers/:id/apply` requires `worker` |
 | Company registration required to create vacancies | `/api/register/company`, `/api/job-offers` requires `company` or legacy `manager` |
 | Company can manage received applications | `/api/applications/:id`, company marketplace view |
