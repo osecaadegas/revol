@@ -1920,10 +1920,15 @@ async function serveStatic(req, res, pathname) {
   }
   const ext = path.extname(filePath).toLowerCase();
   const body = await fsp.readFile(filePath);
+  const fileName = path.basename(filePath);
+  const cacheControl =
+    [".html", ".js", ".css", ".webmanifest"].includes(ext) || fileName === "service-worker.js"
+      ? "no-store"
+      : "public, max-age=3600";
   res.writeHead(200, {
     "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
     "Content-Length": body.length,
-    "Cache-Control": ext === ".html" ? "no-store" : "public, max-age=3600",
+    "Cache-Control": cacheControl,
     "X-Content-Type-Options": "nosniff"
   });
   res.end(body);

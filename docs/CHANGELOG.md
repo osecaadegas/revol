@@ -2,6 +2,7 @@
 
 ## 2026-08-11
 
+- Fixed stale public pages after deploy by replacing the service worker cache-first shell with network-first fetching, bumping the shell cache and disabling server cache for app shell files.
 - Added a more LinkedIn-like landing surface with a compact top search, candidate profile entry card, central job search card and company hiring card.
 - Reworked the public homepage into a LinkedIn-style vacancy feed with first-screen search, quick filters, result counts, job cards and worker/company account actions.
 - Kept project/client/developer information out of the public homepage and left `/cliente` as the reserved project access route.

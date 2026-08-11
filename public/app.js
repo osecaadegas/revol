@@ -2210,7 +2210,10 @@
 
   async function init() {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+      navigator.serviceWorker
+        .register("/service-worker.js")
+        .then((registration) => registration.update().catch(() => {}))
+        .catch(() => {});
     }
 
     const invitePath = location.pathname.match(/^\/invite\/([^/]+)$/);

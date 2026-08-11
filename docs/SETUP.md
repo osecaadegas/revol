@@ -152,6 +152,8 @@ Set the Supabase environment variables before deploying. Do not use local filesy
 
 If the public page shows a database setup warning, verify that `supabase/admin/reset_to_current_schema.sql` has been run and that the Vercel environment variables are set for the active deployment environment.
 
+If a browser still shows an old public layout after deployment, reload once after the new service worker activates. The app shell uses network-first service-worker fetching and no-store headers for `index.html`, `app.js`, `styles.css`, `manifest.webmanifest`, and `service-worker.js` so stale public pages are not kept as the default.
+
 ## Verification
 
 Run:

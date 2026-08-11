@@ -1,4 +1,4 @@
-const CACHE_NAME = "manifesto-shell-v1";
+const CACHE_NAME = "luistrata-shell-v3";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
@@ -9,23 +9,56 @@ const SHELL_ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        SHELL_ASSETS.map((asset) =>
+          fetch(asset, { cache: "reload" })
+            .then((response) => {
+              if (response.ok) return cache.put(asset, response);
+              return undefined;
+            })
+            .catch(() => undefined)
+        )
+      )
+    )
+  );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-    )
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
+      await self.clients.claim();
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      await Promise.all(
+        clients.map((client) => {
+          const url = new URL(client.url);
+          if (url.origin === self.location.origin && ["/", "/cliente", "/changelog"].includes(url.pathname)) {
+            return client.navigate(client.url);
+          }
+          return undefined;
+        })
+      );
+    })()
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
-  if (url.pathname.startsWith("/api/")) return;
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/index.html")))
   );
 });
