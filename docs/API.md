@@ -65,6 +65,10 @@ Returns current user, company, accessible users, work orders, tasks, evidence me
 
 Company/manager only. Returns the private MANIFESTO project dashboard HTML. Project status, roadmap, requirements, acceptance criteria, deliverables, documentation structure, feedback and changelog are served here instead of being embedded in the public static JavaScript bundle.
 
+`GET /api/mvp/private`
+
+Company/manager only. Returns the private MVP development cockpit HTML. Live marketplace, account, task, evidence and audit readiness is calculated server-side from the authenticated bootstrap data instead of being embedded in the public static JavaScript bundle.
+
 `POST /api/job-offers`
 
 Company/manager only. Creates a public vacancy. Important fields: `title`, `position`, `location`, `contractType`, `salary`, `schedule`, `description`, and `requirements`.

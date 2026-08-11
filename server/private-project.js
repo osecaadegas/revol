@@ -1,5 +1,5 @@
 const productVersion = {
-  version: "v0.4.0",
+  version: "v0.5.0",
   stage: "Fase 1 - MVP em desenvolvimento",
   lastUpdated: "2026-08-11",
   completionLabel: "Progresso formal por validar",
@@ -10,7 +10,7 @@ const productVersion = {
 const projectPhases = [
   ["Levantamento de requisitos", "completed", "Documentos de base e requisitos Phase 1 identificados."],
   ["Arquitetura do sistema", "completed", "Frontend estatico, API Node, persistencia local/Supabase."],
-  ["Desenvolvimento do MVP", "in-development", "Mercado publico, contas, tarefas, evidencias e auditoria implementados em iteracao."],
+  ["Desenvolvimento do MVP", "in-development", "Mercado publico, contas, tarefas, evidencias e auditoria agora ligados a uma vista privada de construcao e validacao."],
   ["Testes tecnicos", "in-development", "Syntax check e smoke test automatizado existem; testes de cliente ainda pendentes."],
   ["Validacao pelo cliente", "pending", "Pendente de revisao formal, feedback e criterios de aceitacao."],
   ["Producao", "pending", "Dependente de Supabase final, variaveis Vercel e validacao."]
@@ -105,11 +105,19 @@ const deliverables = [
   ["Repositorio base", "completed", "Codigo fonte, API, frontend e documentacao inicial.", "Fundacao", "2026-08-10"],
   ["Modelo Supabase", "completed", "Tabelas meo_*, RLS e bucket privado de evidencias.", "Persistencia", "2026-08-10"],
   ["Area do Cliente e workspace privado", "in-development", "Acesso publico controlado, com estado, roadmap, modulos, escopo e documentacao no workspace autenticado.", "Acompanhamento", "2026-08-11"],
+  ["Cockpit de Desenvolvimento do MVP", "in-development", "Vista privada com progresso vivo de mercado, contas, tarefas, evidencias, validacao e auditoria.", "MVP", "2026-08-11"],
   ["Validacao Supabase em producao", "pending", "Confirmar registo, vagas, candidaturas, tarefas e evidencias com ambiente real.", "QA", "Pendente"],
   ["Aprovacao formal do cliente", "pending", "Registo de aceitacao por criterios e pedidos de alteracao.", "Handoff", "Pendente"]
 ];
 
 const versionHistory = [
+  {
+    version: "v0.5.0",
+    date: "2026-08-11",
+    added: ["Cockpit privado de Desenvolvimento do MVP", "Indicadores vivos de mercado, contas, tarefas, evidencias e auditoria", "Sequencia guiada de construcao operacional"],
+    improved: ["Acompanhamento da fase ativa", "Ligacao entre roadmap e workflows reais"],
+    fixed: []
+  },
   {
     version: "v0.4.0",
     date: "2026-08-11",

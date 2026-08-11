@@ -922,6 +922,8 @@ td span:not(.status-badge) {
 .panel,
 .form-card,
 .metric-card,
+.mvp-stage,
+.mvp-module-card,
 .task-card,
 .order-card,
 .user-card,
@@ -1186,6 +1188,107 @@ td span:not(.status-badge) {
   gap: 14px;
 }
 
+.mvp-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 16px;
+  padding: clamp(20px, 3vw, 28px);
+  background:
+    linear-gradient(135deg, rgba(45, 103, 177, 0.09), rgba(40, 117, 111, 0.12)),
+    rgba(255, 255, 255, 0.96);
+}
+
+.mvp-stage h2 {
+  max-width: 820px;
+  margin: 12px 0 0;
+  font-size: clamp(1.55rem, 3vw, 2.65rem);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.mvp-stage p {
+  max-width: 760px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.mvp-progress-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: #fff;
+}
+
+.mvp-progress-card span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.mvp-progress-card strong {
+  line-height: 1.25;
+}
+
+.mvp-progress-bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--soft);
+}
+
+.mvp-progress-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+.mvp-metrics-grid,
+.mvp-module-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mvp-module-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.mvp-module-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 16px;
+}
+
+.mvp-module-card h2 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.mvp-module-card strong {
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.mvp-module-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.mvp-module-card .btn {
+  align-self: end;
+}
+
 .metric-card {
   padding: 18px;
 }
@@ -1241,6 +1344,44 @@ td span:not(.status-badge) {
 .list {
   display: grid;
   gap: 12px;
+}
+
+.mvp-flow {
+  display: grid;
+  gap: 10px;
+}
+
+.mvp-flow article {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: #fff;
+}
+
+.mvp-flow article > span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  color: #fff;
+  background: var(--ink);
+  font-weight: 900;
+}
+
+.mvp-flow strong {
+  display: block;
+}
+
+.mvp-flow p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
 .task-card,
@@ -1507,6 +1648,7 @@ td span:not(.status-badge) {
   .public-grid,
   .manifesto-hero,
   .status-dashboard,
+  .mvp-stage,
   .scope-grid,
   .public-section.split {
     grid-template-columns: 1fr;
@@ -1575,7 +1717,9 @@ td span:not(.status-badge) {
   }
 
   .auth-facts,
-  .metrics-grid {
+  .metrics-grid,
+  .mvp-metrics-grid,
+  .mvp-module-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1710,6 +1854,15 @@ td span:not(.status-badge) {
   .criteria-list div,
   .changelog-entry header {
     flex-direction: column;
+  }
+
+  .mvp-flow article {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .mvp-flow article .btn {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .responsive-table {

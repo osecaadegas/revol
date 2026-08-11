@@ -51,6 +51,7 @@ The app must first behave like a public labor-market board:
 | Main public navigation | Only `Area do Cliente` is shown to unauthenticated visitors |
 | Project status dashboard | Data-driven `projectPhases` and `renderProjectStatusSection()` |
 | Roadmap | Data-driven `roadmapSteps` and responsive `renderRoadmapSection()` |
+| MVP development cockpit | Private `MVP` workspace tab loads server-rendered `/api/mvp/private` readiness from marketplace, accounts, tasks, evidence and audit data |
 | MVP scope separation | `mvpScope` with included and out-of-scope sections |
 | MVP versus future platform | `platformComparison` section |
 | Module architecture | Data-driven `modules` cards with status, progress and requirement IDs |
@@ -85,6 +86,7 @@ The app must first behave like a public labor-market board:
 | Basic task history | `auditLogs` collection and History UI |
 | Basic search and filtering | Frontend filters by text, status, assignee |
 | Simple dashboard | Dashboard cards and operations list |
+| Iterative MVP status | Private `MVP` tab shows live module readiness, pending validation and recent audit events from authenticated server HTML |
 | Private photo access | `/api/evidence/:id/file` checks authenticated access before reading local/Supabase private storage |
 | Production build/startup without critical error | `npm run check` and `npm run smoke` |
 

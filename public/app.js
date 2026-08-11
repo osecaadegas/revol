@@ -9,6 +9,7 @@
     authMode: "login",
     data: null,
     privateProjectHtml: "",
+    privateMvpHtml: "",
     publicJobs: [],
     publicJobsWarning: "",
     publicMenuOpen: false,
@@ -49,6 +50,7 @@
 
   const navItems = [
     ["project", "Projeto"],
+    ["mvp", "MVP"],
     ["marketplace", "Vagas"],
     ["dashboard", "Painel"],
     ["orders", "Ordens"],
@@ -286,6 +288,24 @@
     }
     const payload = await api("/api/project/private");
     state.privateProjectHtml = payload.html || "";
+  }
+
+  async function refreshPrivateMvp() {
+    if (!canViewPrivateProject()) {
+      state.privateMvpHtml = "";
+      return;
+    }
+    const payload = await api("/api/mvp/private");
+    state.privateMvpHtml = payload.html || "";
+  }
+
+  async function refreshActivePrivateView() {
+    if (state.view === "project") {
+      await refreshPrivateProject();
+    }
+    if (state.view === "mvp") {
+      await refreshPrivateMvp();
+    }
   }
 
   async function refreshPublicJobs() {
@@ -538,6 +558,19 @@
     `;
   }
 
+  function renderPrivateMvpView() {
+    if (state.privateMvpHtml) return state.privateMvpHtml;
+    return `
+      <section class="view-heading">
+        <div>
+          <h1>Area privada</h1>
+          <p>Vista privada em carregamento.</p>
+        </div>
+      </section>
+      ${empty("A carregar area privada...")}
+    `;
+  }
+
   function renderAuthSwitcher() {
     const mode = state.authMode;
     return `
@@ -739,9 +772,9 @@
         saveSession(payload.session);
         state.data = payload.bootstrap;
         state.view = defaultViewForUser();
-        if (state.view === "project") {
+        if (["project", "mvp"].includes(state.view)) {
           try {
-            await refreshPrivateProject();
+            await refreshActivePrivateView();
           } catch (error) {
             setNotice(error.message, "error");
           }
@@ -874,6 +907,7 @@
         ${navItems
           .filter(([view]) => {
             if (view === "project") return canViewPrivateProject();
+            if (view === "mvp") return canViewPrivateProject();
             if (view === "team") return isManager();
             if (["orders", "tasks", "dashboard"].includes(view)) return currentUser()?.role !== "worker";
             return true;
@@ -896,6 +930,7 @@
         ${navItems
           .filter(([view]) => {
             if (view === "project") return canViewPrivateProject();
+            if (view === "mvp") return canViewPrivateProject();
             if (view === "team") return isManager();
             if (["orders", "tasks", "dashboard"].includes(view)) return currentUser()?.role !== "worker";
             return true;
@@ -912,6 +947,7 @@
 
   function renderView() {
     if (state.view === "project") return canViewPrivateProject() ? renderPrivateProjectView() : renderMarketplace();
+    if (state.view === "mvp") return canViewPrivateProject() ? renderPrivateMvpView() : renderMarketplace();
     if (state.view === "marketplace") return renderMarketplace();
     if (state.view === "orders") return renderOrders();
     if (state.view === "tasks") return renderTasks();
@@ -1661,6 +1697,15 @@
             setNotice(error.message, "error");
           }
         }
+        if (state.view === "mvp" && canViewPrivateProject()) {
+          state.privateMvpHtml = "";
+          renderApp();
+          try {
+            await refreshPrivateMvp();
+          } catch (error) {
+            setNotice(error.message, "error");
+          }
+        }
         renderApp();
       });
     });
@@ -1674,6 +1719,7 @@
         state.token = "";
         state.data = null;
         state.privateProjectHtml = "";
+        state.privateMvpHtml = "";
         state.selectedTaskId = null;
         state.authMode = "login";
         await refreshPublicJobs();
@@ -2000,9 +2046,9 @@
         try {
           await refreshData();
           state.view = defaultViewForUser();
-          if (state.view === "project") {
+          if (["project", "mvp"].includes(state.view)) {
             try {
-              await refreshPrivateProject();
+              await refreshActivePrivateView();
             } catch (error) {
               setNotice(error.message, "error");
             }

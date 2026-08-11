@@ -35,6 +35,7 @@
 - Rebuilt the public experience around a restricted MANIFESTO client access area.
 - Moved project information into the authenticated workspace `Projeto` tab.
 - Moved private project dashboard copy out of the public static bundle and into authenticated server-rendered HTML.
+- Added a private MVP development cockpit to connect the active build phase to live marketplace, account, task, evidence and audit data.
 - Added reusable, data-driven UI sections for phases, roadmap, modules, requirements, acceptance criteria, deliverables, documentation groups, changelog entries, change requests and feedback foundations.
 - Added `/cliente` for the client dashboard foundation.
 - Kept `/changelog` public route from exposing version history; changelog is now shown inside the private workspace.

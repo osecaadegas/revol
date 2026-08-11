@@ -10,6 +10,7 @@
 - Added `docs/AUDIT.md` with product, UX, architecture and remaining-dependency findings.
 - Restricted public project information to a client access gate and moved status, roadmap, modules, requirements, documentation and changelog into the authenticated `Projeto` workspace tab for company/manager users.
 - Moved private project dashboard content out of the public JavaScript bundle and behind authenticated `/api/project/private`.
+- Added the private `MVP` workspace tab for the active `Desenvolvimento do MVP` phase with authenticated server-rendered readiness checks for marketplace, accounts, tasks, evidence and audit.
 
 ## 2026-08-10
 

@@ -5,6 +5,7 @@ const root = path.resolve(__dirname, "..");
 const files = [
   "server.js",
   "server/index.js",
+  "server/private-mvp.js",
   "server/private-project.js",
   "server/check.js",
   "server/smoke-test.js",

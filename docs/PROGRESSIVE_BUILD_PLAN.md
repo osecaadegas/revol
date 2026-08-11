@@ -142,14 +142,25 @@ Status: complete.
 - Removed public navigation links to Manifesto, Projeto, Modulos, Roadmap, Documentacao and Changelog.
 - Moved detailed project copy out of `public/app.js` and behind authenticated `/api/project/private` server delivery.
 
+### M14 - MVP Development Cockpit
+
+Status: complete.
+
+- Added a private `MVP` workspace tab for company/manager users.
+- Connected the active `Desenvolvimento do MVP` phase to live company data for marketplace, accounts, work orders, tasks, evidence and audit history through authenticated `/api/mvp/private`.
+- Added readiness cards, live metrics, validation-pending work and recent audit activity.
+- Added direct action buttons into the existing marketplace, team, orders, tasks and history workflows.
+- Added `docs/MVP_DEVELOPMENT.md` as the progressive guide for this active phase.
+
 ## Next Recommended Work
 
-1. Decide whether to add first-class `client` and `developer` roles to the database, API and invite workflow.
-2. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
-3. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
-4. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-5. Add browser-driven regression coverage for public routes, public filtering and worker application.
-6. Add optional email delivery for worker/company notifications.
+1. Verify the private `MVP` tab with real Supabase data after deployment.
+2. Decide whether to add first-class `client` and `developer` roles to the database, API and invite workflow.
+3. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
+4. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+5. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+6. Add browser-driven regression coverage for public routes, public filtering and worker application.
+7. Add optional email delivery for worker/company notifications.
 
 ## Agent Update Protocol
 

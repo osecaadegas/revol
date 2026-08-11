@@ -4,6 +4,7 @@ const fsp = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
 const { URL } = require("url");
+const { renderPrivateMvpHtml } = require("./private-mvp");
 const { renderPrivateProjectHtml } = require("./private-project");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
@@ -1048,6 +1049,14 @@ async function handleApi(req, res, pathname) {
     const auth = requireAuth(db, req);
     requireManager(auth);
     sendJson(res, 200, { html: renderPrivateProjectHtml() });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/mvp/private") {
+    const db = await readDb();
+    const auth = requireAuth(db, req);
+    requireManager(auth);
+    sendJson(res, 200, { html: renderPrivateMvpHtml(buildBootstrap(db, auth)) });
     return;
   }
 

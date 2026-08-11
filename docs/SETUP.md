@@ -40,6 +40,7 @@ To use the marketplace:
 After company registration, use the company account to:
 
 - View the private MANIFESTO project dashboard.
+- Open the private MVP development cockpit.
 - Publish vacancies.
 - Review worker applications.
 - Create workers or contractors directly.
@@ -166,4 +167,4 @@ npm run smoke
 
 `npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, application submission, application review, user creation, work order creation, task assignment, evidence upload, task submission, manager approval, and authenticated image access.
 
-Manual UI verification should include `/`, `/cliente`, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` workspace tab for company/manager users, `/api/project/private` authorization behavior and authenticated operational workspace routes.
+Manual UI verification should include `/`, `/cliente`, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` workspace tab for company/manager users, the private `MVP` workspace tab, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes.
