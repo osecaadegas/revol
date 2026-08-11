@@ -106,6 +106,13 @@ Status: complete.
 - Documented reset steps and current expected `meo_*` tables.
 - Updated the initial Supabase metadata seed to include marketplace ID counters.
 
+### M10 - Vercel Entrypoint
+
+Status: complete.
+
+- Declared `server/index.js` as the package entrypoint for Vercel's Node preset.
+- Documented the Vercel deployment settings and Supabase environment requirement.
+
 ## Next Recommended Work
 
 1. Run `supabase/admin/reset_to_current_schema.sql` once in the dirty Supabase project.

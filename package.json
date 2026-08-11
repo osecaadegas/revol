@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Phase 1 mobile-first work order, task, and evidence webapp.",
+  "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",

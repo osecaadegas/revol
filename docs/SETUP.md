@@ -130,6 +130,21 @@ For production:
 
 Local filesystem persistence is not suitable for serverless platforms that discard file writes between requests. For Vercel/serverless, set `APP_STORAGE_DRIVER=supabase`.
 
+## Vercel Deployment
+
+Use the Node application preset. The Node entrypoint is declared in `package.json` as `server/index.js`.
+
+Use these project settings:
+
+```text
+Install command: npm install
+Build command: empty
+Start command: npm run start
+Output directory: empty
+```
+
+Set the Supabase environment variables before deploying. Do not use local filesystem persistence on Vercel.
+
 ## Verification
 
 Run:

@@ -13,3 +13,4 @@
 - Corrected product concept to a public vacancy marketplace: visible job offers, worker registration/application flow, company registration/vacancy creation flow, application review, new Supabase marketplace migration, and updated smoke coverage.
 - Improved the homepage into a public-first job board with keyword, cargo/function, location, and radius filters, plus a dedicated vacancy `position` field and Supabase migration for company postings.
 - Added an admin Supabase reset script and documentation to remove old unprefixed prototype tables and recreate the current `meo_*` schema.
+- Declared the Node server entrypoint in `package.json` and documented Vercel deployment settings.
