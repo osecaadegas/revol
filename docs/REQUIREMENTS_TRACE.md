@@ -46,7 +46,8 @@ The app must first behave like a public labor-market board:
 | Requirement | Implementation |
 | --- | --- |
 | Public client access only | Public shell exposes `Area do Cliente` and login/register controls without project details |
-| Private project dashboard | Authenticated `Projeto` workspace tab for `company` and `manager` users |
+| Private project dashboard | Authenticated `Projeto` workspace tab for `company` and `manager` users; content is served by `/api/project/private` |
+| Private data not in public bundle | Detailed project copy is generated server-side in `server/private-project.js`, not embedded in `public/app.js` |
 | Main public navigation | Only `Area do Cliente` is shown to unauthenticated visitors |
 | Project status dashboard | Data-driven `projectPhases` and `renderProjectStatusSection()` |
 | Roadmap | Data-driven `roadmapSteps` and responsive `renderRoadmapSection()` |

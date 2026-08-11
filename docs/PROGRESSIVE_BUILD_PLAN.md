@@ -140,6 +140,7 @@ Status: complete.
 - Moved project status, roadmap, modules, scope, requirements, acceptance criteria, deliverables, documentation, feedback and changelog into an authenticated `Projeto` workspace tab.
 - Limited the private `Projeto` tab to the existing `company` and `manager` roles until dedicated client/developer roles are introduced.
 - Removed public navigation links to Manifesto, Projeto, Modulos, Roadmap, Documentacao and Changelog.
+- Moved detailed project copy out of `public/app.js` and behind authenticated `/api/project/private` server delivery.
 
 ## Next Recommended Work
 

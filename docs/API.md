@@ -61,6 +61,10 @@ Expires the current token.
 
 Returns current user, company, accessible users, work orders, tasks, evidence metadata, audit log, manager invite list, vacancies, and relevant applications.
 
+`GET /api/project/private`
+
+Company/manager only. Returns the private MANIFESTO project dashboard HTML. Project status, roadmap, requirements, acceptance criteria, deliverables, documentation structure, feedback and changelog are served here instead of being embedded in the public static JavaScript bundle.
+
 `POST /api/job-offers`
 
 Company/manager only. Creates a public vacancy. Important fields: `title`, `position`, `location`, `contractType`, `salary`, `schedule`, `description`, and `requirements`.

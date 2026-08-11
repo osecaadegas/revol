@@ -4,6 +4,7 @@ const fsp = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
 const { URL } = require("url");
+const { renderPrivateProjectHtml } = require("./private-project");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
@@ -1039,6 +1040,14 @@ async function handleApi(req, res, pathname) {
         throw error;
       }
     }
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/project/private") {
+    const db = await readDb();
+    const auth = requireAuth(db, req);
+    requireManager(auth);
+    sendJson(res, 200, { html: renderPrivateProjectHtml() });
     return;
   }
 

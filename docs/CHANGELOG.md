@@ -9,6 +9,7 @@
 - Added `npm run build` as a deploy-time validation script for the Node serverless app.
 - Added `docs/AUDIT.md` with product, UX, architecture and remaining-dependency findings.
 - Restricted public project information to a client access gate and moved status, roadmap, modules, requirements, documentation and changelog into the authenticated `Projeto` workspace tab for company/manager users.
+- Moved private project dashboard content out of the public JavaScript bundle and behind authenticated `/api/project/private`.
 
 ## 2026-08-10
 
