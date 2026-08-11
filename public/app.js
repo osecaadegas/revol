@@ -547,6 +547,7 @@
     const companies = new Set(allJobs.map((job) => job.companyName).filter(Boolean)).size;
     const locations = topMarketValues(allJobs, "location", ["Braga", "Porto", "Lisboa", "Vila Real"]);
     const positions = topMarketValues(allJobs, "position", ["Agricultura", "Construcao", "Servicos", "Logistica"]);
+    const hasFilters = activeMarketFilterCount() > 0;
 
     renderPublicShell(`
       ${noticeHtml()}
@@ -578,11 +579,21 @@
             <div class="landing-suggestions" aria-label="Pesquisas rapidas">
               ${positions.slice(0, 4).map((value) => `<button type="button" data-market-preset="position" data-market-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`).join("")}
             </div>
+            <div class="network-metrics-row" aria-label="Resumo do mercado">
+              <div><strong>${openJobs}</strong><span>vagas abertas</span></div>
+              <div><strong>${companies}</strong><span>empresas ativas</span></div>
+              <div><strong>${locations.length}</strong><span>zonas em destaque</span></div>
+            </div>
           </section>
 
           <aside class="network-action-card" aria-label="Entrada para empresas">
             <h2>Contrate talento</h2>
             <p>Publique vagas, receba candidaturas e faça a triagem dentro da conta empresa.</p>
+            <div class="network-action-list">
+              <span>Vagas publicas sempre visiveis</span>
+              <span>Candidaturas com conta worker</span>
+              <span>Publicacao com conta empresa</span>
+            </div>
             <button class="btn primary full" type="button" data-auth-preset="company">Publicar vaga</button>
             <a class="btn ghost full" href="/cliente">Area do cliente</a>
           </aside>
@@ -606,9 +617,9 @@
             <div class="jobs-feed-header">
               <div>
                 <p class="eyebrow">Resultados</p>
-                <h2>${jobs.length ? `${jobs.length} vagas encontradas` : "Sem vagas encontradas"}</h2>
+                <h2>${jobs.length ? `${jobs.length} vagas ${hasFilters ? "encontradas" : "em destaque"}` : "Sem vagas encontradas"}</h2>
               </div>
-              ${activeMarketFilterCount() ? `<button class="btn ghost" type="button" data-action="clear-market-filters" data-market-context="public">Limpar filtros</button>` : ""}
+              ${hasFilters ? `<button class="btn ghost" type="button" data-action="clear-market-filters" data-market-context="public">Limpar filtros</button>` : ""}
             </div>
             <div class="list jobs-feed">
               ${jobs.length ? jobs.map((job) => renderJobCard(job, { publicMode: true })).join("") : empty(activeMarketFilterCount() ? "Nenhuma vaga corresponde aos filtros escolhidos." : "Ainda nao existem vagas publicadas.")}
@@ -1011,11 +1022,17 @@
     document.querySelectorAll("[data-market-filter-form]").forEach((form) => {
       form.addEventListener("submit", (event) => {
         event.preventDefault();
+        const context = form.dataset.marketFilterForm;
         form.querySelectorAll("[data-market-filter]").forEach((control) => {
           state.marketFilters[control.dataset.marketFilter] = control.value;
         });
         clearNotice();
         renderTarget();
+        if (["landing", "topbar"].includes(context)) {
+          requestAnimationFrame(() => {
+            document.getElementById("vagas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }
       });
     });
 
@@ -1253,8 +1270,8 @@
         ${job.requirements ? `<p><strong>Requisitos:</strong> ${escapeHtml(job.requirements)}</p>` : ""}
         ${publicMode ? `
           <div class="card-actions">
-            <button class="btn accent" data-public-apply="${escapeHtml(job.id)}">Candidatar-me como worker</button>
-            <button class="btn ghost" data-public-create-job>Publicar vaga</button>
+            <button class="btn accent" data-public-apply="${escapeHtml(job.id)}">Candidatar-me</button>
+            <button class="btn ghost" data-auth-preset="login">Entrar</button>
           </div>
         ` : isWorker() ? `
           ${existingApplication ? `<div class="notice success">Candidatura enviada: ${escapeHtml(applicationStatusLabel(existingApplication.status))}</div>` : `

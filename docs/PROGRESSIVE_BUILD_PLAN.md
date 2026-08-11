@@ -169,6 +169,7 @@ Status: complete.
 - Made `/` the public vacancy marketplace instead of the client/project access page.
 - Added a LinkedIn-style job feed layout with first-screen search, quick filters, public result counts, job cards and account actions.
 - Added a network-style landing surface with compact top search, candidate profile entry, central job search and company hiring entry.
+- Modernized the visual system with cleaner 2026-style surfaces, stronger typography hierarchy, polished feed cards, refined auth controls and current interaction states.
 - Kept `/cliente` as the reserved entry for client/developer project information.
 - Removed project-portal copy from the public homepage and kept private project/MVP content behind authenticated endpoints.
 
