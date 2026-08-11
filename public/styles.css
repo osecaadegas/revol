@@ -32,6 +32,7 @@ html {
 body {
   min-height: 100%;
   margin: 0;
+  overflow-x: hidden;
   color: var(--ink);
   background: linear-gradient(180deg, #f8fafc 0, #edf2f7 48%, #f6f8fb 100%);
 }
@@ -95,8 +96,32 @@ a {
 }
 
 .manifesto-shell {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   background: transparent;
+  overflow-x: clip;
+}
+
+.manifesto-shell::before {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 0 42%, rgba(10, 102, 194, 0.055) 43%, rgba(22, 131, 111, 0.04) 45%, transparent 47% 100%),
+    linear-gradient(0deg, rgba(10, 102, 194, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22, 131, 111, 0.035) 1px, transparent 1px);
+  background-position: 0 0, 0 0, 0 0;
+  background-size: 540px 540px, 74px 74px, 74px 74px;
+  content: "";
+  opacity: 0.74;
+  animation: surfaceDrift 34s linear infinite;
+}
+
+.manifesto-shell > * {
+  position: relative;
+  z-index: 1;
 }
 
 .public-topbar {
@@ -114,13 +139,27 @@ a {
   box-shadow: 0 1px 0 rgba(17, 24, 39, 0.04);
 }
 
+.public-topbar::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0, rgba(10, 102, 194, 0.72) 38%, rgba(22, 131, 111, 0.68) 56%, transparent 100%);
+  background-size: 380px 1px;
+  content: "";
+  opacity: 0.5;
+  animation: signalSweep 7s linear infinite;
+}
+
 .public-top-search {
   display: grid;
-  grid-template-columns: minmax(150px, 1.2fr) minmax(130px, 0.9fr) auto;
-  gap: 6px;
+  grid-template-columns: minmax(220px, 1.45fr) minmax(180px, 0.95fr) minmax(112px, auto);
+  gap: 8px;
   align-items: center;
-  flex: 1 1 520px;
-  max-width: 620px;
+  flex: 1 1 780px;
+  max-width: 860px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 5px;
@@ -147,6 +186,7 @@ a {
   color: #fff;
   background: var(--accent);
   font-weight: 850;
+  white-space: nowrap;
 }
 
 .public-brand {
@@ -831,17 +871,17 @@ td span:not(.status-badge) {
 }
 
 .jobs-home {
-  max-width: 1360px;
+  max-width: 1580px;
   margin: 0 auto;
-  padding: clamp(18px, 3.5vw, 34px) clamp(14px, 3.5vw, 36px) 58px;
+  padding: clamp(28px, 3.6vw, 54px) clamp(16px, 4vw, 54px) 64px;
 }
 
 .network-landing {
   display: grid;
-  grid-template-columns: minmax(220px, 0.72fr) minmax(420px, 1.85fr) minmax(280px, 0.92fr);
-  gap: 18px;
+  grid-template-columns: minmax(220px, 0.64fr) minmax(440px, 2.1fr) minmax(270px, 0.82fr);
+  gap: 20px;
   align-items: stretch;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 .network-profile-card,
@@ -851,6 +891,16 @@ td span:not(.status-badge) {
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.98);
   box-shadow: var(--shadow-soft);
+  animation: surfaceEnter 0.48s ease both;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.network-profile-card:hover,
+.network-search-card:hover,
+.network-action-card:hover {
+  border-color: rgba(10, 102, 194, 0.22);
+  box-shadow: 0 18px 48px rgba(17, 24, 39, 0.11);
+  transform: translateY(-1px);
 }
 
 .network-profile-card,
@@ -872,6 +922,8 @@ td span:not(.status-badge) {
   background:
     linear-gradient(135deg, rgba(10, 102, 194, 0.96), rgba(22, 131, 111, 0.96)),
     var(--accent);
+  background-size: 180% 180%;
+  animation: coverShift 10s ease-in-out infinite;
 }
 
 .network-avatar {
@@ -885,6 +937,8 @@ td span:not(.status-badge) {
   color: #fff;
   background: var(--ink);
   font-weight: 950;
+  box-shadow: 0 0 0 0 rgba(10, 102, 194, 0.18);
+  animation: avatarPulse 4.5s ease-in-out infinite;
 }
 
 .network-profile-card h2,
@@ -903,33 +957,62 @@ td span:not(.status-badge) {
 .network-search-card {
   position: relative;
   display: grid;
-  align-content: center;
-  gap: 20px;
-  min-height: 392px;
+  align-content: start;
+  gap: 18px;
+  min-height: 420px;
   overflow: hidden;
-  padding: clamp(24px, 4.5vw, 48px);
+  animation-delay: 0.06s;
+  padding: clamp(30px, 4.2vw, 56px);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 251, 253, 0.99));
 }
 
+.network-search-card::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(120deg, transparent 0 37%, rgba(10, 102, 194, 0.07) 38%, rgba(22, 131, 111, 0.045) 41%, transparent 43% 100%),
+    linear-gradient(90deg, rgba(10, 102, 194, 0.045) 1px, transparent 1px);
+  background-position: 0 0, 0 0;
+  background-size: 520px 520px, 88px 100%;
+  content: "";
+  opacity: 0.78;
+  animation: cardRail 22s linear infinite;
+}
+
+.network-search-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.network-action-card {
+  animation-delay: 0.12s;
+}
+
 .network-search-card h1 {
-  max-width: 780px;
+  max-width: 920px;
   margin: 0;
-  font-size: clamp(2.25rem, 5vw, 5.2rem);
-  line-height: 0.94;
+  font-size: clamp(2.35rem, 4.4vw, 4.65rem);
+  line-height: 1.02;
   letter-spacing: 0;
 }
 
 .landing-search-card {
   display: grid;
-  grid-template-columns: minmax(180px, 1.35fr) minmax(150px, 0.95fr) auto;
-  gap: 10px;
+  grid-template-columns: minmax(240px, 1.6fr) minmax(190px, 1fr) minmax(154px, auto);
+  gap: 12px;
   align-items: end;
+  width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 10px;
+  padding: 12px;
   background: #fff;
   box-shadow: 0 16px 40px rgba(17, 24, 39, 0.1);
+}
+
+.landing-search-card .field {
+  min-width: 0;
 }
 
 .landing-search-card .field input {
@@ -1061,8 +1144,8 @@ td span:not(.status-badge) {
 
 .jobs-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.85fr) minmax(280px, 0.92fr);
-  gap: 16px;
+  grid-template-columns: minmax(210px, 0.65fr) minmax(0, 2.05fr) minmax(270px, 0.82fr);
+  gap: 18px;
   align-items: start;
   scroll-margin-top: 92px;
 }
@@ -1395,6 +1478,7 @@ td span:not(.status-badge) {
 .field {
   display: grid;
   gap: 7px;
+  min-width: 0;
 }
 
 .field label {
@@ -1409,6 +1493,7 @@ td span:not(.status-badge) {
 .filter-row input,
 .filter-row select {
   width: 100%;
+  min-width: 0;
   min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -1442,15 +1527,17 @@ td span:not(.status-badge) {
   padding: 10px 14px;
   font-weight: 850;
   text-decoration: none;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, border-color 0.16s ease;
 }
 
 .btn:hover {
   box-shadow: 0 8px 22px rgba(17, 24, 39, 0.1);
+  transform: translateY(-1px);
 }
 
 .btn:active {
-  transform: translateY(1px);
+  transform: translateY(0);
 }
 
 .btn.primary {
@@ -1952,8 +2039,8 @@ td span:not(.status-badge) {
 
 .market-filter-main {
   display: grid;
-  grid-template-columns: minmax(180px, 1.25fr) minmax(160px, 1fr) minmax(160px, 1fr) 150px;
-  gap: 10px;
+  grid-template-columns: minmax(230px, 1.35fr) minmax(185px, 1fr) minmax(200px, 1.05fr) minmax(155px, 0.72fr);
+  gap: 12px;
 }
 
 .field.compact {
@@ -2094,6 +2181,83 @@ td span:not(.status-badge) {
 
 .mobile-nav {
   display: none;
+}
+
+@keyframes surfaceDrift {
+  to {
+    background-position: 540px 540px, 74px 74px, 74px 74px;
+  }
+}
+
+@keyframes signalSweep {
+  to {
+    background-position: 380px 0;
+  }
+}
+
+@keyframes cardRail {
+  to {
+    background-position: 520px 520px, 88px 0;
+  }
+}
+
+@keyframes coverShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes avatarPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(10, 102, 194, 0.14);
+  }
+
+  50% {
+    box-shadow: 0 0 0 9px rgba(10, 102, 194, 0.04);
+  }
+}
+
+@keyframes surfaceEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 1440px) {
+  .network-landing {
+    grid-template-columns: minmax(240px, 0.56fr) minmax(700px, 2.5fr) minmax(300px, 0.82fr);
+  }
+
+  .jobs-layout {
+    grid-template-columns: minmax(240px, 0.58fr) minmax(680px, 2.55fr) minmax(300px, 0.82fr);
+  }
+}
+
+@media (max-width: 1439px) and (min-width: 981px) {
+  .public-top-search {
+    display: none;
+  }
+
+  .landing-search-card,
+  .market-filter-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-search-card .btn {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 980px) {
