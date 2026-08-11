@@ -116,6 +116,40 @@ a {
   backdrop-filter: blur(18px);
 }
 
+.public-top-search {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(130px, 0.9fr) auto;
+  gap: 6px;
+  align-items: center;
+  flex: 1 1 520px;
+  max-width: 620px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px;
+  background: #fff;
+}
+
+.public-top-search input {
+  min-width: 0;
+  min-height: 34px;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--soft);
+  outline: 0;
+}
+
+.public-top-search button,
+.public-nav-button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 7px;
+  padding: 8px 11px;
+  color: #fff;
+  background: var(--ink);
+  font-weight: 850;
+}
+
 .public-brand {
   display: flex;
   align-items: center;
@@ -162,6 +196,11 @@ a {
 .public-nav a.active {
   color: var(--ink);
   background: #fff;
+}
+
+.public-nav-button {
+  color: var(--accent);
+  background: #edf4fc;
 }
 
 .public-menu-button {
@@ -795,6 +834,122 @@ td span:not(.status-badge) {
   max-width: 1320px;
   margin: 0 auto;
   padding: clamp(22px, 4vw, 42px) clamp(16px, 4vw, 42px) 56px;
+}
+
+.network-landing {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.network-profile-card,
+.network-search-card,
+.network-action-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 1px 0 rgba(16, 35, 31, 0.03);
+}
+
+.network-profile-card,
+.network-action-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  overflow: hidden;
+  padding: 14px;
+}
+
+.network-profile-card {
+  text-align: center;
+}
+
+.network-cover {
+  height: 64px;
+  margin: -14px -14px 0;
+  background:
+    linear-gradient(90deg, rgba(45, 103, 177, 0.96), rgba(40, 117, 111, 0.96)),
+    var(--accent);
+}
+
+.network-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: -34px auto 0;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--ink);
+  font-weight: 950;
+}
+
+.network-profile-card h2,
+.network-action-card h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.network-profile-card p,
+.network-action-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.network-search-card {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  padding: clamp(20px, 4vw, 38px);
+}
+
+.network-search-card h1 {
+  max-width: 780px;
+  margin: 0;
+  font-size: clamp(2.15rem, 4.8vw, 4.7rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+.landing-search-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.3fr) minmax(150px, 0.95fr) auto;
+  gap: 10px;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--paper);
+}
+
+.landing-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.landing-suggestions button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 11px;
+  color: var(--muted);
+  background: #fff;
+  font-weight: 800;
+}
+
+.landing-suggestions button:hover {
+  border-color: rgba(45, 103, 177, 0.32);
+  color: var(--accent);
+  background: #edf4fc;
+}
+
+.network-action-card {
+  align-content: center;
 }
 
 .jobs-hero {
@@ -1854,6 +2009,7 @@ td span:not(.status-badge) {
   .main-layout,
   .section-grid,
   .public-grid,
+  .network-landing,
   .jobs-layout,
   .client-login-page,
   .manifesto-hero,
@@ -1871,6 +2027,10 @@ td span:not(.status-badge) {
   .public-menu-button {
     display: block;
     flex: 0 0 auto;
+  }
+
+  .public-top-search {
+    display: none;
   }
 
   .public-nav {
@@ -1891,6 +2051,10 @@ td span:not(.status-badge) {
   }
 
   .public-nav a {
+    width: 100%;
+  }
+
+  .public-nav-button {
     width: 100%;
   }
 
@@ -1939,6 +2103,10 @@ td span:not(.status-badge) {
   .jobs-account-panel,
   .client-login-panel {
     position: static;
+  }
+
+  .landing-search-card {
+    grid-template-columns: 1fr;
   }
 
   .auth-facts,

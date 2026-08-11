@@ -1,6 +1,6 @@
 # MANIFESTO
 
-Public worker/company marketplace plus private Phase 1 operational evidence workflows. The public homepage is a LinkedIn-style vacancy board; project status, roadmap, modules, documentation structure, changelog and traceability are reserved for authenticated client/developer access.
+Public worker/company marketplace plus private Phase 1 operational evidence workflows. The public homepage is a LinkedIn-style vacancy board and job-network landing; project status, roadmap, modules, documentation structure, changelog and traceability are reserved for authenticated client/developer access.
 
 ## Quick Start
 

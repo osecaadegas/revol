@@ -449,6 +449,13 @@
             <span>Vagas e trabalho</span>
           </div>
         </a>
+        ${activeRoute === "home" ? `
+          <form class="public-top-search" data-market-filter-form="topbar">
+            <input data-market-filter="query" value="${escapeHtml(state.marketFilters.query)}" placeholder="Pesquisar vagas">
+            <input data-market-filter="location" value="${escapeHtml(state.marketFilters.location)}" placeholder="Localizacao">
+            <button type="submit">Pesquisar</button>
+          </form>
+        ` : ""}
         <button class="public-menu-button" type="button" data-action="toggle-public-menu" aria-expanded="${state.publicMenuOpen ? "true" : "false"}" aria-label="Abrir navegacao">
           <span></span><span></span><span></span>
         </button>
@@ -459,6 +466,10 @@
               return `<a href="${href}" class="${active ? "active" : ""}" data-close-public-menu>${escapeHtml(label)}</a>`;
             })
             .join("")}
+          ${activeRoute === "home" ? `
+            <a href="#acesso" data-auth-preset="login">Entrar</a>
+            <button class="public-nav-button" type="button" data-auth-preset="company">Publicar vaga</button>
+          ` : ""}
         </nav>
       </header>
     `;
@@ -541,16 +552,40 @@
       ${noticeHtml()}
       ${state.publicJobsWarning ? `<div class="public-warning notice error">${escapeHtml(state.publicJobsWarning)}</div>` : ""}
       <section class="jobs-home">
-        <section class="jobs-hero">
-          <div class="jobs-hero-copy">
+        <section class="network-landing">
+          <aside class="network-profile-card" aria-label="Entrada para candidatos">
+            <div class="network-cover"></div>
+            <div class="network-avatar">W</div>
+            <h2>Perfil candidato</h2>
+            <p>Crie uma conta worker para guardar candidaturas e responder a ofertas abertas.</p>
+            <button class="btn accent full" type="button" data-auth-preset="worker">Criar perfil</button>
+          </aside>
+
+          <section class="network-search-card">
             <p class="eyebrow">Mercado de trabalho</p>
-            <h1>Encontre vagas abertas perto de si.</h1>
-            <p>Pesquise por cargo, empresa, localizacao e raio. As ofertas ficam sempre visiveis; para candidatar-se crie uma conta worker.</p>
-          </div>
-          <div class="jobs-hero-actions">
-            <a class="btn primary" href="#vagas">Ver vagas</a>
-            <button class="btn ghost" type="button" data-public-create-job>Sou empresa</button>
-          </div>
+            <h1>Encontre trabalho, candidate-se e acompanhe oportunidades.</h1>
+            <form class="landing-search-card" data-market-filter-form="landing">
+              <div class="field compact">
+                <label>Cargo, empresa ou palavra-chave</label>
+                <input data-market-filter="query" value="${escapeHtml(state.marketFilters.query)}" placeholder="Ex: operador agricola, pintor, logistica">
+              </div>
+              <div class="field compact">
+                <label>Localizacao</label>
+                <input data-market-filter="location" value="${escapeHtml(state.marketFilters.location)}" placeholder="Braga, Porto, Lisboa">
+              </div>
+              <button class="btn primary" type="submit">Pesquisar vagas</button>
+            </form>
+            <div class="landing-suggestions" aria-label="Pesquisas rapidas">
+              ${positions.slice(0, 4).map((value) => `<button type="button" data-market-preset="position" data-market-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`).join("")}
+            </div>
+          </section>
+
+          <aside class="network-action-card" aria-label="Entrada para empresas">
+            <h2>Contrate talento</h2>
+            <p>Publique vagas, receba candidaturas e faça a triagem dentro da conta empresa.</p>
+            <button class="btn primary full" type="button" data-auth-preset="company">Publicar vaga</button>
+            <a class="btn ghost full" href="/cliente">Area do cliente</a>
+          </aside>
         </section>
 
         <section class="jobs-layout" id="vagas">
@@ -943,6 +978,18 @@
         state.authMode = "company";
         setNotice("Registe-se como empresa para publicar vagas.");
         renderPublicBoard();
+      });
+    });
+
+    document.querySelectorAll("[data-auth-preset]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        state.authMode = button.dataset.authPreset || "login";
+        clearNotice();
+        renderPublicBoard();
+        requestAnimationFrame(() => {
+          document.getElementById("acesso")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
       });
     });
 
