@@ -28,7 +28,9 @@ http://localhost:4173
 
 ## First Run
 
-When the app opens, visitors see the public vacancy board even without an account. Use the filters at the top of the board to search by company/keyword/contract, cargo or function, location, and radius around known Portuguese cities.
+When the app opens, visitors see the MANIFESTO public project portal even without an account. The portal includes project status, roadmap, scope, modules, documentation structure, client area, changelog and the public vacancy board.
+
+Use the vacancy filters in the marketplace section to search by company/keyword/contract, cargo or function, location, and radius around known Portuguese cities.
 
 To use the marketplace:
 
@@ -152,10 +154,15 @@ If the public page shows a database setup warning, verify that `supabase/admin/r
 Run:
 
 ```bash
+npm run build
 npm run check
 npm run smoke
 ```
 
+`npm run build` runs deploy-time syntax validation. The production app uses the root `server.js` serverless entrypoint and does not require a generated static build directory.
+
 `npm run check` validates JavaScript syntax.
 
 `npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, application submission, application review, user creation, work order creation, task assignment, evidence upload, task submission, manager approval, and authenticated image access.
+
+Manual UI verification should include `/`, `/cliente`, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms and authenticated workspace routes.

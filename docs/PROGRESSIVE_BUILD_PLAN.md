@@ -121,14 +121,26 @@ Status: complete.
 - Kept the public landing page renderable when Supabase setup is incomplete.
 - Added a visible setup warning for the public jobs board instead of failing the whole boot flow.
 
+### M12 - MANIFESTO Portal UX
+
+Status: complete.
+
+- Repositioned the public surface as MANIFESTO, a professional engineering project portal.
+- Added public navigation for Manifesto, Projeto, Modulos, Roadmap, Documentacao, Area do Cliente and Changelog.
+- Added data-driven public sections for project status, roadmap, MVP scope, future evolution, modules, technical base, requirement traceability, acceptance criteria, deliverables, documentation, change requests and feedback.
+- Added `/cliente` and `/changelog` public routes.
+- Updated metadata, PWA manifest, icon and design system for the MANIFESTO brand.
+- Preserved the marketplace and operational workspace as existing MVP functionality.
+
 ## Next Recommended Work
 
 1. Run `supabase/admin/reset_to_current_schema.sql` once in the dirty Supabase project.
 2. Configure deployment environment variables for Supabase.
 3. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
-4. Add browser-driven regression coverage for public filtering and worker application.
-5. Add optional email delivery for worker/company notifications.
-6. Add client-specific branding only after receiving approved logo, colors, and copy.
+4. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+5. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+6. Add browser-driven regression coverage for public routes, public filtering and worker application.
+7. Add optional email delivery for worker/company notifications.
 
 ## Agent Update Protocol
 

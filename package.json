@@ -2,11 +2,12 @@
   "name": "motor-evidencia-operacional",
   "version": "0.1.0",
   "private": true,
-  "description": "Phase 1 mobile-first work order, task, and evidence webapp.",
+  "description": "MANIFESTO engineering project portal and Phase 1 operational webapp.",
   "main": "server.js",
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
+    "build": "node server/check.js",
     "check": "node server/check.js",
     "smoke": "node server/smoke-test.js"
   },

@@ -10,6 +10,7 @@
     data: null,
     publicJobs: [],
     publicJobsWarning: "",
+    publicMenuOpen: false,
     notice: null,
     selectedTaskId: null,
     filters: {
@@ -77,6 +78,362 @@
     "ponta delgada": { lat: 37.7412, lon: -25.6756, label: "Ponta Delgada" },
     funchal: { lat: 32.6669, lon: -16.9241, label: "Funchal" }
   };
+
+  const productVersion = {
+    name: "MANIFESTO",
+    version: "v0.4.0",
+    stage: "Fase 1 - MVP em desenvolvimento",
+    lastUpdated: "2026-08-11",
+    completionLabel: "Progresso formal por validar",
+    completionNote:
+      "A percentagem contratual deve ser aprovada com o cliente. Esta vista mostra progresso por etapas e evidencias tecnicas."
+  };
+
+  const publicNavItems = [
+    ["Manifesto", "/#manifesto"],
+    ["Projeto", "/#projeto"],
+    ["Modulos", "/#modulos"],
+    ["Roadmap", "/#roadmap"],
+    ["Documentacao", "/#documentacao"],
+    ["Area do Cliente", "/cliente"]
+  ];
+
+  const projectPhases = [
+    {
+      title: "Levantamento de requisitos",
+      status: "completed",
+      note: "Documentos de base e requisitos Phase 1 identificados."
+    },
+    {
+      title: "Arquitetura do sistema",
+      status: "completed",
+      note: "Frontend estatico, API Node, persistencia local/Supabase."
+    },
+    {
+      title: "Desenvolvimento do MVP",
+      status: "in-development",
+      note: "Mercado publico, contas, tarefas, evidencias e auditoria implementados em iteracao."
+    },
+    {
+      title: "Testes tecnicos",
+      status: "in-development",
+      note: "Syntax check e smoke test automatizado existem; testes de cliente ainda pendentes."
+    },
+    {
+      title: "Validacao pelo cliente",
+      status: "pending",
+      note: "Pendente de revisao formal, feedback e criterios de aceitacao."
+    },
+    {
+      title: "Producao",
+      status: "pending",
+      note: "Dependente de Supabase final, variaveis Vercel e validacao."
+    }
+  ];
+
+  const roadmapSteps = [
+    ["01", "Discovery", "completed", "Recolha documental e definicao do produto inicial."],
+    ["02", "Arquitetura", "completed", "Modelo tecnico e separacao frontend/API/persistencia."],
+    ["03", "MVP", "current", "Portal, mercado, operacoes, evidencias e auditabilidade."],
+    ["04", "Testes", "pending", "Regressao UI, validacao cliente e verificacao Supabase."],
+    ["05", "Validacao", "pending", "Aprovacao de escopo, criterios e entregaveis."],
+    ["06", "Entrega", "pending", "Deploy final, documentacao operacional e handoff."]
+  ];
+
+  const mvpScope = {
+    included: [
+      "Pagina publica MANIFESTO com estado do projeto, roadmap, modulos e documentacao preparada.",
+      "Mercado de vagas publico com filtros por pesquisa, cargo, localizacao e raio.",
+      "Registo de worker para candidatura e registo de empresa para publicacao de vagas.",
+      "Area autenticada com ordens de trabalho, tarefas, evidencias fotograficas e validacao.",
+      "Historico/auditoria basica das acoes principais.",
+      "Persistencia local para desenvolvimento e Supabase para ambiente real."
+    ],
+    excluded: [
+      "Aplicacoes nativas Android/iOS.",
+      "Sincronizacao offline avancada e notificacoes push nativas.",
+      "Analise automatica de imagens por IA.",
+      "Pagamentos, faturacao, salarios, contabilidade ou seguros.",
+      "Integracoes externas e automatizacoes avancadas.",
+      "Aprovacoes legais, fiscais, laborais ou GDPR completas.",
+      "Conteudo detalhado dos manuais sem mapeamento formal aprovado."
+    ]
+  };
+
+  const platformComparison = [
+    {
+      title: "MANIFESTO MVP",
+      status: "Contratado / em desenvolvimento",
+      items: [
+        "Portal de acompanhamento do projeto.",
+        "Mercado de vagas e candidaturas autenticadas.",
+        "Operacoes com ordens, tarefas e evidencias.",
+        "Auditoria basica e documentacao tecnica."
+      ]
+    },
+    {
+      title: "Evolucao da Plataforma",
+      status: "Possibilidades futuras",
+      items: [
+        "Analytics avancado e relatorios executivos.",
+        "Automacao de workflows e permissoes granulares.",
+        "Base de requisitos ligada a Supabase.",
+        "Ferramentas assistidas por IA e dashboards adicionais.",
+        "Integracoes externas quando forem formalmente aprovadas."
+      ]
+    }
+  ];
+
+  const modules = [
+    {
+      id: "portal",
+      title: "Portal de Projeto",
+      status: "in-development",
+      progress: "Fundacao implementada",
+      description: "Apresenta estado, roadmap, escopo, entregas, versoes e acesso preparado para cliente.",
+      requirements: ["REQ-PORTAL-001", "REQ-DOC-001"],
+      detail: "#projeto"
+    },
+    {
+      id: "marketplace",
+      title: "Mercado de Vagas",
+      status: "testing",
+      progress: "Fluxo API coberto por smoke test",
+      description: "Vagas publicas, filtros, contas worker/empresa, candidaturas e revisao pela empresa.",
+      requirements: ["REQ-MKT-001", "REQ-MKT-002", "REQ-MKT-003"],
+      detail: "#mercado"
+    },
+    {
+      id: "operations",
+      title: "Operacoes e Tarefas",
+      status: "testing",
+      progress: "MVP funcional",
+      description: "Ordens de trabalho, atribuicao de tarefas, estados operacionais e bloqueios com justificacao.",
+      requirements: ["REQ-OPS-001", "REQ-OPS-002"],
+      detail: "/cliente"
+    },
+    {
+      id: "evidence",
+      title: "Evidencia e Validacao",
+      status: "testing",
+      progress: "Privacidade de ficheiros validada em smoke test",
+      description: "Fotografias privadas, notas, timestamp, localizacao pontual e decisao do gestor.",
+      requirements: ["REQ-EVD-001", "REQ-EVD-002"],
+      detail: "/cliente"
+    },
+    {
+      id: "traceability",
+      title: "Rastreabilidade de Requisitos",
+      status: "planned",
+      progress: "Estrutura UI criada",
+      description: "Modelo Manual -> Requisito -> Funcionalidade -> Estado, pronto para base de dados futura.",
+      requirements: ["REQ-TRACE-001"],
+      detail: "#rastreabilidade"
+    },
+    {
+      id: "documents",
+      title: "Centro de Documentacao",
+      status: "planned",
+      progress: "Catalogo protegido preparado",
+      description: "Organizacao de manuais, especificacao MVP, roadmap, criterios e changelog sem expor ficheiros privados.",
+      requirements: ["REQ-DOC-001"],
+      detail: "#documentacao"
+    }
+  ];
+
+  const manualBlocks = [
+    ["Bloco I", "Manual de Engenharia - Bloco I", "Base documental recebida; requisitos detalhados por mapear."],
+    ["Bloco II", "Manual de Engenharia - Bloco II", "Base documental recebida; matriz tecnica preparada."],
+    ["Bloco III", "Manual de Engenharia - Bloco III", "Base documental recebida; ligacao a modulos pendente."],
+    ["Bloco IV", "Manual de Engenharia - Bloco IV", "Base documental recebida; validacao formal pendente."],
+    ["Bloco V", "Manual de Engenharia - Bloco V", "Base documental recebida; criterios de software por aprovar."]
+  ];
+
+  const requirements = [
+    {
+      id: "REQ-MKT-001",
+      source: "Contrato / correcao de conceito",
+      name: "Vagas publicas",
+      description: "O visitante consegue ver ofertas sem iniciar sessao.",
+      module: "Mercado de Vagas",
+      status: "implemented",
+      validation: "Smoke test API"
+    },
+    {
+      id: "REQ-MKT-002",
+      source: "Contrato / correcao de conceito",
+      name: "Candidatura autenticada",
+      description: "A candidatura exige conta worker e impede duplicados por vaga.",
+      module: "Mercado de Vagas",
+      status: "implemented",
+      validation: "Smoke test API"
+    },
+    {
+      id: "REQ-MKT-003",
+      source: "Contrato / correcao de conceito",
+      name: "Publicacao por empresa",
+      description: "Criar vagas exige conta empresa ou gestor autorizado.",
+      module: "Mercado de Vagas",
+      status: "implemented",
+      validation: "Smoke test API"
+    },
+    {
+      id: "REQ-OPS-001",
+      source: "Anexo de fase 1",
+      name: "Ordens e tarefas",
+      description: "Gestor cria ordens e tarefas com responsavel e prazo.",
+      module: "Operacoes e Tarefas",
+      status: "implemented",
+      validation: "Smoke test API"
+    },
+    {
+      id: "REQ-EVD-001",
+      source: "Anexo de fase 1",
+      name: "Evidencia privada",
+      description: "Fotografias sao privadas e servidas apenas por API autenticada.",
+      module: "Evidencia e Validacao",
+      status: "implemented",
+      validation: "Smoke test API"
+    },
+    {
+      id: "REQ-TRACE-001",
+      source: "Manuais de Engenharia",
+      name: "Rastreabilidade documental",
+      description: "Manual, requisito, modulo e estado devem poder ser ligados futuramente.",
+      module: "Rastreabilidade de Requisitos",
+      status: "in-development",
+      validation: "UI foundation"
+    }
+  ];
+
+  const acceptanceCriteria = [
+    {
+      module: "Mercado de Vagas",
+      status: "testing",
+      checks: [
+        ["Vagas abertas aparecem ao publico", "passed"],
+        ["Worker autenticado consegue candidatar-se", "passed"],
+        ["Empresa consegue publicar vaga", "passed"],
+        ["Revisao de candidaturas pela empresa", "passed"],
+        ["Validacao cliente", "not-tested"]
+      ]
+    },
+    {
+      module: "Operacoes e Evidencias",
+      status: "testing",
+      checks: [
+        ["Gestor cria ordem de trabalho", "passed"],
+        ["Gestor atribui tarefa", "passed"],
+        ["Responsavel submete evidencia", "passed"],
+        ["Imagem privada exige autenticacao", "passed"],
+        ["Validacao em producao Supabase", "not-tested"]
+      ]
+    },
+    {
+      module: "Portal MANIFESTO",
+      status: "testing",
+      checks: [
+        ["Informacao de escopo separa MVP e futuro", "testing"],
+        ["Documentacao privada nao e ligada publicamente", "testing"],
+        ["Cliente entende estado do projeto rapidamente", "not-tested"]
+      ]
+    }
+  ];
+
+  const deliverables = [
+    {
+      title: "Aplicacao web MVP",
+      status: "completed",
+      phase: "MVP",
+      date: "2026-08-10",
+      description: "Frontend, API Node, autenticacao, mercado, operacoes e evidencias."
+    },
+    {
+      title: "Migrations Supabase",
+      status: "completed",
+      phase: "Base de dados",
+      date: "2026-08-10",
+      description: "Tabelas meo_*, RLS e bucket privado de evidencias."
+    },
+    {
+      title: "Portal publico MANIFESTO",
+      status: "in-development",
+      phase: "Acompanhamento",
+      date: "2026-08-11",
+      description: "Estado, roadmap, modulos, escopo, documentacao e area de cliente."
+    },
+    {
+      title: "Validacao Supabase em producao",
+      status: "pending",
+      phase: "Producao",
+      date: "Sem data formal",
+      description: "Depende de reset SQL, variaveis Vercel e teste com dados reais."
+    },
+    {
+      title: "Aprovacao formal do cliente",
+      status: "pending",
+      phase: "Validacao",
+      date: "Sem data formal",
+      description: "Criterios de aceitacao e feedback final por validar."
+    }
+  ];
+
+  const versionHistory = [
+    {
+      version: "v0.4.0",
+      date: "2026-08-11",
+      added: ["Portal MANIFESTO", "Area do Cliente preparada", "Changelog publico"],
+      improved: ["Arquitetura de dados UI", "Responsividade publica", "Documentacao de projeto"],
+      fixed: ["Estado publico quando Supabase ainda nao esta preparado"]
+    },
+    {
+      version: "v0.3.2",
+      date: "2026-08-10",
+      added: ["Adaptador Vercel", "Fallback publico para vagas"],
+      improved: ["Deploy Node serverless"],
+      fixed: ["Entrypoint de producao"]
+    },
+    {
+      version: "v0.3.0",
+      date: "2026-08-10",
+      added: ["Mercado de vagas", "Registo worker/empresa", "Filtros por localizacao e raio"],
+      improved: ["Modelo Supabase"],
+      fixed: []
+    }
+  ];
+
+  const documentGroups = [
+    {
+      title: "Engenharia",
+      visibility: "Preparado para acesso protegido",
+      items: ["Manual Bloco I", "Manual Bloco II", "Manual Bloco III", "Manual Bloco IV", "Manual Bloco V"]
+    },
+    {
+      title: "Projeto",
+      visibility: "Publico / operacional",
+      items: ["Especificacao MVP", "Roadmap", "Arquitetura", "Acceptance Criteria", "Relatorio de Testes", "Changelog"]
+    },
+    {
+      title: "Comercial / Legal",
+      visibility: "Nao exposto publicamente",
+      items: ["Contrato", "Proposta", "Entregaveis formais"]
+    }
+  ];
+
+  const clientDashboardCards = [
+    ["Progresso", "Estado por etapas e riscos pendentes."],
+    ["Roadmap", "Fase atual, proxima fase e entrega."],
+    ["Modulos", "O que existe, o que esta em teste e o que esta planeado."],
+    ["Entregas", "Itens concluidos, em desenvolvimento e pendentes."],
+    ["Documentos", "Centro preparado para acesso protegido."],
+    ["Feedback", "Observacoes do cliente sem alterar escopo automaticamente."],
+    ["Pedidos de alteracao", "Controlo formal de impacto em custo, prazo e escopo."],
+    ["Testes", "Criterios mensuraveis e validacao por modulo."],
+    ["Versoes", "Historico de alteracoes por versao."]
+  ];
+
+  const changeRequests = [];
+  const feedbackItems = [];
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -334,66 +691,610 @@
     return `<div class="notice ${state.notice.type}">${escapeHtml(state.notice.message)}</div>`;
   }
 
-  function renderAuthHero() {
+  function publicRoute() {
+    const path = location.pathname.replace(/\/+$/, "") || "/";
+    if (path === "/cliente" || path === "/dashboard") return "cliente";
+    if (path === "/changelog") return "changelog";
+    return "home";
+  }
+
+  function statusDisplay(status) {
+    const labels = {
+      completed: "Concluido",
+      "in-development": "Em desenvolvimento",
+      current: "Fase atual",
+      pending: "Pendente",
+      planned: "Planeado",
+      testing: "Em teste",
+      implemented: "Implementado",
+      passed: "Aprovado em teste",
+      "not-tested": "Nao testado"
+    };
+    return labels[status] || status;
+  }
+
+  function renderStatusBadge(status) {
+    return `<span class="status-badge ${escapeHtml(status)}">${escapeHtml(statusDisplay(status))}</span>`;
+  }
+
+  function renderPublicTopNav(activeRoute = "home") {
     return `
-      <section class="auth-hero">
-        <div class="side-brand">
-          <span class="brand-mark">ME</span>
+      <header class="public-topbar">
+        <a class="public-brand" href="/">
+          <span class="brand-mark">M</span>
           <div>
-            <strong>Motor de Evidencia</strong>
-            <span>Operacoes com prova</span>
+            <strong>MANIFESTO</strong>
+            <span>Plataforma Digital de Engenharia</span>
+          </div>
+        </a>
+        <button class="public-menu-button" type="button" data-action="toggle-public-menu" aria-expanded="${state.publicMenuOpen ? "true" : "false"}" aria-label="Abrir navegacao">
+          <span></span><span></span><span></span>
+        </button>
+        <nav class="public-nav ${state.publicMenuOpen ? "open" : ""}" aria-label="Navegacao principal">
+          ${publicNavItems
+            .map(([label, href]) => `<a href="${href}" class="${activeRoute === "cliente" && href === "/cliente" ? "active" : ""}" data-close-public-menu>${escapeHtml(label)}</a>`)
+            .join("")}
+          <a class="${activeRoute === "changelog" ? "active" : ""}" href="/changelog" data-close-public-menu>Changelog</a>
+        </nav>
+      </header>
+    `;
+  }
+
+  function renderPublicShell(content, route = "home") {
+    document.title = route === "changelog"
+      ? "Changelog - MANIFESTO"
+      : route === "cliente"
+        ? "Area do Cliente - MANIFESTO"
+        : "MANIFESTO - Plataforma Digital de Engenharia";
+    app.innerHTML = `
+      <main class="manifesto-shell">
+        ${renderPublicTopNav(route)}
+        ${content}
+        ${renderPublicFooter()}
+      </main>
+    `;
+    bindPublicEvents();
+    bindAuthForms();
+  }
+
+  function renderPublicFooter() {
+    return `
+      <footer class="public-footer">
+        <div>
+          <strong>MANIFESTO</strong>
+          <span>${escapeHtml(productVersion.stage)} - ${escapeHtml(productVersion.version)}</span>
+        </div>
+        <a href="/changelog">Historico de versoes</a>
+      </footer>
+    `;
+  }
+
+  function renderManifestoHero() {
+    return `
+      <section class="manifesto-hero" id="manifesto">
+        <div class="hero-copy">
+          <p class="eyebrow">MANIFESTO</p>
+          <h1>Plataforma Digital de Engenharia</h1>
+          <p>Centraliza processos de engenharia, informacao de projeto, documentacao tecnica, fluxos operacionais e rastreabilidade de desenvolvimento num portal claro para cliente e equipa.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#projeto">Ver Projeto</a>
+            <a class="btn ghost" href="#roadmap">Acompanhar Desenvolvimento</a>
+          </div>
+          <div class="version-strip">
+            <span>${escapeHtml(productVersion.stage)}</span>
+            <strong>${escapeHtml(productVersion.version)}</strong>
+            <span>Atualizado ${formatDate(productVersion.lastUpdated)}</span>
           </div>
         </div>
-        <div class="auth-title">
-          <p class="eyebrow">Webapp mobile-first</p>
-          <h1>Vagas abertas, trabalhadores registados e prova de execucao.</h1>
-          <p>Uma rede operacional onde ofertas ficam visiveis para todos, workers candidatam-se com conta propria, e empresas publicam oportunidades com rasto auditavel.</p>
-        </div>
-        <div class="auth-facts">
-          <div class="fact"><strong>Publico</strong><span>vagas sempre visiveis</span></div>
-          <div class="fact"><strong>Worker</strong><span>candidaturas autenticadas</span></div>
-          <div class="fact"><strong>Empresa</strong><span>criacao de vagas</span></div>
+        <div class="engineering-panel" aria-label="Resumo tecnico do projeto">
+          <div class="technical-grid">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="system-stack">
+            <div><span>Frontend</span><strong>Static JS</strong></div>
+            <div><span>API</span><strong>Node</strong></div>
+            <div><span>Dados</span><strong>Supabase-ready</strong></div>
+            <div><span>Estado</span><strong>MVP</strong></div>
+          </div>
         </div>
       </section>
     `;
   }
 
+  function renderAuthHero() {
+    return renderManifestoHero();
+  }
+
   function renderPublicBoard() {
+    const route = publicRoute();
+    if (route === "cliente") {
+      renderClientAreaPage();
+      return;
+    }
+    if (route === "changelog") {
+      renderChangelogPage();
+      return;
+    }
+    renderPublicShell(`
+      ${noticeHtml()}
+      ${state.publicJobsWarning ? `<div class="public-warning notice error">${escapeHtml(state.publicJobsWarning)}</div>` : ""}
+      ${renderManifestoHero()}
+      ${renderProjectStatusSection()}
+      ${renderRoadmapSection()}
+      ${renderScopeSection()}
+      ${renderPlatformComparisonSection()}
+      ${renderModulesSection()}
+      ${renderTechnicalBaseSection()}
+      ${renderRequirementsSection()}
+      ${renderAcceptanceSection()}
+      ${renderDeliverablesSection()}
+      ${renderDocumentationSection()}
+      ${renderChangeRequestSection()}
+      ${renderFeedbackSection()}
+      ${renderPublicJobsSection()}
+      ${renderClientCtaSection()}
+    `, "home");
+  }
+
+  function renderProjectStatusSection() {
+    const completed = projectPhases.filter((phase) => phase.status === "completed").length;
+    const active = projectPhases.find((phase) => phase.status === "in-development");
+    return `
+      <section class="public-section" id="projeto">
+        <div class="section-heading">
+          <p class="eyebrow">Estado do Projeto</p>
+          <h2>Controlo visivel da fase atual</h2>
+          <p>${escapeHtml(productVersion.completionNote)}</p>
+        </div>
+        <div class="status-dashboard">
+          <article class="status-summary">
+            <span>Estado geral</span>
+            <strong>${escapeHtml(productVersion.completionLabel)}</strong>
+            <p>${completed} de ${projectPhases.length} etapas concluidas ou tecnicamente preparadas. Fase ativa: ${escapeHtml(active?.title || "por definir")}.</p>
+          </article>
+          <div class="phase-list">
+            ${projectPhases.map(renderPhaseItem).join("")}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderPhaseItem(phase) {
+    return `
+      <article class="phase-item">
+        <div>
+          <strong>${escapeHtml(phase.title)}</strong>
+          <p>${escapeHtml(phase.note)}</p>
+        </div>
+        ${renderStatusBadge(phase.status)}
+      </article>
+    `;
+  }
+
+  function renderRoadmapSection() {
+    return `
+      <section class="public-section alt" id="roadmap">
+        <div class="section-heading">
+          <p class="eyebrow">Roadmap</p>
+          <h2>Da descoberta a entrega controlada</h2>
+          <p>O roadmap separa trabalho concluido, fase atual e fases futuras sem apresentar funcionalidades especulativas como contratadas.</p>
+        </div>
+        <div class="roadmap">
+          ${roadmapSteps.map(renderRoadmapStep).join("")}
+        </div>
+        <div class="next-phase">
+          <span>Proxima fase</span>
+          <strong>Validacao tecnica em Supabase e revisao do cliente</strong>
+          <p>Depois da base publica e operacional, o foco passa para executar o reset SQL no projeto Supabase, confirmar variaveis Vercel e validar fluxos reais com criterios de aceitacao.</p>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderRoadmapStep([number, title, status, description]) {
+    return `
+      <article class="roadmap-step ${escapeHtml(status)}">
+        <span>${escapeHtml(number)}</span>
+        <strong>${escapeHtml(title)}</strong>
+        <p>${escapeHtml(description)}</p>
+        ${renderStatusBadge(status)}
+      </article>
+    `;
+  }
+
+  function renderScopeSection() {
+    return `
+      <section class="public-section" id="ambito">
+        <div class="section-heading">
+          <p class="eyebrow">Ambito da Fase Atual</p>
+          <h2>O MVP nao e a plataforma final</h2>
+          <p>Esta separacao protege o contrato, reduz ambiguidade e evita scope creep durante a validacao.</p>
+        </div>
+        <div class="scope-grid">
+          <article class="scope-panel included">
+            <h3>Incluido nesta fase</h3>
+            ${renderBulletList(mvpScope.included)}
+          </article>
+          <article class="scope-panel excluded">
+            <h3>Fora do ambito desta fase</h3>
+            ${renderBulletList(mvpScope.excluded)}
+          </article>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderPlatformComparisonSection() {
+    return `
+      <section class="public-section split" id="evolucao">
+        ${platformComparison.map((item) => `
+          <article class="concept-panel">
+            <span>${escapeHtml(item.status)}</span>
+            <h2>${escapeHtml(item.title)}</h2>
+            ${renderBulletList(item.items)}
+          </article>
+        `).join("")}
+      </section>
+    `;
+  }
+
+  function renderModulesSection() {
+    return `
+      <section class="public-section alt" id="modulos">
+        <div class="section-heading">
+          <p class="eyebrow">Modulos</p>
+          <h2>Arquitetura funcional do MVP</h2>
+          <p>Cada modulo tem estado, relacao a requisitos e caminho para detalhe. A estrutura esta pronta para migrar estes dados para Supabase.</p>
+        </div>
+        <div class="module-grid">
+          ${modules.map(renderModuleCard).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderModuleCard(module) {
+    return `
+      <article class="module-card ${escapeHtml(module.status)}">
+        <div class="module-card-head">
+          <h3>${escapeHtml(module.title)}</h3>
+          ${renderStatusBadge(module.status)}
+        </div>
+        <p>${escapeHtml(module.description)}</p>
+        <div class="meta-row">
+          <span>${escapeHtml(module.progress)}</span>
+        </div>
+        <div class="requirement-tags">
+          ${module.requirements.map((requirement) => `<span>${escapeHtml(requirement)}</span>`).join("")}
+        </div>
+        <a class="text-link" href="${escapeHtml(module.detail)}">Ver detalhe</a>
+      </article>
+    `;
+  }
+
+  function renderTechnicalBaseSection() {
+    return `
+      <section class="public-section" id="base-tecnica">
+        <div class="section-heading">
+          <p class="eyebrow">Base Tecnica do Projeto</p>
+          <h2>Manuais de Engenharia como fonte de rastreabilidade</h2>
+          <p>Os ficheiros existem no repositorio, mas o conteudo detalhado nao e exposto publicamente. A matriz abaixo prepara a ligacao Manual -> Requisito -> Funcionalidade -> Estado.</p>
+        </div>
+        <div class="manual-grid">
+          ${manualBlocks.map(renderManualCard).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderManualCard([block, title, note]) {
+    return `
+      <article class="manual-card">
+        <span>${escapeHtml(block)}</span>
+        <h3>${escapeHtml(title)}</h3>
+        <p>${escapeHtml(note)}</p>
+        <div class="trace-line">
+          <span>Manual</span><span>Requirement</span><span>Modulo</span><span>Status</span>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderRequirementsSection() {
+    return `
+      <section class="public-section alt" id="rastreabilidade">
+        <div class="section-heading">
+          <p class="eyebrow">Requirement Traceability</p>
+          <h2>Modelo reutilizavel de requisitos</h2>
+          <p>IDs internos sao usados para estruturar o MVP atual. Requisitos detalhados dos manuais devem ser aprovados antes de preencher descricoes tecnicas finas.</p>
+        </div>
+        <div class="responsive-table">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fonte</th>
+                <th>Requisito</th>
+                <th>Modulo</th>
+                <th>Desenvolvimento</th>
+                <th>Validacao</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${requirements.map((requirement) => `
+                <tr>
+                  <td data-label="ID">${escapeHtml(requirement.id)}</td>
+                  <td data-label="Fonte">${escapeHtml(requirement.source)}</td>
+                  <td data-label="Requisito"><strong>${escapeHtml(requirement.name)}</strong><span>${escapeHtml(requirement.description)}</span></td>
+                  <td data-label="Modulo">${escapeHtml(requirement.module)}</td>
+                  <td data-label="Desenvolvimento">${renderStatusBadge(requirement.status)}</td>
+                  <td data-label="Validacao">${escapeHtml(requirement.validation)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderAcceptanceSection() {
+    return `
+      <section class="public-section" id="criterios">
+        <div class="section-heading">
+          <p class="eyebrow">Acceptance Criteria</p>
+          <h2>Conclusao medida por criterios, nao por impressao</h2>
+          <p>Os criterios distinguem teste tecnico, teste em progresso e aceitacao formal pelo cliente.</p>
+        </div>
+        <div class="acceptance-grid">
+          ${acceptanceCriteria.map(renderAcceptanceCard).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderAcceptanceCard(group) {
+    return `
+      <article class="acceptance-card">
+        <div class="module-card-head">
+          <h3>${escapeHtml(group.module)}</h3>
+          ${renderStatusBadge(group.status)}
+        </div>
+        <div class="criteria-list">
+          ${group.checks.map(([label, status]) => `
+            <div>
+              <span>${escapeHtml(label)}</span>
+              ${renderStatusBadge(status)}
+            </div>
+          `).join("")}
+        </div>
+      </article>
+    `;
+  }
+
+  function renderDeliverablesSection() {
+    return `
+      <section class="public-section alt" id="entregas">
+        <div class="section-heading">
+          <p class="eyebrow">Entregas</p>
+          <h2>O que existe, o que esta em curso e o que falta</h2>
+        </div>
+        <div class="deliverable-columns">
+          ${["completed", "in-development", "pending"].map((status) => `
+            <div>
+              <h3>${escapeHtml(statusDisplay(status))}</h3>
+              ${deliverables.filter((item) => item.status === status).map(renderDeliverableCard).join("") || empty("Sem itens nesta categoria.")}
+            </div>
+          `).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderDeliverableCard(deliverable) {
+    return `
+      <article class="deliverable-card">
+        ${renderStatusBadge(deliverable.status)}
+        <h4>${escapeHtml(deliverable.title)}</h4>
+        <p>${escapeHtml(deliverable.description)}</p>
+        <div class="meta-row"><span>${escapeHtml(deliverable.phase)}</span><span>${escapeHtml(deliverable.date)}</span></div>
+      </article>
+    `;
+  }
+
+  function renderDocumentationSection() {
+    return `
+      <section class="public-section" id="documentacao">
+        <div class="section-heading">
+          <p class="eyebrow">Documentation Center</p>
+          <h2>Documentacao preparada sem expor ficheiros privados</h2>
+          <p>O centro organiza os grupos certos agora e deixa areas privadas prontas para autenticacao/permissions.</p>
+        </div>
+        <div class="document-grid">
+          ${documentGroups.map((group) => `
+            <article class="document-card">
+              <span>${escapeHtml(group.visibility)}</span>
+              <h3>${escapeHtml(group.title)}</h3>
+              ${renderBulletList(group.items)}
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderChangeRequestSection() {
+    return `
+      <section class="public-section split" id="alteracoes">
+        <article class="concept-panel">
+          <span>Scope control</span>
+          <h2>Pedidos de Alteracao</h2>
+          <p>Cada pedido devera registar prioridade, impacto de escopo, custo, prazo e decisao. Nenhum feedback informal altera automaticamente o MVP.</p>
+          ${changeRequests.length ? changeRequests.map(renderChangeRequestCard).join("") : empty("Sem pedidos formais registados.")}
+        </article>
+        <article class="concept-panel">
+          <span>Review loop</span>
+          <h2>Feedback do Cliente</h2>
+          <p>Observacoes do cliente ficam separadas de pedidos formais de alteracao para manter o processo controlado.</p>
+          ${feedbackItems.length ? feedbackItems.map(renderFeedbackCard).join("") : empty("Sem feedback registado nesta estrutura.")}
+        </article>
+      </section>
+    `;
+  }
+
+  function renderFeedbackSection() {
+    return `
+      <section class="public-section compact-section">
+        <div class="section-heading">
+          <p class="eyebrow">Estados futuros preparados</p>
+          <h2>Loading, empty, error e success</h2>
+          <p>As secoes dinamicas ja mostram estados vazios claros. Quando ligadas a base de dados, deverao manter loading, erro e sucesso por componente.</p>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderPublicJobsSection() {
     const allJobs = state.publicJobs || [];
     const jobs = filterJobs(allJobs);
-    app.innerHTML = `
-      <main class="public-layout">
-        ${renderAuthHero()}
-        <section class="public-content">
-          ${noticeHtml()}
-          ${state.publicJobsWarning ? `<div class="notice error">${escapeHtml(state.publicJobsWarning)}</div>` : ""}
-          <div class="public-heading">
-            <div>
-              <p class="eyebrow" style="color: var(--accent-2)">Mercado aberto</p>
-              <h1>Vagas publicas</h1>
-              <p>Qualquer visitante consegue ver as oportunidades. Para candidatar-se, registe-se como worker. Para publicar uma vaga, registe-se como empresa.</p>
+    return `
+      <section class="public-section alt" id="mercado">
+        <div class="public-grid manifesto-market">
+          <div class="panel">
+            <div class="public-heading">
+              <p class="eyebrow">Mercado aberto</p>
+              <h2>Vagas publicas</h2>
+              <p>As oportunidades ficam visiveis para todos. Candidaturas exigem conta worker; publicacao exige conta empresa.</p>
+            </div>
+            ${renderMarketFilters("public", allJobs.length, jobs.length)}
+            <div class="panel-header">
+              <h3>Ofertas disponiveis</h3>
+              <span class="chip">${jobs.length}/${allJobs.length}</span>
+            </div>
+            <div class="list">
+              ${jobs.length ? jobs.map((job) => renderJobCard(job, { publicMode: true })).join("") : empty(activeMarketFilterCount() ? "Nenhuma vaga corresponde aos filtros escolhidos." : "Ainda nao existem vagas publicadas.")}
             </div>
           </div>
-          ${renderMarketFilters("public", allJobs.length, jobs.length)}
-          <div class="public-grid">
-            <div class="panel">
-              <div class="panel-header">
-                <h2>Ofertas disponiveis</h2>
-                <span class="chip">${jobs.length}/${allJobs.length}</span>
-              </div>
-              <div class="list">
-                ${jobs.length ? jobs.map((job) => renderJobCard(job, { publicMode: true })).join("") : empty(activeMarketFilterCount() ? "Nenhuma vaga corresponde aos filtros escolhidos." : "Ainda nao existem vagas publicadas.")}
-              </div>
-            </div>
-            <aside class="public-auth">
-              ${renderAuthSwitcher()}
-            </aside>
-          </div>
-        </section>
-      </main>
+          <aside class="public-auth">
+            ${renderAuthSwitcher()}
+          </aside>
+        </div>
+      </section>
     `;
-    bindPublicEvents();
-    bindAuthForms();
+  }
+
+  function renderClientCtaSection() {
+    return `
+      <section class="client-cta">
+        <div>
+          <span>Area do Cliente</span>
+          <h2>Uma leitura executiva do projeto em menos de 10 segundos.</h2>
+        </div>
+        <a class="btn primary" href="/cliente">Abrir area do cliente</a>
+      </section>
+    `;
+  }
+
+  function renderClientAreaPage() {
+    renderPublicShell(`
+      ${noticeHtml()}
+      <section class="public-page-hero">
+        <p class="eyebrow">Area do Cliente</p>
+        <h1>Dashboard MANIFESTO</h1>
+        <p>Resumo executivo do estado do projeto, modulos, entregas, documentos, feedback, pedidos de alteracao, testes e versoes.</p>
+      </section>
+      <section class="public-section">
+        <div class="client-dashboard-grid">
+          ${clientDashboardCards.map(([title, description]) => `
+            <article class="client-dashboard-card">
+              <h3>${escapeHtml(title)}</h3>
+              <p>${escapeHtml(description)}</p>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+      ${renderProjectStatusSection()}
+      ${renderRoadmapSection()}
+      ${renderModulesSection()}
+      ${renderDeliverablesSection()}
+      ${renderAcceptanceSection()}
+      ${renderDocumentationSection()}
+      ${renderChangeRequestSection()}
+      <section class="public-section split">
+        <article class="concept-panel">
+          <span>Acesso operacional</span>
+          <h2>Entrar no workspace</h2>
+          <p>Contas worker, empresa ou gestor entram aqui para usar funcionalidades protegidas.</p>
+        </article>
+        <aside class="public-auth static">
+          ${renderAuthSwitcher()}
+        </aside>
+      </section>
+    `, "cliente");
+  }
+
+  function renderChangelogPage() {
+    renderPublicShell(`
+      <section class="public-page-hero">
+        <p class="eyebrow">Versioning</p>
+        <h1>Changelog MANIFESTO</h1>
+        <p>Historico visivel de alteracoes por versao. As entradas registam o que foi adicionado, melhorado e corrigido.</p>
+      </section>
+      <section class="public-section">
+        <div class="changelog-list">
+          ${versionHistory.map(renderChangelogEntry).join("")}
+        </div>
+      </section>
+    `, "changelog");
+  }
+
+  function renderChangelogEntry(entry) {
+    return `
+      <article class="changelog-entry">
+        <header>
+          <h2>${escapeHtml(entry.version)}</h2>
+          <span>${formatDate(entry.date)}</span>
+        </header>
+        ${renderChangelogGroup("Added", entry.added)}
+        ${renderChangelogGroup("Improved", entry.improved)}
+        ${renderChangelogGroup("Fixed", entry.fixed)}
+      </article>
+    `;
+  }
+
+  function renderChangelogGroup(title, items) {
+    if (!items.length) return "";
+    return `
+      <div class="changelog-group">
+        <strong>${escapeHtml(title)}</strong>
+        ${renderBulletList(items)}
+      </div>
+    `;
+  }
+
+  function renderBulletList(items) {
+    return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+  }
+
+  function renderChangeRequestCard(request) {
+    return `
+      <article class="mini-record">
+        <strong>${escapeHtml(request.title)}</strong>
+        <p>${escapeHtml(request.description)}</p>
+      </article>
+    `;
+  }
+
+  function renderFeedbackCard(feedback) {
+    return `
+      <article class="mini-record">
+        <strong>${escapeHtml(feedback.module)}</strong>
+        <p>${escapeHtml(feedback.feedback)}</p>
+      </article>
+    `;
   }
 
   function renderAuthSwitcher() {
@@ -613,9 +1514,25 @@
   function bindPublicEvents() {
     bindMarketFilters(renderPublicBoard);
 
+    document.querySelectorAll("[data-action='toggle-public-menu']").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.publicMenuOpen = !state.publicMenuOpen;
+        renderPublicBoard();
+      });
+    });
+
+    document.querySelectorAll("[data-close-public-menu]").forEach((link) => {
+      link.addEventListener("click", () => {
+        state.publicMenuOpen = false;
+        document.querySelector(".public-nav")?.classList.remove("open");
+        document.querySelector("[data-action='toggle-public-menu']")?.setAttribute("aria-expanded", "false");
+      });
+    });
+
     document.querySelectorAll("[data-auth-mode]").forEach((button) => {
       button.addEventListener("click", () => {
         state.authMode = button.dataset.authMode;
+        state.publicMenuOpen = false;
         clearNotice();
         renderPublicBoard();
       });
@@ -669,9 +1586,9 @@
       <div class="main-layout">
         <aside class="sidebar">
           <div class="side-brand">
-            <span class="brand-mark">ME</span>
+            <span class="brand-mark">M</span>
             <div>
-              <strong>Motor de Evidencia</strong>
+              <strong>MANIFESTO</strong>
               <span>${escapeHtml(state.data.company.name)}</span>
             </div>
           </div>
@@ -685,9 +1602,9 @@
         <main class="content">
           <div class="topbar">
             <div class="side-brand" style="color: var(--ink)">
-              <span class="brand-mark" style="color: var(--ink); border-color: var(--line)">ME</span>
+              <span class="brand-mark" style="color: var(--ink); border-color: var(--line)">M</span>
               <div>
-                <strong>Motor de Evidencia</strong>
+                <strong>MANIFESTO</strong>
                 <span style="color: var(--muted)">${escapeHtml(state.data.company.name)}</span>
               </div>
             </div>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "meo-shell-v4";
+const CACHE_NAME = "manifesto-shell-v1";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

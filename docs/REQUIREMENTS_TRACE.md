@@ -11,7 +11,13 @@
 - `Manual de Engenharia Bloco V.pdf`
 - `MANIFESTO 2.0 REVOLUÇÃO 24-07-2026.pdf`
 
-## Corrected Product Concept
+## Current Product Concept
+
+The public product surface now presents MANIFESTO as a professional engineering project and project-management portal. The portal explains what is being built, what belongs to the MVP, what is future evolution, where requirements originate, how modules are progressing, and how the client can follow development.
+
+The existing labor-market and operational evidence workflows remain preserved as MVP modules inside the platform.
+
+## Marketplace And Operational Concept
 
 The app must first behave like a public labor-market board:
 
@@ -32,6 +38,26 @@ The app must first behave like a public labor-market board:
 | Company can manage received applications | `/api/applications/:id`, company marketplace view |
 | Worker can track submitted applications | `jobApplications` in `/api/bootstrap`, worker marketplace view |
 | Supabase-ready marketplace persistence | `meo_job_offers`, `meo_job_applications`, `profile` and company metadata migrations |
+
+## Implemented MANIFESTO Portal Requirements
+
+| Requirement | Implementation |
+| --- | --- |
+| Professional engineering-focused public surface | MANIFESTO public shell, compact hero and technical design system in `public/app.js` and `public/styles.css` |
+| Main navigation | Manifesto, Projeto, Modulos, Roadmap, Documentacao, Area do Cliente and Changelog links |
+| Project status dashboard | Data-driven `projectPhases` and `renderProjectStatusSection()` |
+| Roadmap | Data-driven `roadmapSteps` and responsive `renderRoadmapSection()` |
+| MVP scope separation | `mvpScope` with included and out-of-scope sections |
+| MVP versus future platform | `platformComparison` section |
+| Module architecture | Data-driven `modules` cards with status, progress and requirement IDs |
+| Engineering documentation foundation | Manual block cards and traceability model without exposing private PDFs |
+| Requirement traceability | `requirements` data model rendered as responsive table |
+| Acceptance criteria | `acceptanceCriteria` data model with status labels |
+| Deliverables | `deliverables` grouped into completed, in development and pending |
+| Visible versioning/changelog | `productVersion`, `versionHistory` and `/changelog` route |
+| Documentation center | Document groups with public/private visibility notes |
+| Client area | `/cliente` dashboard foundation |
+| Change requests and feedback foundations | Empty-state structures for future formal request and feedback tracking |
 
 ## Operational Phase 1 Requirements
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-11
+
+- Repositioned the public application as MANIFESTO, a professional engineering project portal.
+- Added public routes for `/cliente` and `/changelog`.
+- Added structured UI data for phases, roadmap, modules, requirements, acceptance criteria, deliverables, documentation groups, change requests, feedback and versions.
+- Added responsive technical design system, mobile public navigation, responsive requirement table cards and MANIFESTO metadata/PWA branding.
+- Added `npm run build` as a deploy-time validation script for the Node serverless app.
+- Added `docs/AUDIT.md` with product, UX, architecture and remaining-dependency findings.
+
 ## 2026-08-10
 
 - Created the Phase 1 webapp in the repository root from the PDF requirements.
