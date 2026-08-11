@@ -90,10 +90,11 @@ Google login uses the server-side OpenID Connect authorization-code flow. Config
 
 ```text
 http://localhost:4173/api/auth/google/callback
+http://127.0.0.1:4176/api/auth/google/callback
 https://your-production-domain/api/auth/google/callback
 ```
 
-Then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` on the server or Vercel environment.
+Use the exact local host and port you are running. Then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` on the server or Vercel environment.
 
 Behavior:
 
