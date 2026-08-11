@@ -11,7 +11,7 @@ npm run start
 
 Open `http://localhost:4173`.
 
-On launch, visitors see the MANIFESTO client access area. The public marketplace remains available with filters for keyword, company, work position, location, and kilometer radius. Workers register to apply. Companies register to publish vacancies and review applications. Company/manager accounts can also see the private project dashboard, the MVP development cockpit, and the operational workspace for user management, work orders, tasks, evidence upload, validation flow, and audit log.
+On launch, visitors see the MANIFESTO client access area. The public marketplace remains available with filters for keyword, company, work position, location, and kilometer radius. Workers register to apply. Companies register to publish vacancies and review applications. Company/manager accounts use the operational workspace for user management, work orders, tasks, evidence upload, validation flow, and audit log. Client/developer accounts see the private project dashboard and MVP development cockpit.
 
 For real deployment, run the Supabase migrations in `supabase/migrations/` in timestamp order and set `APP_STORAGE_DRIVER=supabase` with the Supabase server environment variables documented in `docs/SETUP.md`.
 

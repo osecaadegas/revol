@@ -17,14 +17,14 @@ The goal of this phase is to make the Phase 1 product testable as one connected 
 
 ## Current Build Surface
 
-The authenticated workspace includes an `MVP` tab for company/manager users. It is private and not rendered for public visitors or worker-only accounts.
+The authenticated workspace includes an `MVP` tab for `client` and `developer` users. It is private and not rendered for public visitors, workers, companies, managers, employees or contractors.
 
-The tab loads server-rendered private HTML from `GET /api/mvp/private`. That endpoint requires company/manager access and calculates its status from the authenticated bootstrap data:
+The tab loads server-rendered private HTML from `GET /api/mvp/private`. That endpoint requires `client` or `developer` access and calculates its status from company data:
 
 | Area | Data source | Ready condition |
 | --- | --- | --- |
 | Mercado publico | `jobOffers` | At least one open vacancy exists |
-| Contas e permissoes | `users` | At least one operational user exists beside company/manager users |
+| Contas e permissoes | `users` | At least one employee or contractor exists for operational task assignment |
 | Ordens e tarefas | `workOrders`, `tasks` | At least one work order and one task exist |
 | Evidencias | `evidences` | At least one private evidence file exists |
 | Auditoria | `auditLogs` | At least five audit events exist |
@@ -49,17 +49,19 @@ These checks are not contractual completion percentages. They are workspace read
 Use this order when testing or extending the MVP:
 
 1. Create or confirm a company/manager account.
-2. Publish one open vacancy from `MVP -> Mercado publico`.
-3. Create or invite one employee/contractor from `MVP -> Contas e permissoes`.
-4. Create one work order and one task from `MVP -> Ordens e tarefas`.
-5. Log in as the assigned responsible user, open the task, start it, upload evidence and submit for validation.
-6. Log back in as manager/company, approve or reject the task.
-7. Confirm the action appears in `Historico`.
-8. Run `npm run smoke` after API or workflow changes.
+2. Create or invite at least one `client` or `developer` account from `Equipa`.
+3. Publish one open vacancy from the company `Vagas` tab.
+4. Create or invite one employee/contractor from `Equipa`.
+5. Create one work order and one task from `Ordens` / `Tarefas`.
+6. Log in as the assigned responsible user, open the task, start it, upload evidence and submit for validation.
+7. Log back in as manager/company, approve or reject the task.
+8. Log in as client/developer and verify the private `MVP` cockpit reflects the flow.
+9. Confirm the action appears in `Historico`.
+10. Run `npm run smoke` after API or workflow changes.
 
 ## Guardrails For Future Agents
 
-- Keep this phase private to company/manager until first-class client/developer roles exist.
+- Keep this phase private to `client` and `developer`.
 - Do not expose project documents, requirement details, private MVP cockpit copy or private evidence in public JavaScript.
 - Do not add future-phase features such as payments, AI image analysis, native apps, blockchain, scoring or advanced offline sync without written approval.
 - Keep server-side role checks in place for every write operation.

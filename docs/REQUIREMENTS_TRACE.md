@@ -17,7 +17,7 @@ The public product surface now exposes only the MANIFESTO client access area and
 
 The existing labor-market and operational evidence workflows remain preserved as MVP modules inside the platform.
 
-Until dedicated `client` and `developer` database roles are introduced, the existing private project-access roles are `company` and `manager`.
+Private project information is now restricted to first-class `client` and `developer` accounts. Marketplace and operational roles remain separate.
 
 ## Marketplace And Operational Concept
 
@@ -46,12 +46,12 @@ The app must first behave like a public labor-market board:
 | Requirement | Implementation |
 | --- | --- |
 | Public client access only | Public shell exposes `Area do Cliente` and login/register controls without project details |
-| Private project dashboard | Authenticated `Projeto` workspace tab for `company` and `manager` users; content is served by `/api/project/private` |
+| Private project dashboard | Authenticated `Projeto` workspace tab for `client` and `developer` users; content is served by `/api/project/private` |
 | Private data not in public bundle | Detailed project copy is generated server-side in `server/private-project.js`, not embedded in `public/app.js` |
 | Main public navigation | Only `Area do Cliente` is shown to unauthenticated visitors |
 | Project status dashboard | Data-driven `projectPhases` and `renderProjectStatusSection()` |
 | Roadmap | Data-driven `roadmapSteps` and responsive `renderRoadmapSection()` |
-| MVP development cockpit | Private `MVP` workspace tab loads server-rendered `/api/mvp/private` readiness from marketplace, accounts, tasks, evidence and audit data |
+| MVP development cockpit | Private `MVP` workspace tab for `client` and `developer` users loads server-rendered `/api/mvp/private` readiness from marketplace, accounts, tasks, evidence and audit data |
 | MVP scope separation | `mvpScope` with included and out-of-scope sections |
 | MVP versus future platform | `platformComparison` section |
 | Module architecture | Data-driven `modules` cards with status, progress and requirement IDs |
@@ -62,6 +62,7 @@ The app must first behave like a public labor-market board:
 | Private versioning/changelog | `productVersion` and `versionHistory` render inside the authenticated project workspace |
 | Documentation center | Document groups with public/private visibility notes |
 | Client area | `/cliente` public access gate, with private dashboard after authentication |
+| First-class project roles | `client` and `developer` role values in API validation, UI labels, invites, user creation, Supabase migration and reset SQL |
 | Change requests and feedback foundations | Empty-state structures for future formal request and feedback tracking |
 
 ## Operational Phase 1 Requirements
@@ -71,6 +72,7 @@ The app must first behave like a public labor-market board:
 | Mobile-first webapp accessible from phone, tablet, and computer | `public/index.html`, `public/styles.css`, responsive app shell |
 | Frontend separated from backend/API | Static frontend in `public/`, REST API in `server/index.js` |
 | Authentication | `/api/setup`, `/api/auth/login`, `/api/session`, bearer sessions |
+| Role separation | `worker` applies to jobs; `company/manager` manage marketplace and operations; `employee/contractor` execute tasks; `client/developer` view private project/MVP information |
 | Three profiles: manager, employee, contractor | Server roles `manager`, `employee`, `contractor`; role UI and API checks |
 | Manager manages users | Direct user creation, activation toggle, invite links |
 | Secure invite associated to company and role | `/api/invites`, token-bound company/role acceptance |

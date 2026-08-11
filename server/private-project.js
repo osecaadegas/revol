@@ -1,5 +1,5 @@
 const productVersion = {
-  version: "v0.5.0",
+  version: "v0.6.0",
   stage: "Fase 1 - MVP em desenvolvimento",
   lastUpdated: "2026-08-11",
   completionLabel: "Progresso formal por validar",
@@ -10,7 +10,7 @@ const productVersion = {
 const projectPhases = [
   ["Levantamento de requisitos", "completed", "Documentos de base e requisitos Phase 1 identificados."],
   ["Arquitetura do sistema", "completed", "Frontend estatico, API Node, persistencia local/Supabase."],
-  ["Desenvolvimento do MVP", "in-development", "Mercado publico, contas, tarefas, evidencias e auditoria agora ligados a uma vista privada de construcao e validacao."],
+  ["Desenvolvimento do MVP", "in-development", "Mercado publico, contas, tarefas, evidencias, auditoria e roles client/developer implementados em iteracao."],
   ["Testes tecnicos", "in-development", "Syntax check e smoke test automatizado existem; testes de cliente ainda pendentes."],
   ["Validacao pelo cliente", "pending", "Pendente de revisao formal, feedback e criterios de aceitacao."],
   ["Producao", "pending", "Dependente de Supabase final, variaveis Vercel e validacao."]
@@ -27,7 +27,7 @@ const roadmapSteps = [
 
 const mvpScope = {
   included: [
-    "Area do Cliente publica para acesso, com estado do projeto, roadmap, modulos e documentacao apenas no workspace privado.",
+    "Area do Cliente publica para acesso, com estado do projeto, roadmap, modulos e documentacao apenas para contas client/developer.",
     "Mercado de vagas publico com filtros por pesquisa, cargo, localizacao e raio.",
     "Registo de worker para candidatura e registo de empresa para publicacao de vagas.",
     "Area autenticada com ordens de trabalho, tarefas, evidencias fotograficas e validacao.",
@@ -98,7 +98,7 @@ const requirements = [
 const acceptanceCriteria = [
   ["Mercado de Vagas", "testing", [["Vagas abertas aparecem ao publico", "passed"], ["Worker autenticado consegue candidatar-se", "passed"], ["Empresa consegue publicar vaga", "passed"], ["Revisao de candidaturas pela empresa", "passed"], ["Validacao cliente", "not-tested"]]],
   ["Operacoes e Evidencias", "testing", [["Gestor cria ordem de trabalho", "passed"], ["Gestor atribui tarefa", "passed"], ["Responsavel submete evidencia", "passed"], ["Imagem privada exige autenticacao", "passed"], ["Validacao em producao Supabase", "not-tested"]]],
-  ["Portal MANIFESTO", "testing", [["Area publica nao expoe informacao privada", "passed"], ["Projeto privado visivel a company/manager", "passed"], ["Documentacao privada nao e ligada publicamente", "testing"], ["Aprovacao cliente", "not-tested"]]]
+  ["Portal MANIFESTO", "testing", [["Area publica nao expoe informacao privada", "passed"], ["Projeto privado visivel a client/developer", "passed"], ["Documentacao privada nao e ligada publicamente", "testing"], ["Aprovacao cliente", "not-tested"]]]
 ];
 
 const deliverables = [
@@ -106,11 +106,19 @@ const deliverables = [
   ["Modelo Supabase", "completed", "Tabelas meo_*, RLS e bucket privado de evidencias.", "Persistencia", "2026-08-10"],
   ["Area do Cliente e workspace privado", "in-development", "Acesso publico controlado, com estado, roadmap, modulos, escopo e documentacao no workspace autenticado.", "Acompanhamento", "2026-08-11"],
   ["Cockpit de Desenvolvimento do MVP", "in-development", "Vista privada com progresso vivo de mercado, contas, tarefas, evidencias, validacao e auditoria.", "MVP", "2026-08-11"],
+  ["Roles client/developer", "completed", "Acesso privado do projeto separado dos perfis worker, company e operacionais.", "Permissoes", "2026-08-11"],
   ["Validacao Supabase em producao", "pending", "Confirmar registo, vagas, candidaturas, tarefas e evidencias com ambiente real.", "QA", "Pendente"],
   ["Aprovacao formal do cliente", "pending", "Registo de aceitacao por criterios e pedidos de alteracao.", "Handoff", "Pendente"]
 ];
 
 const versionHistory = [
+  {
+    version: "v0.6.0",
+    date: "2026-08-11",
+    added: ["Roles client/developer", "Permissao privada exclusiva para Projeto e MVP", "Migracao Supabase para novos perfis"],
+    improved: ["Separacao entre contas de marketplace/operacao e contas de acompanhamento do projeto"],
+    fixed: ["Company/manager deixaram de ser os perfis finais para informacao privada do projeto"]
+  },
   {
     version: "v0.5.0",
     date: "2026-08-11",

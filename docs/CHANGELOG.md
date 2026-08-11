@@ -8,9 +8,10 @@
 - Added responsive technical design system, mobile public navigation, responsive requirement table cards and MANIFESTO metadata/PWA branding.
 - Added `npm run build` as a deploy-time validation script for the Node serverless app.
 - Added `docs/AUDIT.md` with product, UX, architecture and remaining-dependency findings.
-- Restricted public project information to a client access gate and moved status, roadmap, modules, requirements, documentation and changelog into the authenticated `Projeto` workspace tab for company/manager users.
+- Restricted public project information to a client access gate and moved status, roadmap, modules, requirements, documentation and changelog into the authenticated `Projeto` workspace tab.
 - Moved private project dashboard content out of the public JavaScript bundle and behind authenticated `/api/project/private`.
 - Added the private `MVP` workspace tab for the active `Desenvolvimento do MVP` phase with authenticated server-rendered readiness checks for marketplace, accounts, tasks, evidence and audit.
+- Added first-class `client` and `developer` roles and restricted private `Projeto` / `MVP` access to those roles.
 
 ## 2026-08-10
 

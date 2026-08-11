@@ -35,8 +35,18 @@
     employee: "Funcionario",
     contractor: "Subempreiteiro",
     worker: "Worker",
-    company: "Empresa"
+    company: "Empresa",
+    client: "Cliente",
+    developer: "Developer"
   };
+
+  const managedRoleOptions = [
+    ["employee", "Funcionario"],
+    ["contractor", "Subempreiteiro"],
+    ["manager", "Gestor"],
+    ["client", "Cliente"],
+    ["developer", "Developer"]
+  ];
 
   const defaultStatusLabels = {
     planned: "Planeada",
@@ -322,8 +332,12 @@
     return ["manager", "company"].includes(currentUser()?.role);
   }
 
+  function canUseOperations() {
+    return ["manager", "company", "employee", "contractor"].includes(currentUser()?.role);
+  }
+
   function canViewPrivateProject() {
-    return ["manager", "company"].includes(currentUser()?.role);
+    return ["client", "developer"].includes(currentUser()?.role);
   }
 
   function isWorker() {
@@ -334,6 +348,7 @@
     const role = currentUser()?.role;
     if (canViewPrivateProject()) return "project";
     if (role === "worker") return "marketplace";
+    if (!canUseOperations()) return "marketplace";
     return "dashboard";
   }
 
@@ -909,7 +924,7 @@
             if (view === "project") return canViewPrivateProject();
             if (view === "mvp") return canViewPrivateProject();
             if (view === "team") return isManager();
-            if (["orders", "tasks", "dashboard"].includes(view)) return currentUser()?.role !== "worker";
+            if (["orders", "tasks", "dashboard", "history"].includes(view)) return canUseOperations();
             return true;
           })
           .map(
@@ -932,7 +947,7 @@
             if (view === "project") return canViewPrivateProject();
             if (view === "mvp") return canViewPrivateProject();
             if (view === "team") return isManager();
-            if (["orders", "tasks", "dashboard"].includes(view)) return currentUser()?.role !== "worker";
+            if (["orders", "tasks", "dashboard", "history"].includes(view)) return canUseOperations();
             return true;
           })
           .map(
@@ -949,11 +964,11 @@
     if (state.view === "project") return canViewPrivateProject() ? renderPrivateProjectView() : renderMarketplace();
     if (state.view === "mvp") return canViewPrivateProject() ? renderPrivateMvpView() : renderMarketplace();
     if (state.view === "marketplace") return renderMarketplace();
-    if (state.view === "orders") return renderOrders();
-    if (state.view === "tasks") return renderTasks();
+    if (state.view === "orders") return canUseOperations() ? renderOrders() : renderMarketplace();
+    if (state.view === "tasks") return canUseOperations() ? renderTasks() : renderMarketplace();
     if (state.view === "team") return renderTeam();
-    if (state.view === "history") return renderHistory();
-    return renderDashboard();
+    if (state.view === "history") return canUseOperations() ? renderHistory() : renderMarketplace();
+    return canUseOperations() ? renderDashboard() : renderMarketplace();
   }
 
   function getCounts() {
@@ -976,7 +991,7 @@
       <section class="view-heading">
         <div>
           <h1>Mercado de vagas</h1>
-          <p>${role === "worker" ? "Veja vagas abertas e acompanhe as suas candidaturas." : "Publique vagas, acompanhe candidaturas e mantenha as oportunidades visiveis no mercado."}</p>
+          <p>${role === "worker" ? "Veja vagas abertas e acompanhe as suas candidaturas." : isManager() ? "Publique vagas, acompanhe candidaturas e mantenha as oportunidades visiveis no mercado." : "Veja as vagas abertas sem acesso a candidaturas ou publicacao."}</p>
         </div>
       </section>
       ${renderMarketFilters("app", allJobs.length, jobs.length)}
@@ -991,10 +1006,19 @@
           </div>
         </div>
         <div>
-          ${isManager() ? renderJobOfferForm() : renderWorkerApplications(applications)}
+          ${isManager() ? renderJobOfferForm() : isWorker() ? renderWorkerApplications(applications) : renderMarketplaceReadOnlyPanel()}
           ${isManager() ? renderCompanyApplications(applications) : ""}
         </div>
       </section>
+    `;
+  }
+
+  function renderMarketplaceReadOnlyPanel() {
+    return `
+      <div class="panel">
+        <div class="panel-header"><h2>Acesso de leitura</h2></div>
+        <p class="muted">Esta conta pode consultar vagas abertas. Para candidatar-se use uma conta worker; para publicar vagas use uma conta empresa.</p>
+      </div>
     `;
   }
 
@@ -1276,7 +1300,7 @@
             <select data-filter="assignee">
               <option value="all">Todos os responsaveis</option>
               ${state.data.users
-                .filter((user) => user.role !== "manager")
+                .filter((user) => ["employee", "contractor"].includes(user.role))
                 .map((user) => `<option value="${user.id}" ${state.filters.assignee === user.id ? "selected" : ""}>${escapeHtml(user.name)}</option>`)
                 .join("")}
             </select>
@@ -1307,7 +1331,7 @@
   }
 
   function renderTaskForm() {
-    const workerOptions = state.data.users.filter((user) => user.active && user.role !== "manager");
+    const workerOptions = state.data.users.filter((user) => user.active && ["employee", "contractor"].includes(user.role));
     return `
       <form class="panel form-grid" data-form="create-task">
         <div class="panel-header"><h2>Nova tarefa</h2></div>
@@ -1400,7 +1424,7 @@
   }
 
   function renderTeam() {
-    if (!isManager()) return renderDashboard();
+    if (!isManager()) return canUseOperations() ? renderDashboard() : renderMarketplace();
     return `
       <section class="view-heading">
         <div>
@@ -1436,7 +1460,7 @@
         </header>
         <div class="card-actions">
           <select data-user-role="${escapeHtml(user.id)}" ${user.id === currentUser().id ? "disabled" : ""}>
-            ${Object.entries(roleLabels).map(([role, label]) => `<option value="${role}" ${user.role === role ? "selected" : ""}>${label}</option>`).join("")}
+            ${managedRoleOptions.map(([role, label]) => `<option value="${role}" ${user.role === role ? "selected" : ""}>${label}</option>`).join("")}
           </select>
           <button class="btn ghost" data-toggle-user="${escapeHtml(user.id)}" ${user.id === currentUser().id ? "disabled" : ""}>
             ${user.active ? "Desativar" : "Ativar"}
@@ -1455,9 +1479,7 @@
         <div class="field">
           <label>Perfil</label>
           <select name="role" required>
-            <option value="employee">Funcionario</option>
-            <option value="contractor">Subempreiteiro</option>
-            <option value="manager">Gestor</option>
+            ${managedRoleOptions.map(([role, label]) => `<option value="${role}">${label}</option>`).join("")}
           </select>
         </div>
         <div class="field"><label>Password temporaria</label><input name="password" type="password" minlength="8" required></div>
@@ -1476,9 +1498,7 @@
         <div class="field">
           <label>Perfil</label>
           <select name="role" required>
-            <option value="employee">Funcionario</option>
-            <option value="contractor">Subempreiteiro</option>
-            <option value="manager">Gestor</option>
+            ${managedRoleOptions.map(([role, label]) => `<option value="${role}">${label}</option>`).join("")}
           </select>
         </div>
         <button class="btn accent full" type="submit">Gerar link</button>

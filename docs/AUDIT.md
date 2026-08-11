@@ -16,7 +16,7 @@
 - Worker registration and authenticated vacancy applications.
 - Company registration, vacancy creation, vacancy status changes, and application review.
 - Company workspace with work orders, tasks, evidence upload, validation and audit history.
-- Server-side role checks for worker, company, manager, employee and contractor.
+- Server-side role checks for worker, company, manager, employee, contractor, client and developer.
 - Private evidence delivery through authenticated API access.
 - Supabase reset/admin SQL and migrations.
 
@@ -36,6 +36,7 @@
 - Moved project information into the authenticated workspace `Projeto` tab.
 - Moved private project dashboard copy out of the public static bundle and into authenticated server-rendered HTML.
 - Added a private MVP development cockpit to connect the active build phase to live marketplace, account, task, evidence and audit data.
+- Added first-class client/developer roles so private project information is separate from marketplace and operations accounts.
 - Added reusable, data-driven UI sections for phases, roadmap, modules, requirements, acceptance criteria, deliverables, documentation groups, changelog entries, change requests and feedback foundations.
 - Added `/cliente` for the client dashboard foundation.
 - Kept `/changelog` public route from exposing version history; changelog is now shown inside the private workspace.

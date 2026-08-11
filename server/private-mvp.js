@@ -39,7 +39,7 @@ function getMvpSnapshot(data) {
   const auditLogs = data.auditLogs || [];
   const pendingValidation = tasks.filter((task) => task.status === "pending_validation");
   const openJobs = jobs.filter((job) => job.status === "open");
-  const nonManagerUsers = users.filter((user) => user.role !== "manager" && user.role !== "company");
+  const operationalUsers = users.filter((user) => ["employee", "contractor"].includes(user.role));
 
   return {
     users,
@@ -51,7 +51,7 @@ function getMvpSnapshot(data) {
     auditLogs,
     pendingValidation,
     openJobs,
-    nonManagerUsers
+    operationalUsers
   };
 }
 
@@ -68,7 +68,7 @@ function mvpChecks(snapshot) {
     {
       title: "Contas e permissoes",
       detail: "Empresa, gestor e equipa operacional devem existir antes de criar trabalho validavel.",
-      ready: snapshot.users.length > 0 && snapshot.nonManagerUsers.length > 0,
+      ready: snapshot.users.length > 0 && snapshot.operationalUsers.length > 0,
       metric: `${snapshot.users.length} contas`,
       action: "team",
       actionLabel: "Gerir equipa"
@@ -170,7 +170,7 @@ function renderPrivateMvpHtml(data) {
 
     <section class="mvp-metrics-grid">
       <article class="metric-card"><span>Vagas abertas</span><strong>${snapshot.openJobs.length}</strong><p>${snapshot.applications.length} candidaturas recebidas/submetidas</p></article>
-      <article class="metric-card"><span>Contas</span><strong>${snapshot.users.length}</strong><p>${snapshot.nonManagerUsers.length} operacionais para atribuicao</p></article>
+      <article class="metric-card"><span>Contas</span><strong>${snapshot.users.length}</strong><p>${snapshot.operationalUsers.length} operacionais para atribuicao</p></article>
       <article class="metric-card"><span>Tarefas</span><strong>${snapshot.tasks.length}</strong><p>${snapshot.pendingValidation.length} aguardam validacao</p></article>
       <article class="metric-card"><span>Provas</span><strong>${snapshot.evidences.length}</strong><p>${snapshot.auditLogs.length} eventos auditados</p></article>
     </section>

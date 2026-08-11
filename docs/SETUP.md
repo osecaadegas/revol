@@ -39,15 +39,15 @@ To use the marketplace:
 
 After company registration, use the company account to:
 
-- View the private MANIFESTO project dashboard.
-- Open the private MVP development cockpit.
 - Publish vacancies.
 - Review worker applications.
-- Create workers or contractors directly.
-- Generate invite links.
+- Create employees, contractors, client users or developer users directly.
+- Generate invite links for employees, contractors, clients or developers.
 - Create work orders.
 - Create and assign tasks.
 - Review submitted evidence.
+
+Use a `client` or `developer` account to view the private MANIFESTO project dashboard and private MVP development cockpit.
 
 ## Environment Variables
 
@@ -86,8 +86,9 @@ For a dirty Supabase project that already contains old prototype tables, run the
 3. Run `supabase/migrations/20260810000000_initial_phase1_schema.sql`.
 4. Run `supabase/migrations/20260810010000_marketplace_jobs.sql`.
 5. Run `supabase/migrations/20260810020000_job_offer_position.sql`.
-6. Confirm the private storage bucket `meo-evidence` exists.
-7. Set these environment variables on the host:
+6. Run `supabase/migrations/20260811000000_project_viewer_roles.sql`.
+7. Confirm the private storage bucket `meo-evidence` exists.
+8. Set these environment variables on the host:
 
 ```text
 APP_STORAGE_DRIVER=supabase
@@ -96,7 +97,7 @@ SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 SUPABASE_EVIDENCE_BUCKET=meo-evidence
 ```
 
-8. Start or redeploy the Node app.
+9. Start or redeploy the Node app.
 
 The app still uses its own Phase 1 email/password/session system. Supabase Auth is not used in this phase, because the existing server already enforces roles, task visibility, and private evidence access.
 
@@ -167,4 +168,4 @@ npm run smoke
 
 `npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, application submission, application review, user creation, work order creation, task assignment, evidence upload, task submission, manager approval, and authenticated image access.
 
-Manual UI verification should include `/`, `/cliente`, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` workspace tab for company/manager users, the private `MVP` workspace tab, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes.
+Manual UI verification should include `/`, `/cliente`, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` and `MVP` workspace tabs for client/developer users, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes for company/manager/employee/contractor users.

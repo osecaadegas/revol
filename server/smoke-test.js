@@ -28,6 +28,19 @@ function request(baseUrl, method, pathName, body, token, extraHeaders = {}) {
   });
 }
 
+async function requestRaw(baseUrl, method, pathName, body, token, extraHeaders = {}) {
+  const headers = { "Content-Type": "application/json", ...extraHeaders };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(`${baseUrl}${pathName}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const type = response.headers.get("content-type") || "";
+  const payload = type.includes("application/json") ? await response.json() : await response.arrayBuffer();
+  return { status: response.status, payload };
+}
+
 async function run() {
   const server = createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -49,6 +62,11 @@ async function run() {
       sector: "Servicos operacionais"
     });
     const managerToken = companyRegistration.session.token;
+
+    const managerProjectAccess = await requestRaw(baseUrl, "GET", "/api/project/private", null, managerToken);
+    if (managerProjectAccess.status !== 403) {
+      throw new Error("Company accounts should not access the private project dashboard.");
+    }
 
     const jobResult = await request(baseUrl, "POST", "/api/job-offers", {
       title: "Operador de teste",
@@ -90,6 +108,24 @@ async function run() {
     }, managerToken);
     const employeeId = userResult.user.id;
 
+    const clientUser = await request(baseUrl, "POST", "/api/users", {
+      name: "Cliente Teste",
+      email: "cliente@example.test",
+      role: "client",
+      password: "password123"
+    }, managerToken);
+
+    const developerUser = await request(baseUrl, "POST", "/api/users", {
+      name: "Developer Teste",
+      email: "developer@example.test",
+      role: "developer",
+      password: "password123"
+    }, managerToken);
+
+    if (clientUser.user.role !== "client" || developerUser.user.role !== "developer") {
+      throw new Error("Client/developer managed roles were not created.");
+    }
+
     const orderResult = await request(baseUrl, "POST", "/api/work-orders", {
       title: "Servico de teste",
       address: "Rua de Teste 1",
@@ -97,6 +133,16 @@ async function run() {
       photos: []
     }, managerToken);
     const workOrderId = orderResult.workOrder.id;
+
+    const clientTaskAssignment = await requestRaw(baseUrl, "POST", "/api/tasks", {
+      workOrderId,
+      title: "Tarefa de cliente invalida",
+      assigneeId: clientUser.user.id,
+      dueDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+    }, managerToken);
+    if (clientTaskAssignment.status !== 400) {
+      throw new Error("Client users should not be valid task assignees.");
+    }
 
     const taskResult = await request(baseUrl, "POST", "/api/tasks", {
       workOrderId,
@@ -140,6 +186,35 @@ async function run() {
     const bootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, employeeToken);
     if (bootstrap.tasks.length !== 1 || bootstrap.tasks[0].id !== taskId) {
       throw new Error("Employee bootstrap did not return the assigned task.");
+    }
+
+    const clientLogin = await request(baseUrl, "POST", "/api/auth/login", {
+      email: "cliente@example.test",
+      password: "password123"
+    });
+    const clientToken = clientLogin.session.token;
+
+    const clientProject = await request(baseUrl, "GET", "/api/project/private", null, clientToken);
+    if (!clientProject.html.includes("Dashboard MANIFESTO")) {
+      throw new Error("Client project endpoint did not return the private dashboard.");
+    }
+
+    const clientMvp = await request(baseUrl, "GET", "/api/mvp/private", null, clientToken);
+    if (!clientMvp.html.includes("Desenvolvimento do MVP")) {
+      throw new Error("Client MVP endpoint did not return the private MVP cockpit.");
+    }
+
+    const clientBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, clientToken);
+    if (clientBootstrap.tasks.length || clientBootstrap.workOrders.length || clientBootstrap.evidences.length) {
+      throw new Error("Client bootstrap should not expose operational records directly.");
+    }
+
+    const clientOperationalWrite = await requestRaw(baseUrl, "POST", "/api/work-orders", {
+      title: "Nao autorizado",
+      address: "Sem permissao"
+    }, clientToken);
+    if (clientOperationalWrite.status !== 403) {
+      throw new Error("Client accounts should not create work orders.");
     }
 
     console.log("smoke ok");

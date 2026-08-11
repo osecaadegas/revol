@@ -14,7 +14,7 @@ The engineering manuals and manifesto inform terminology and auditability princi
 - No-dependency Node API in `server/`.
 - Selectable persistence: local JSON/private files for development, or Supabase Postgres/private Storage for deployment.
 - Bearer-token authentication with server-side session validation.
-- Server-enforced role access for worker, company, manager, employee, and contractor profiles.
+- Server-enforced role access for worker, company, manager, employee, contractor, client, and developer profiles.
 - PWA metadata and shell caching without advanced offline synchronization.
 
 This keeps the MVP fully runnable without external services while also supporting a real Supabase backend for deployment. The API boundary remains suitable for future Vercel functions or a native mobile client.
@@ -138,7 +138,7 @@ Status: complete.
 
 - Restricted unauthenticated visitors to the public `Area do Cliente` access gate and public vacancy marketplace.
 - Moved project status, roadmap, modules, scope, requirements, acceptance criteria, deliverables, documentation, feedback and changelog into an authenticated `Projeto` workspace tab.
-- Limited the private `Projeto` tab to the existing `company` and `manager` roles until dedicated client/developer roles are introduced.
+- Initially limited the private `Projeto` tab to existing `company` and `manager` roles; replaced by first-class `client` and `developer` access in M15.
 - Removed public navigation links to Manifesto, Projeto, Modulos, Roadmap, Documentacao and Changelog.
 - Moved detailed project copy out of `public/app.js` and behind authenticated `/api/project/private` server delivery.
 
@@ -146,21 +146,31 @@ Status: complete.
 
 Status: complete.
 
-- Added a private `MVP` workspace tab for company/manager users.
+- Added a private `MVP` workspace tab, later restricted to `client` and `developer` users in M15.
 - Connected the active `Desenvolvimento do MVP` phase to live company data for marketplace, accounts, work orders, tasks, evidence and audit history through authenticated `/api/mvp/private`.
 - Added readiness cards, live metrics, validation-pending work and recent audit activity.
 - Added direct action buttons into the existing marketplace, team, orders, tasks and history workflows.
 - Added `docs/MVP_DEVELOPMENT.md` as the progressive guide for this active phase.
 
+### M15 - Client/Developer Project Roles
+
+Status: complete.
+
+- Added first-class `client` and `developer` roles to server validation, UI labels, user creation, invites, Supabase migration and reset SQL.
+- Restricted private `Projeto` and `MVP` endpoints to `client` and `developer` roles.
+- Kept `company` and `manager` focused on marketplace and operational administration.
+- Prevented `client` and `developer` users from appearing as task assignees or operational workspace users.
+- Updated setup and API documentation for the new project-access flow.
+
 ## Next Recommended Work
 
-1. Verify the private `MVP` tab with real Supabase data after deployment.
-2. Decide whether to add first-class `client` and `developer` roles to the database, API and invite workflow.
-3. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
-4. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
-5. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-6. Add browser-driven regression coverage for public routes, public filtering and worker application.
-7. Add optional email delivery for worker/company notifications.
+1. Run `supabase/migrations/20260811000000_project_viewer_roles.sql` in the production Supabase project if it has not already been applied.
+2. Create or invite a `client` account and a `developer` account from the company `Equipa` tab.
+3. Verify private `Projeto` and `MVP` tabs with those roles on production.
+4. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
+5. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+6. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+7. Add browser-driven regression coverage for public routes, public filtering and worker application.
 
 ## Agent Update Protocol
 

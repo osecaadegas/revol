@@ -23,7 +23,10 @@ const APP_STORAGE_DRIVER = String(
   process.env.APP_STORAGE_DRIVER || (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY ? "supabase" : "local")
 ).toLowerCase();
 
-const ROLES = new Set(["manager", "employee", "contractor", "worker", "company"]);
+const ROLES = new Set(["manager", "employee", "contractor", "worker", "company", "client", "developer"]);
+const MANAGED_ROLES = new Set(["manager", "employee", "contractor", "client", "developer"]);
+const OPERATIONAL_ROLES = new Set(["manager", "employee", "contractor", "company"]);
+const PROJECT_VIEWER_ROLES = new Set(["client", "developer"]);
 const TASK_STATUSES = new Set([
   "planned",
   "assigned",
@@ -603,6 +606,14 @@ function requireManager(auth) {
   }
 }
 
+function requireProjectViewer(auth) {
+  if (!isProjectViewer(auth.user)) {
+    const error = new Error("Client or developer role required.");
+    error.status = 403;
+    throw error;
+  }
+}
+
 function requireWorker(auth) {
   if (auth.user.role !== "worker") {
     const error = new Error("Worker registration is required to apply.");
@@ -621,6 +632,14 @@ function requireCompanyAccount(auth) {
 
 function isCompanyAdmin(user) {
   return user?.role === "manager" || user?.role === "company";
+}
+
+function isOperationalUser(user) {
+  return OPERATIONAL_ROLES.has(user?.role);
+}
+
+function isProjectViewer(user) {
+  return PROJECT_VIEWER_ROLES.has(user?.role);
 }
 
 function publicUser(user) {
@@ -777,6 +796,15 @@ function validateRole(role) {
   }
 }
 
+function validateManagedRole(role) {
+  validateRole(role);
+  if (!MANAGED_ROLES.has(role)) {
+    const error = new Error("Managed users must be manager, employee, contractor, client, or developer.");
+    error.status = 400;
+    throw error;
+  }
+}
+
 function assertSameCompany(auth, record) {
   if (!record || record.companyId !== auth.company.id) {
     const error = new Error("Record not found.");
@@ -788,12 +816,14 @@ function assertSameCompany(auth, record) {
 function canAccessTask(auth, task) {
   if (!task || task.companyId !== auth.company.id) return false;
   if (isCompanyAdmin(auth.user)) return true;
+  if (!isOperationalUser(auth.user)) return false;
   return task.assigneeId === auth.user.id;
 }
 
 function canAccessWorkOrder(auth, db, order) {
   if (!order || order.companyId !== auth.company.id) return false;
   if (isCompanyAdmin(auth.user)) return true;
+  if (!isOperationalUser(auth.user)) return false;
   return db.tasks.some((task) => task.workOrderId === order.id && task.assigneeId === auth.user.id);
 }
 
@@ -861,6 +891,41 @@ function buildBootstrap(db, auth) {
     invites,
     jobOffers: jobOffers.map(publicJobOffer).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     jobApplications: jobApplications
+      .map(publicJobApplication)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    statusLabels: PUBLIC_STATUS_LABELS
+  };
+}
+
+function buildPrivateMvpData(db, auth) {
+  const companyId = auth.company.id;
+  return {
+    user: publicUser(auth.user),
+    company: publicCompany(auth.company),
+    users: db.users
+      .filter((user) => user.companyId === companyId)
+      .map(publicUser)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    workOrders: db.workOrders
+      .filter((order) => order.companyId === companyId)
+      .map(publicWorkOrder)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    tasks: db.tasks
+      .filter((task) => task.companyId === companyId)
+      .map(publicTask)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    evidences: db.evidences
+      .filter((evidence) => evidence.companyId === companyId)
+      .map(publicEvidence)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    auditLogs: db.auditLogs.filter((entry) => entry.companyId === companyId).slice(0, 250),
+    invites: [],
+    jobOffers: db.jobOffers
+      .filter((job) => job.companyId === companyId)
+      .map(publicJobOffer)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    jobApplications: db.jobApplications
+      .filter((application) => application.companyId === companyId)
       .map(publicJobApplication)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     statusLabels: PUBLIC_STATUS_LABELS
@@ -1047,7 +1112,7 @@ async function handleApi(req, res, pathname) {
   if (req.method === "GET" && pathname === "/api/project/private") {
     const db = await readDb();
     const auth = requireAuth(db, req);
-    requireManager(auth);
+    requireProjectViewer(auth);
     sendJson(res, 200, { html: renderPrivateProjectHtml() });
     return;
   }
@@ -1055,8 +1120,8 @@ async function handleApi(req, res, pathname) {
   if (req.method === "GET" && pathname === "/api/mvp/private") {
     const db = await readDb();
     const auth = requireAuth(db, req);
-    requireManager(auth);
-    sendJson(res, 200, { html: renderPrivateMvpHtml(buildBootstrap(db, auth)) });
+    requireProjectViewer(auth);
+    sendJson(res, 200, { html: renderPrivateMvpHtml(buildPrivateMvpData(db, auth)) });
     return;
   }
 
@@ -1457,7 +1522,7 @@ async function handleApi(req, res, pathname) {
       const name = cleanString(body.name, 120);
       const email = normalizeEmail(body.email);
       const role = cleanString(body.role, 30);
-      validateRole(role);
+      validateManagedRole(role);
       validatePassword(body.password);
       if (!name || !email) {
         const error = new Error("Name, email, role, and password are required.");
@@ -1506,8 +1571,13 @@ async function handleApi(req, res, pathname) {
         user.active = body.active;
       }
       if (body.role) {
+        if (user.id === auth.user.id) {
+          const error = new Error("Managers cannot change their own role.");
+          error.status = 400;
+          throw error;
+        }
         const role = cleanString(body.role, 30);
-        validateRole(role);
+        validateManagedRole(role);
         user.role = role;
       }
       audit(db, auth, "user", user.id, "user.updated", { active: user.active, role: user.role }, req);
@@ -1523,7 +1593,7 @@ async function handleApi(req, res, pathname) {
       const auth = requireAuth(db, req);
       requireManager(auth);
       const role = cleanString(body.role, 30);
-      validateRole(role);
+      validateManagedRole(role);
       const token = randomToken(24);
       const invite = {
         id: nextId(db, "invites", "inv"),
@@ -1593,7 +1663,7 @@ async function handleApi(req, res, pathname) {
       assertSameCompany(auth, workOrder);
       const assignee = db.users.find((item) => item.id === body.assigneeId && item.active !== false);
       assertSameCompany(auth, assignee);
-      if (assignee.role === "manager") {
+      if (!["employee", "contractor"].includes(assignee.role)) {
         const error = new Error("Tasks must be assigned to an employee or contractor.");
         error.status = 400;
         throw error;

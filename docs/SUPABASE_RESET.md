@@ -41,6 +41,18 @@ meo_job_applications
 
 It creates or updates the private `meo-evidence` storage bucket. It does not delete the old `evidencias` bucket or storage objects; remove those manually only after confirming nothing needs to be kept.
 
+The current user and invite role set is:
+
+```text
+manager
+employee
+contractor
+worker
+company
+client
+developer
+```
+
 ## How To Run
 
 1. Open the Supabase Dashboard for the target project.

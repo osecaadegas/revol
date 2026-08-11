@@ -61,13 +61,15 @@ Expires the current token.
 
 Returns current user, company, accessible users, work orders, tasks, evidence metadata, audit log, manager invite list, vacancies, and relevant applications.
 
+For `client` and `developer` accounts, operational records are not exposed directly through this payload. Their private project progress view is delivered through `GET /api/project/private` and `GET /api/mvp/private`.
+
 `GET /api/project/private`
 
-Company/manager only. Returns the private MANIFESTO project dashboard HTML. Project status, roadmap, requirements, acceptance criteria, deliverables, documentation structure, feedback and changelog are served here instead of being embedded in the public static JavaScript bundle.
+Client/developer only. Returns the private MANIFESTO project dashboard HTML. Project status, roadmap, requirements, acceptance criteria, deliverables, documentation structure, feedback and changelog are served here instead of being embedded in the public static JavaScript bundle.
 
 `GET /api/mvp/private`
 
-Company/manager only. Returns the private MVP development cockpit HTML. Live marketplace, account, task, evidence and audit readiness is calculated server-side from the authenticated bootstrap data instead of being embedded in the public static JavaScript bundle.
+Client/developer only. Returns the private MVP development cockpit HTML. Live marketplace, account, task, evidence and audit readiness is calculated server-side from company data instead of being embedded in the public static JavaScript bundle.
 
 `POST /api/job-offers`
 
@@ -87,15 +89,15 @@ Company/manager only. Updates application review status.
 
 `POST /api/users`
 
-Manager only. Creates an active user.
+Company/manager only. Creates an active managed user. Allowed managed roles are `manager`, `employee`, `contractor`, `client`, and `developer`.
 
 `PATCH /api/users/:id`
 
-Manager only. Updates active status or role.
+Company/manager only. Updates active status or managed role.
 
 `POST /api/invites`
 
-Manager only. Creates an invite token bound to the manager company and selected role.
+Company/manager only. Creates an invite token bound to the current company and selected managed role.
 
 `POST /api/work-orders`
 
