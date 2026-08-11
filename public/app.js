@@ -9,6 +9,7 @@
     authMode: "login",
     data: null,
     publicJobs: [],
+    publicJobsWarning: "",
     notice: null,
     selectedTaskId: null,
     filters: {
@@ -276,6 +277,7 @@
   async function refreshPublicJobs() {
     const payload = await api("/api/jobs/public");
     state.publicJobs = payload.jobs || [];
+    state.publicJobsWarning = payload.warning || "";
   }
 
   function currentUser() {
@@ -364,6 +366,7 @@
         ${renderAuthHero()}
         <section class="public-content">
           ${noticeHtml()}
+          ${state.publicJobsWarning ? `<div class="notice error">${escapeHtml(state.publicJobsWarning)}</div>` : ""}
           <div class="public-heading">
             <div>
               <p class="eyebrow" style="color: var(--accent-2)">Mercado aberto</p>

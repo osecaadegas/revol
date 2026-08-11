@@ -988,6 +988,15 @@ function publicJobsPayload(db) {
   };
 }
 
+function publicJobsSetupFallback(error) {
+  console.error(`Public jobs unavailable: ${error.message}`);
+  return {
+    jobs: [],
+    warning:
+      "Database setup is incomplete. Run the Supabase reset/current schema SQL and verify the server environment variables."
+  };
+}
+
 function createMarketplaceSessionResponse(db, user, company) {
   const session = createSession(db, user.id);
   return {
@@ -1020,8 +1029,16 @@ async function handleApi(req, res, pathname) {
   }
 
   if (req.method === "GET" && pathname === "/api/jobs/public") {
-    const db = await readDb();
-    sendJson(res, 200, publicJobsPayload(db));
+    try {
+      const db = await readDb();
+      sendJson(res, 200, publicJobsPayload(db));
+    } catch (error) {
+      if (APP_STORAGE_DRIVER === "supabase") {
+        sendJson(res, 200, publicJobsSetupFallback(error));
+      } else {
+        throw error;
+      }
+    }
     return;
   }
 

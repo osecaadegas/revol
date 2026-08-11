@@ -145,6 +145,8 @@ Output directory: empty
 
 Set the Supabase environment variables before deploying. Do not use local filesystem persistence on Vercel.
 
+If the public page shows a database setup warning, verify that `supabase/admin/reset_to_current_schema.sql` has been run and that the Vercel environment variables are set for the active deployment environment.
+
 ## Verification
 
 Run:

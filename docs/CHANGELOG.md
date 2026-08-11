@@ -15,3 +15,4 @@
 - Added an admin Supabase reset script and documentation to remove old unprefixed prototype tables and recreate the current `meo_*` schema.
 - Declared the Node server entrypoint in `package.json` and documented Vercel deployment settings.
 - Added a root Vercel serverless adapter so Vercel invokes the request handler directly instead of importing the local server module shape.
+- Made the public jobs endpoint degrade to an empty board with a setup warning when Supabase schema/configuration is incomplete.

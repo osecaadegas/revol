@@ -114,6 +114,13 @@ Status: complete.
 - Exported the shared request handler from `server/index.js`.
 - Documented the Vercel deployment settings and Supabase environment requirement.
 
+### M11 - Public Boot Resilience
+
+Status: complete.
+
+- Kept the public landing page renderable when Supabase setup is incomplete.
+- Added a visible setup warning for the public jobs board instead of failing the whole boot flow.
+
 ## Next Recommended Work
 
 1. Run `supabase/admin/reset_to_current_schema.sql` once in the dirty Supabase project.
