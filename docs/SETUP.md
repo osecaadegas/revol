@@ -132,7 +132,7 @@ Local filesystem persistence is not suitable for serverless platforms that disca
 
 ## Vercel Deployment
 
-Use the Node application preset. The Node entrypoint is declared in `package.json` as `server/index.js`.
+Use the Node application preset. The Vercel entrypoint is the root `server.js` adapter, which exports the existing Node request handler from `server/index.js`.
 
 Use these project settings:
 

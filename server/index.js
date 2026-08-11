@@ -1860,6 +1860,7 @@ if (require.main === module) {
 
 module.exports = {
   createServer,
+  requestHandler,
   readDb,
   buildBootstrap,
   APP_STORAGE_DRIVER,

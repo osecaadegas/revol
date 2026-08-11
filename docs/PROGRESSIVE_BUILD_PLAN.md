@@ -110,7 +110,8 @@ Status: complete.
 
 Status: complete.
 
-- Declared `server/index.js` as the package entrypoint for Vercel's Node preset.
+- Declared the root `server.js` adapter as the package entrypoint for Vercel's Node preset.
+- Exported the shared request handler from `server/index.js`.
 - Documented the Vercel deployment settings and Supabase environment requirement.
 
 ## Next Recommended Work
