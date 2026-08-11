@@ -47,6 +47,7 @@
   };
 
   const navItems = [
+    ["project", "Projeto"],
     ["marketplace", "Vagas"],
     ["dashboard", "Painel"],
     ["orders", "Ordens"],
@@ -90,11 +91,6 @@
   };
 
   const publicNavItems = [
-    ["Manifesto", "/#manifesto"],
-    ["Projeto", "/#projeto"],
-    ["Modulos", "/#modulos"],
-    ["Roadmap", "/#roadmap"],
-    ["Documentacao", "/#documentacao"],
     ["Area do Cliente", "/cliente"]
   ];
 
@@ -142,7 +138,7 @@
 
   const mvpScope = {
     included: [
-      "Pagina publica MANIFESTO com estado do projeto, roadmap, modulos e documentacao preparada.",
+      "Area do Cliente publica para acesso, com estado do projeto, roadmap, modulos e documentacao apenas no workspace privado.",
       "Mercado de vagas publico com filtros por pesquisa, cargo, localizacao e raio.",
       "Registo de worker para candidatura e registo de empresa para publicacao de vagas.",
       "Area autenticada com ordens de trabalho, tarefas, evidencias fotograficas e validacao.",
@@ -356,11 +352,11 @@
       description: "Tabelas meo_*, RLS e bucket privado de evidencias."
     },
     {
-      title: "Portal publico MANIFESTO",
+      title: "Area do Cliente e workspace privado",
       status: "in-development",
       phase: "Acompanhamento",
       date: "2026-08-11",
-      description: "Estado, roadmap, modulos, escopo, documentacao e area de cliente."
+      description: "Acesso publico controlado, com estado, roadmap, modulos, escopo e documentacao no workspace autenticado."
     },
     {
       title: "Validacao Supabase em producao",
@@ -382,9 +378,9 @@
     {
       version: "v0.4.0",
       date: "2026-08-11",
-      added: ["Portal MANIFESTO", "Area do Cliente preparada", "Changelog publico"],
-      improved: ["Arquitetura de dados UI", "Responsividade publica", "Documentacao de projeto"],
-      fixed: ["Estado publico quando Supabase ainda nao esta preparado"]
+      added: ["Portal MANIFESTO", "Area do Cliente preparada", "Changelog privado"],
+      improved: ["Arquitetura de dados UI", "Responsividade da area publica", "Documentacao de projeto"],
+      fixed: ["Estado das vagas quando Supabase ainda nao esta preparado"]
     },
     {
       version: "v0.3.2",
@@ -645,13 +641,18 @@
     return ["manager", "company"].includes(currentUser()?.role);
   }
 
+  function canViewPrivateProject() {
+    return ["manager", "company"].includes(currentUser()?.role);
+  }
+
   function isWorker() {
     return currentUser()?.role === "worker";
   }
 
   function defaultViewForUser() {
     const role = currentUser()?.role;
-    if (role === "worker" || role === "company") return "marketplace";
+    if (canViewPrivateProject()) return "project";
+    if (role === "worker") return "marketplace";
     return "dashboard";
   }
 
@@ -694,7 +695,7 @@
   function publicRoute() {
     const path = location.pathname.replace(/\/+$/, "") || "/";
     if (path === "/cliente" || path === "/dashboard") return "cliente";
-    if (path === "/changelog") return "changelog";
+    if (path === "/changelog") return "restricted";
     return "home";
   }
 
@@ -734,16 +735,13 @@
           ${publicNavItems
             .map(([label, href]) => `<a href="${href}" class="${activeRoute === "cliente" && href === "/cliente" ? "active" : ""}" data-close-public-menu>${escapeHtml(label)}</a>`)
             .join("")}
-          <a class="${activeRoute === "changelog" ? "active" : ""}" href="/changelog" data-close-public-menu>Changelog</a>
         </nav>
       </header>
     `;
   }
 
   function renderPublicShell(content, route = "home") {
-    document.title = route === "changelog"
-      ? "Changelog - MANIFESTO"
-      : route === "cliente"
+    document.title = route === "cliente"
         ? "Area do Cliente - MANIFESTO"
         : "MANIFESTO - Plataforma Digital de Engenharia";
     app.innerHTML = `
@@ -762,9 +760,9 @@
       <footer class="public-footer">
         <div>
           <strong>MANIFESTO</strong>
-          <span>${escapeHtml(productVersion.stage)} - ${escapeHtml(productVersion.version)}</span>
+          <span>Area publica de acesso</span>
         </div>
-        <a href="/changelog">Historico de versoes</a>
+        <a href="/cliente">Area do cliente</a>
       </footer>
     `;
   }
@@ -804,38 +802,36 @@
   }
 
   function renderAuthHero() {
-    return renderManifestoHero();
+    return `
+      <section class="auth-hero access-hero">
+        <div>
+          <span class="brand-mark">M</span>
+        </div>
+        <div class="auth-title">
+          <p class="eyebrow">Area reservada</p>
+          <h1>MANIFESTO</h1>
+          <p>Acesso privado para cliente, equipa de desenvolvimento e utilizadores autorizados.</p>
+        </div>
+        <div class="auth-facts">
+          <div class="fact"><strong>01</strong><span>Entrar com conta autorizada</span></div>
+          <div class="fact"><strong>02</strong><span>Gerir vagas ou operacoes</span></div>
+          <div class="fact"><strong>03</strong><span>Consultar informacao privada no workspace</span></div>
+        </div>
+      </section>
+    `;
   }
 
   function renderPublicBoard() {
     const route = publicRoute();
-    if (route === "cliente") {
+    if (route === "cliente" || route === "home") {
       renderClientAreaPage();
       return;
     }
-    if (route === "changelog") {
-      renderChangelogPage();
+    if (route === "restricted") {
+      renderRestrictedInfoPage();
       return;
     }
-    renderPublicShell(`
-      ${noticeHtml()}
-      ${state.publicJobsWarning ? `<div class="public-warning notice error">${escapeHtml(state.publicJobsWarning)}</div>` : ""}
-      ${renderManifestoHero()}
-      ${renderProjectStatusSection()}
-      ${renderRoadmapSection()}
-      ${renderScopeSection()}
-      ${renderPlatformComparisonSection()}
-      ${renderModulesSection()}
-      ${renderTechnicalBaseSection()}
-      ${renderRequirementsSection()}
-      ${renderAcceptanceSection()}
-      ${renderDeliverablesSection()}
-      ${renderDocumentationSection()}
-      ${renderChangeRequestSection()}
-      ${renderFeedbackSection()}
-      ${renderPublicJobsSection()}
-      ${renderClientCtaSection()}
-    `, "home");
+    renderClientAreaPage();
   }
 
   function renderProjectStatusSection() {
@@ -1157,12 +1153,13 @@
     `;
   }
 
-  function renderPublicJobsSection() {
+  function renderPublicJobsSection(options = {}) {
+    const includeAuth = options.includeAuth !== false;
     const allJobs = state.publicJobs || [];
     const jobs = filterJobs(allJobs);
     return `
       <section class="public-section alt" id="mercado">
-        <div class="public-grid manifesto-market">
+        <div class="public-grid manifesto-market ${includeAuth ? "" : "single"}">
           <div class="panel">
             <div class="public-heading">
               <p class="eyebrow">Mercado aberto</p>
@@ -1178,9 +1175,7 @@
               ${jobs.length ? jobs.map((job) => renderJobCard(job, { publicMode: true })).join("") : empty(activeMarketFilterCount() ? "Nenhuma vaga corresponde aos filtros escolhidos." : "Ainda nao existem vagas publicadas.")}
             </div>
           </div>
-          <aside class="public-auth">
-            ${renderAuthSwitcher()}
-          </aside>
+          ${includeAuth ? `<aside class="public-auth">${renderAuthSwitcher()}</aside>` : ""}
         </div>
       </section>
     `;
@@ -1201,54 +1196,94 @@
   function renderClientAreaPage() {
     renderPublicShell(`
       ${noticeHtml()}
-      <section class="public-page-hero">
+      ${state.publicJobsWarning ? `<div class="public-warning notice error">${escapeHtml(state.publicJobsWarning)}</div>` : ""}
+      <section class="public-page-hero client-access-hero">
         <p class="eyebrow">Area do Cliente</p>
-        <h1>Dashboard MANIFESTO</h1>
-        <p>Resumo executivo do estado do projeto, modulos, entregas, documentos, feedback, pedidos de alteracao, testes e versoes.</p>
+        <h1>Acesso ao workspace MANIFESTO</h1>
+        <p>Esta area publica serve apenas para entrada, registo e descoberta de vagas. Estado do projeto, roadmap, requisitos, entregas, documentacao, feedback e changelog ficam reservados a cliente e equipa de desenvolvimento autenticados.</p>
       </section>
-      <section class="public-section">
-        <div class="client-dashboard-grid">
-          ${clientDashboardCards.map(([title, description]) => `
-            <article class="client-dashboard-card">
-              <h3>${escapeHtml(title)}</h3>
-              <p>${escapeHtml(description)}</p>
-            </article>
-          `).join("")}
+      <section class="public-section split client-access-grid">
+        <article class="concept-panel">
+          <span>Informacao privada</span>
+          <h2>Conteudo de projeto bloqueado</h2>
+          <p>O dashboard executivo, rastreabilidade, criterios, entregas e changelog aparecem apenas depois de iniciar sessao com uma conta autorizada de cliente ou desenvolvimento.</p>
+        </article>
+        <div>
+          ${renderAuthSwitcher()}
         </div>
       </section>
-      ${renderProjectStatusSection()}
-      ${renderRoadmapSection()}
-      ${renderModulesSection()}
-      ${renderDeliverablesSection()}
-      ${renderAcceptanceSection()}
-      ${renderDocumentationSection()}
-      ${renderChangeRequestSection()}
-      <section class="public-section split">
+      ${renderPublicJobsSection({ includeAuth: false })}
+    `, "cliente");
+  }
+
+  function renderRestrictedInfoPage() {
+    renderPublicShell(`
+      <section class="public-page-hero">
+        <p class="eyebrow">Conteudo reservado</p>
+        <h1>Informacao disponivel apenas no workspace</h1>
+        <p>Esta rota deixou de expor dados do projeto em publico. Entre pela Area do Cliente para aceder com uma conta autorizada.</p>
+      </section>
+      <section class="public-section split client-access-grid">
         <article class="concept-panel">
-          <span>Acesso operacional</span>
-          <h2>Entrar no workspace</h2>
-          <p>Contas worker, empresa ou gestor entram aqui para usar funcionalidades protegidas.</p>
+          <span>Privado</span>
+          <h2>Cliente / Developer</h2>
+          <p>Roadmap, requisitos, entregas, changelog e documentacao ficam dentro do workspace autenticado.</p>
         </article>
-        <aside class="public-auth static">
+        <div>
           ${renderAuthSwitcher()}
-        </aside>
+        </div>
       </section>
     `, "cliente");
   }
 
-  function renderChangelogPage() {
-    renderPublicShell(`
-      <section class="public-page-hero">
-        <p class="eyebrow">Versioning</p>
-        <h1>Changelog MANIFESTO</h1>
-        <p>Historico visivel de alteracoes por versao. As entradas registam o que foi adicionado, melhorado e corrigido.</p>
-      </section>
-      <section class="public-section">
+  function renderPrivateProjectView() {
+    return `
+      <div class="manifesto-shell private-project-shell">
+        <section class="public-page-hero">
+          <p class="eyebrow">Area privada</p>
+          <h1>Dashboard MANIFESTO</h1>
+          <p>Resumo executivo para cliente e equipa de desenvolvimento: estado do projeto, modulos, entregas, documentos, feedback, pedidos de alteracao, testes e versoes.</p>
+        </section>
+        <section class="public-section">
+          <div class="client-dashboard-grid">
+            ${clientDashboardCards.map(([title, description]) => `
+              <article class="client-dashboard-card">
+                <h3>${escapeHtml(title)}</h3>
+                <p>${escapeHtml(description)}</p>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+        ${renderProjectStatusSection()}
+        ${renderRoadmapSection()}
+        ${renderScopeSection()}
+        ${renderPlatformComparisonSection()}
+        ${renderModulesSection()}
+        ${renderTechnicalBaseSection()}
+        ${renderRequirementsSection()}
+        ${renderAcceptanceSection()}
+        ${renderDeliverablesSection()}
+        ${renderDocumentationSection()}
+        ${renderChangeRequestSection()}
+        ${renderFeedbackSection()}
+        ${renderVersionHistorySection()}
+      </div>
+    `;
+  }
+
+  function renderVersionHistorySection() {
+    return `
+      <section class="public-section" id="changelog">
+        <div class="section-heading">
+          <p class="eyebrow">Versioning</p>
+          <h2>Changelog MANIFESTO</h2>
+          <p>Historico privado de alteracoes por versao. As entradas registam o que foi adicionado, melhorado e corrigido.</p>
+        </div>
         <div class="changelog-list">
           ${versionHistory.map(renderChangelogEntry).join("")}
         </div>
       </section>
-    `, "changelog");
+    `;
   }
 
   function renderChangelogEntry(entry) {
@@ -1625,6 +1660,7 @@
       <nav class="${className}">
         ${navItems
           .filter(([view]) => {
+            if (view === "project") return canViewPrivateProject();
             if (view === "team") return isManager();
             if (["orders", "tasks", "dashboard"].includes(view)) return currentUser()?.role !== "worker";
             return true;
@@ -1646,6 +1682,7 @@
       <nav class="mobile-nav">
         ${navItems
           .filter(([view]) => {
+            if (view === "project") return canViewPrivateProject();
             if (view === "team") return isManager();
             if (["orders", "tasks", "dashboard"].includes(view)) return currentUser()?.role !== "worker";
             return true;
@@ -1661,6 +1698,7 @@
   }
 
   function renderView() {
+    if (state.view === "project") return canViewPrivateProject() ? renderPrivateProjectView() : renderMarketplace();
     if (state.view === "marketplace") return renderMarketplace();
     if (state.view === "orders") return renderOrders();
     if (state.view === "tasks") return renderTasks();

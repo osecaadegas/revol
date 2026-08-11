@@ -24,7 +24,7 @@
 
 - Public entrypoint looked like a simple vacancy prototype rather than a professional engineering project portal.
 - Main public navigation did not communicate the MANIFESTO information architecture.
-- Project status, roadmap, scope, deliverables, requirements traceability and documentation structure were not visible to the client.
+- Project status, roadmap, scope, deliverables, requirements traceability and documentation structure must be visible only to authenticated client/developer users.
 - No public changelog or client-area route existed.
 - Product versioning was only present in developer documentation, not in the UI.
 - Documentation and private-source file handling needed clearer public boundaries.
@@ -32,10 +32,11 @@
 
 ## Changes Implemented
 
-- Rebuilt the public experience around MANIFESTO: Manifesto, Projeto, Modulos, Roadmap, Documentacao and Area do Cliente.
+- Rebuilt the public experience around a restricted MANIFESTO client access area.
+- Moved project information into the authenticated workspace `Projeto` tab.
 - Added reusable, data-driven UI sections for phases, roadmap, modules, requirements, acceptance criteria, deliverables, documentation groups, changelog entries, change requests and feedback foundations.
 - Added `/cliente` for the client dashboard foundation.
-- Added `/changelog` for visible version history.
+- Kept `/changelog` public route from exposing version history; changelog is now shown inside the private workspace.
 - Kept the existing marketplace in the public page as an MVP module instead of removing it.
 - Added professional technical styling: neutral surfaces, charcoal typography, subtle blue accents, thin borders, compact hero and controlled grid language.
 - Improved responsive behaviour for nav, cards, roadmap and requirement tables.

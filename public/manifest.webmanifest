@@ -1,7 +1,7 @@
 {
   "name": "MANIFESTO",
   "short_name": "MANIFESTO",
-  "description": "Plataforma digital de engenharia para projeto, modulos, roadmap, documentacao e workflows operacionais.",
+  "description": "Area de cliente MANIFESTO para acesso ao workspace, vagas publicas e operacoes autenticadas.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f7f8f6",

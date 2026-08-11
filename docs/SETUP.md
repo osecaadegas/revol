@@ -28,7 +28,7 @@ http://localhost:4173
 
 ## First Run
 
-When the app opens, visitors see the MANIFESTO public project portal even without an account. The portal includes project status, roadmap, scope, modules, documentation structure, client area, changelog and the public vacancy board.
+When the app opens, visitors see only the MANIFESTO client access area and the public vacancy board. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access.
 
 Use the vacancy filters in the marketplace section to search by company/keyword/contract, cargo or function, location, and radius around known Portuguese cities.
 
@@ -39,6 +39,7 @@ To use the marketplace:
 
 After company registration, use the company account to:
 
+- View the private MANIFESTO project dashboard.
 - Publish vacancies.
 - Review worker applications.
 - Create workers or contractors directly.
@@ -165,4 +166,4 @@ npm run smoke
 
 `npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, application submission, application review, user creation, work order creation, task assignment, evidence upload, task submission, manager approval, and authenticated image access.
 
-Manual UI verification should include `/`, `/cliente`, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms and authenticated workspace routes.
+Manual UI verification should include `/`, `/cliente`, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` workspace tab for company/manager users and authenticated operational workspace routes.

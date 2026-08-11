@@ -132,15 +132,23 @@ Status: complete.
 - Updated metadata, PWA manifest, icon and design system for the MANIFESTO brand.
 - Preserved the marketplace and operational workspace as existing MVP functionality.
 
+### M13 - Private Project Visibility
+
+Status: complete.
+
+- Restricted unauthenticated visitors to the public `Area do Cliente` access gate and public vacancy marketplace.
+- Moved project status, roadmap, modules, scope, requirements, acceptance criteria, deliverables, documentation, feedback and changelog into an authenticated `Projeto` workspace tab.
+- Limited the private `Projeto` tab to the existing `company` and `manager` roles until dedicated client/developer roles are introduced.
+- Removed public navigation links to Manifesto, Projeto, Modulos, Roadmap, Documentacao and Changelog.
+
 ## Next Recommended Work
 
-1. Run `supabase/admin/reset_to_current_schema.sql` once in the dirty Supabase project.
-2. Configure deployment environment variables for Supabase.
-3. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
-4. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
-5. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-6. Add browser-driven regression coverage for public routes, public filtering and worker application.
-7. Add optional email delivery for worker/company notifications.
+1. Decide whether to add first-class `client` and `developer` roles to the database, API and invite workflow.
+2. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
+3. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+4. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+5. Add browser-driven regression coverage for public routes, public filtering and worker application.
+6. Add optional email delivery for worker/company notifications.
 
 ## Agent Update Protocol
 

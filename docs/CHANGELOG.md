@@ -8,6 +8,7 @@
 - Added responsive technical design system, mobile public navigation, responsive requirement table cards and MANIFESTO metadata/PWA branding.
 - Added `npm run build` as a deploy-time validation script for the Node serverless app.
 - Added `docs/AUDIT.md` with product, UX, architecture and remaining-dependency findings.
+- Restricted public project information to a client access gate and moved status, roadmap, modules, requirements, documentation and changelog into the authenticated `Projeto` workspace tab for company/manager users.
 
 ## 2026-08-10
 

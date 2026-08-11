@@ -13,9 +13,11 @@
 
 ## Current Product Concept
 
-The public product surface now presents MANIFESTO as a professional engineering project and project-management portal. The portal explains what is being built, what belongs to the MVP, what is future evolution, where requirements originate, how modules are progressing, and how the client can follow development.
+The public product surface now exposes only the MANIFESTO client access area and the public vacancy marketplace. Project status, roadmap, MVP scope, future evolution, requirement traceability, modules, deliverables, feedback, changelog and documentation structure are private workspace information.
 
 The existing labor-market and operational evidence workflows remain preserved as MVP modules inside the platform.
+
+Until dedicated `client` and `developer` database roles are introduced, the existing private project-access roles are `company` and `manager`.
 
 ## Marketplace And Operational Concept
 
@@ -43,8 +45,9 @@ The app must first behave like a public labor-market board:
 
 | Requirement | Implementation |
 | --- | --- |
-| Professional engineering-focused public surface | MANIFESTO public shell, compact hero and technical design system in `public/app.js` and `public/styles.css` |
-| Main navigation | Manifesto, Projeto, Modulos, Roadmap, Documentacao, Area do Cliente and Changelog links |
+| Public client access only | Public shell exposes `Area do Cliente` and login/register controls without project details |
+| Private project dashboard | Authenticated `Projeto` workspace tab for `company` and `manager` users |
+| Main public navigation | Only `Area do Cliente` is shown to unauthenticated visitors |
 | Project status dashboard | Data-driven `projectPhases` and `renderProjectStatusSection()` |
 | Roadmap | Data-driven `roadmapSteps` and responsive `renderRoadmapSection()` |
 | MVP scope separation | `mvpScope` with included and out-of-scope sections |
@@ -54,9 +57,9 @@ The app must first behave like a public labor-market board:
 | Requirement traceability | `requirements` data model rendered as responsive table |
 | Acceptance criteria | `acceptanceCriteria` data model with status labels |
 | Deliverables | `deliverables` grouped into completed, in development and pending |
-| Visible versioning/changelog | `productVersion`, `versionHistory` and `/changelog` route |
+| Private versioning/changelog | `productVersion` and `versionHistory` render inside the authenticated project workspace |
 | Documentation center | Document groups with public/private visibility notes |
-| Client area | `/cliente` dashboard foundation |
+| Client area | `/cliente` public access gate, with private dashboard after authentication |
 | Change requests and feedback foundations | Empty-state structures for future formal request and feedback tracking |
 
 ## Operational Phase 1 Requirements

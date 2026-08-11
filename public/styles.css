@@ -787,6 +787,25 @@ td span:not(.status-badge) {
   align-items: start;
 }
 
+.public-grid.single {
+  grid-template-columns: 1fr;
+}
+
+.client-access-hero {
+  padding-bottom: 20px;
+}
+
+.client-access-grid {
+  align-items: start;
+  padding-top: 20px;
+}
+
+.private-project-shell {
+  min-height: auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
 .public-auth {
   position: sticky;
   top: 18px;
@@ -1590,7 +1609,7 @@ td span:not(.status-badge) {
     left: 12px;
     z-index: 25;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(74px, 1fr));
     gap: 6px;
     border: 1px solid var(--line);
     border-radius: 8px;
