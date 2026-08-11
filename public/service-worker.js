@@ -1,4 +1,4 @@
-const CACHE_NAME = "luistrata-shell-v4";
+const CACHE_NAME = "luistrata-shell-v5";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

@@ -7,7 +7,7 @@ Authorization: Bearer <session-token>
 Content-Type: application/json
 ```
 
-Login, setup, and invite acceptance also set an HttpOnly same-origin `meo_session` cookie. The cookie is required for browser-native requests that cannot attach bearer headers, such as evidence image previews and opening the basic JSON export in a new tab.
+Login, Google callback, setup, and invite acceptance also set an HttpOnly same-origin `meo_session` cookie. The cookie is required for browser-native requests that cannot attach bearer headers, such as evidence image previews and opening the basic JSON export in a new tab.
 
 ## Public Endpoints
 
@@ -26,6 +26,14 @@ Creates the first company and manager. Only allowed before initialization.
 `POST /api/auth/login`
 
 Body: `email`, `password`.
+
+`GET /api/auth/google/start`
+
+Starts Google OAuth. Query params: `intent=login|worker` and optional same-origin `next` path. `intent=login` signs in an existing active account by matching the verified Google email. `intent=worker` may create a new `worker` account when no matching user exists.
+
+`GET /api/auth/google/callback`
+
+Handles the Google authorization-code callback, creates the normal app session cookie, links Google identity metadata into `user.profile.authProviders.google`, and redirects back to the `next` path with `auth=google` or `auth_error=<code>`.
 
 `GET /api/jobs/public`
 

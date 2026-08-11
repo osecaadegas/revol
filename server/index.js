@@ -19,6 +19,13 @@ const SESSION_COOKIE = "meo_session";
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 const SUPABASE_EVIDENCE_BUCKET = String(process.env.SUPABASE_EVIDENCE_BUCKET || "meo-evidence");
+const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
+const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
+const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
+const GOOGLE_AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
+const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+const GOOGLE_USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo";
+const GOOGLE_STATE_TTL_MS = 10 * 60 * 1000;
 const APP_STORAGE_DRIVER = String(
   process.env.APP_STORAGE_DRIVER || (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY ? "supabase" : "local")
 ).toLowerCase();
@@ -263,6 +270,76 @@ function normalizeEmail(email) {
 
 function cleanString(value, max = 300) {
   return String(value || "").trim().slice(0, max);
+}
+
+function googleAuthConfigured() {
+  return Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+}
+
+function requestOrigin(req) {
+  const proto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim() || (req.socket.encrypted ? "https" : "http");
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
+  return `${proto}://${host || `localhost:${PORT}`}`;
+}
+
+function googleRedirectUri(req) {
+  return GOOGLE_REDIRECT_URI || `${requestOrigin(req)}/api/auth/google/callback`;
+}
+
+function safeReturnPath(value) {
+  const pathValue = String(value || "/").trim();
+  if (!pathValue.startsWith("/") || pathValue.startsWith("//") || pathValue.startsWith("/api/")) return "/";
+  return pathValue.slice(0, 300);
+}
+
+function addQueryParam(pathValue, key, value) {
+  const url = new URL(safeReturnPath(pathValue), "http://local");
+  url.searchParams.set(key, value);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+function googleStateSecret() {
+  return GOOGLE_CLIENT_SECRET || "google-oauth-not-configured";
+}
+
+function signGoogleState(payload) {
+  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const signature = crypto.createHmac("sha256", googleStateSecret()).update(body).digest("base64url");
+  return `${body}.${signature}`;
+}
+
+function verifyGoogleState(value) {
+  const [body, signature] = String(value || "").split(".");
+  if (!body || !signature) {
+    const error = new Error("Invalid Google login state.");
+    error.status = 400;
+    throw error;
+  }
+  const expected = crypto.createHmac("sha256", googleStateSecret()).update(body).digest("base64url");
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actualBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(actualBuffer, expectedBuffer)) {
+    const error = new Error("Invalid Google login state.");
+    error.status = 400;
+    throw error;
+  }
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(body, "base64url").toString("utf-8"));
+  } catch {
+    const error = new Error("Invalid Google login state.");
+    error.status = 400;
+    throw error;
+  }
+  if (!payload?.createdAt || Date.now() - Number(payload.createdAt) > GOOGLE_STATE_TTL_MS) {
+    const error = new Error("Google login expired. Try again.");
+    error.status = 400;
+    throw error;
+  }
+  return {
+    next: safeReturnPath(payload.next),
+    intent: payload.intent === "worker" ? "worker" : "login"
+  };
 }
 
 function createEmptyDb() {
@@ -738,6 +815,16 @@ function sendJson(res, status, payload, headers = {}) {
   res.end(body);
 }
 
+function sendRedirect(res, location, headers = {}) {
+  res.writeHead(302, {
+    Location: location,
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    ...headers
+  });
+  res.end();
+}
+
 function sendError(res, error) {
   const status = error.status || 500;
   const message = status >= 500 ? "Internal server error." : error.message;
@@ -1046,6 +1133,126 @@ function ensureWorkerPoolCompany(db) {
   return company;
 }
 
+async function exchangeGoogleCode(req, code) {
+  const response = await fetch(GOOGLE_TOKEN_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: googleRedirectUri(req),
+      grant_type: "authorization_code"
+    })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.access_token) {
+    const error = new Error("Google token exchange failed.");
+    error.status = 502;
+    error.details = payload;
+    throw error;
+  }
+  return payload;
+}
+
+async function fetchGoogleUser(accessToken) {
+  const response = await fetch(GOOGLE_USERINFO_ENDPOINT, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json"
+    }
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.sub) {
+    const error = new Error("Google profile lookup failed.");
+    error.status = 502;
+    error.details = payload;
+    throw error;
+  }
+  return payload;
+}
+
+function attachGoogleIdentity(user, googleUser) {
+  const profile = { ...(user.profile || {}) };
+  const authProviders = { ...(profile.authProviders || {}) };
+  authProviders.google = {
+    sub: cleanString(googleUser.sub, 255),
+    emailVerified: googleUser.email_verified === true,
+    picture: cleanString(googleUser.picture, 500),
+    linkedAt: authProviders.google?.linkedAt || now(),
+    lastLoginAt: now()
+  };
+  user.profile = {
+    ...profile,
+    avatarUrl: profile.avatarUrl || cleanString(googleUser.picture, 500),
+    authProviders
+  };
+}
+
+function completeGoogleAuth(db, googleUser, intent, req) {
+  const email = normalizeEmail(googleUser.email);
+  if (!email || googleUser.email_verified !== true) {
+    const error = new Error("Google account must have a verified email.");
+    error.status = 403;
+    throw error;
+  }
+
+  let user = db.users.find((item) => item.email === email);
+  if (user && user.active === false) {
+    const error = new Error("This account is inactive.");
+    error.status = 403;
+    throw error;
+  }
+
+  let company;
+  let action = "auth.google_login";
+  if (!user) {
+    if (intent !== "worker") {
+      const error = new Error("No account exists for this Google email.");
+      error.status = 404;
+      throw error;
+    }
+    company = ensureWorkerPoolCompany(db);
+    user = {
+      id: nextId(db, "users", "usr"),
+      companyId: company.id,
+      name: cleanString(googleUser.name || email, 120),
+      email,
+      role: "worker",
+      passwordHash: hashPassword(randomToken(48)),
+      active: true,
+      profile: {
+        headline: "",
+        location: "",
+        skills: "",
+        bio: ""
+      },
+      createdAt: now()
+    };
+    db.users.push(user);
+    action = "worker.google_registered";
+  } else {
+    company = db.companies.find((item) => item.id === user.companyId);
+    if (!company) {
+      const error = new Error("Account company was not found.");
+      error.status = 403;
+      throw error;
+    }
+    const linkedSub = user.profile?.authProviders?.google?.sub;
+    if (linkedSub && linkedSub !== googleUser.sub) {
+      const error = new Error("This app account is linked to a different Google account.");
+      error.status = 403;
+      throw error;
+    }
+  }
+
+  attachGoogleIdentity(user, googleUser);
+  const auth = { user, company };
+  audit(db, auth, "session", user.id, action, { provider: "google" }, req);
+  const session = createSession(db, user.id);
+  return { session, bootstrap: buildBootstrap(db, { ...auth, session }) };
+}
+
 function publicJobsPayload(db) {
   return {
     jobs: db.jobOffers
@@ -1079,6 +1286,8 @@ function routeNotFound() {
 }
 
 async function handleApi(req, res, pathname) {
+  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+
   if (req.method === "GET" && pathname === "/api/health") {
     sendJson(res, 200, {
       ok: true,
@@ -1086,6 +1295,65 @@ async function handleApi(req, res, pathname) {
       storageDriver: APP_STORAGE_DRIVER,
       time: now()
     });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/auth/google/start") {
+    const next = safeReturnPath(url.searchParams.get("next") || "/");
+    const intent = url.searchParams.get("intent") === "worker" ? "worker" : "login";
+    if (!googleAuthConfigured()) {
+      sendRedirect(res, addQueryParam(next, "auth_error", "google_not_configured"));
+      return;
+    }
+    const state = signGoogleState({
+      createdAt: Date.now(),
+      nonce: randomToken(16),
+      next,
+      intent
+    });
+    const googleUrl = new URL(GOOGLE_AUTHORIZATION_ENDPOINT);
+    googleUrl.searchParams.set("client_id", GOOGLE_CLIENT_ID);
+    googleUrl.searchParams.set("redirect_uri", googleRedirectUri(req));
+    googleUrl.searchParams.set("response_type", "code");
+    googleUrl.searchParams.set("scope", "openid profile email");
+    googleUrl.searchParams.set("state", state);
+    googleUrl.searchParams.set("prompt", "select_account");
+    sendRedirect(res, googleUrl.toString());
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/auth/google/callback") {
+    let next = "/";
+    try {
+      if (!googleAuthConfigured()) {
+        sendRedirect(res, addQueryParam(next, "auth_error", "google_not_configured"));
+        return;
+      }
+      const googleError = url.searchParams.get("error");
+      if (googleError) {
+        sendRedirect(res, addQueryParam(next, "auth_error", "google_cancelled"));
+        return;
+      }
+      const statePayload = verifyGoogleState(url.searchParams.get("state"));
+      next = statePayload.next;
+      const code = url.searchParams.get("code");
+      if (!code) {
+        sendRedirect(res, addQueryParam(next, "auth_error", "google_missing_code"));
+        return;
+      }
+      const tokens = await exchangeGoogleCode(req, code);
+      const googleUser = await fetchGoogleUser(tokens.access_token);
+      const result = await mutateDb((db) => completeGoogleAuth(db, googleUser, statePayload.intent, req));
+      sendRedirect(res, addQueryParam(next, "auth", "google"), { "Set-Cookie": sessionCookie(result.session) });
+    } catch (error) {
+      if (error.status >= 500) console.error(error);
+      const code = error.status === 404
+        ? "google_account_not_registered"
+        : error.status === 403
+          ? "google_forbidden"
+          : "google_failed";
+      sendRedirect(res, addQueryParam(next, "auth_error", code));
+    }
     return;
   }
 

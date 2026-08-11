@@ -301,6 +301,49 @@
     state.notice = null;
   }
 
+  function googleAuthMessage(code) {
+    const messages = {
+      google_not_configured: "Login Google ainda nao esta configurado no servidor.",
+      google_account_not_registered: "Nao existe conta para esse email Google. Crie uma conta worker ou peca convite/acesso ao responsavel.",
+      google_forbidden: "Essa conta Google nao pode iniciar sessao nesta aplicacao.",
+      google_cancelled: "Login Google cancelado.",
+      google_missing_code: "Resposta Google incompleta. Tente novamente.",
+      google_failed: "Nao foi possivel concluir o login Google."
+    };
+    return messages[code] || messages.google_failed;
+  }
+
+  function consumeAuthQuery() {
+    const params = new URLSearchParams(location.search);
+    const auth = params.get("auth");
+    const authError = params.get("auth_error");
+    if (auth === "google") {
+      setNotice("Sessao iniciada com Google.");
+    } else if (authError) {
+      setNotice(googleAuthMessage(authError), "error");
+    }
+    if (auth || authError) {
+      params.delete("auth");
+      params.delete("auth_error");
+      const nextSearch = params.toString();
+      history.replaceState({}, "", `${location.pathname}${nextSearch ? `?${nextSearch}` : ""}${location.hash}`);
+    }
+    return auth === "google";
+  }
+
+  function googleAuthUrl(intent = "login", next = "/") {
+    return `/api/auth/google/start?intent=${encodeURIComponent(intent)}&next=${encodeURIComponent(next)}`;
+  }
+
+  function renderGoogleAuthButton(label, intent = "login", next = "/") {
+    return `
+      <a class="btn google full" href="${googleAuthUrl(intent, next)}">
+        <span aria-hidden="true">G</span>
+        ${escapeHtml(label)}
+      </a>
+    `;
+  }
+
   async function api(path, options = {}) {
     const headers = { ...(options.headers || {}) };
     if (!(options.body instanceof FormData)) headers["Content-Type"] = "application/json";
@@ -727,6 +770,8 @@
           <h2>Entrar</h2>
           <p class="muted">Aceda para candidatar-se, publicar vagas ou gerir operacoes.</p>
         </div>
+        ${renderGoogleAuthButton("Entrar com Google", "login", "/")}
+        <div class="auth-divider"><span>ou email</span></div>
         <div class="field">
           <label>Email</label>
           <input name="email" required type="email" autocomplete="email" placeholder="nome@empresa.pt">
@@ -748,6 +793,8 @@
             <h2>Entrar na area reservada</h2>
             <p class="muted">Use uma conta autorizada de cliente ou developer para acompanhar projeto, MVP e documentacao privada.</p>
           </div>
+          ${renderGoogleAuthButton("Entrar com Google", "login", "/cliente")}
+          <div class="auth-divider"><span>ou email</span></div>
           <div class="field">
             <label>Email</label>
             <input name="email" required type="email" autocomplete="email" placeholder="cliente@empresa.pt">
@@ -769,6 +816,8 @@
           <h2>Registar worker</h2>
           <p class="muted">Conta individual para candidatar-se a vagas publicas.</p>
         </div>
+        ${renderGoogleAuthButton("Criar worker com Google", "worker", "/")}
+        <div class="auth-divider"><span>ou formulario</span></div>
         <div class="field"><label>Nome</label><input name="name" required autocomplete="name"></div>
         <div class="field"><label>Email</label><input name="email" required type="email" autocomplete="email"></div>
         <div class="field"><label>Password</label><input name="password" required type="password" minlength="8" autocomplete="new-password"></div>
@@ -847,6 +896,8 @@
               <h2>Aceder a aplicacao</h2>
               <p>Use a conta criada pelo gestor ou aceite um convite recebido.</p>
             </div>
+            ${renderGoogleAuthButton("Entrar com Google", "login", "/")}
+            <div class="auth-divider"><span>ou email</span></div>
             <div class="field">
               <label>Email</label>
               <input name="email" required type="email" autocomplete="email" placeholder="nome@empresa.pt">
@@ -1730,6 +1781,8 @@
     const labels = {
       "setup.completed": "Ambiente criado",
       "auth.login": "Entrada na aplicacao",
+      "auth.google_login": "Entrada com Google",
+      "worker.google_registered": "Worker registado com Google",
       "user.created": "Utilizador criado",
       "user.updated": "Utilizador atualizado",
       "invite.created": "Convite criado",
@@ -2233,6 +2286,7 @@
         .catch(() => {});
     }
 
+    const googleSessionStarted = consumeAuthQuery();
     const invitePath = location.pathname.match(/^\/invite\/([^/]+)$/);
     if (invitePath) {
       state.initialized = true;
@@ -2242,7 +2296,7 @@
 
     try {
       await refreshPublicJobs();
-      if (state.token) {
+      if (state.token || googleSessionStarted) {
         try {
           await refreshData();
           state.view = defaultViewForUser();
@@ -2255,9 +2309,12 @@
           }
           renderApp();
           return;
-        } catch {
+        } catch (error) {
           localStorage.removeItem(tokenKey);
           state.token = "";
+          if (googleSessionStarted) {
+            setNotice(error.message, "error");
+          }
         }
       }
       renderPublicBoard();

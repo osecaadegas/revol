@@ -1566,6 +1566,31 @@ td span:not(.status-badge) {
   background: #fff;
 }
 
+.btn.google {
+  gap: 10px;
+  color: var(--ink);
+  border-color: rgba(209, 217, 224, 0.95);
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.06);
+}
+
+.btn.google span {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--accent);
+  background: #fff;
+  font-weight: 950;
+}
+
+.btn.google:hover {
+  border-color: rgba(10, 102, 194, 0.25);
+  background: #f8fbff;
+}
+
 .btn.flat {
   color: var(--ink);
   background: var(--soft);
@@ -1578,6 +1603,24 @@ td span:not(.status-badge) {
 .btn:disabled {
   cursor: not-allowed;
   opacity: 0.58;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+  content: "";
 }
 
 .notice {

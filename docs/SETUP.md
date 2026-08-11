@@ -61,6 +61,9 @@ APP_STORAGE_DRIVER=local
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_EVIDENCE_BUCKET=meo-evidence
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
 ```
 
 `PORT` controls the server port.
@@ -76,6 +79,28 @@ SUPABASE_EVIDENCE_BUCKET=meo-evidence
 `SUPABASE_SERVICE_ROLE_KEY` is required only on the server when using Supabase. Do not put it in frontend code.
 
 `SUPABASE_EVIDENCE_BUCKET` defaults to the private bucket created by the migration.
+
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable Google OAuth login.
+
+`GOOGLE_REDIRECT_URI` is optional. If empty, the server derives `/api/auth/google/callback` from the active request origin. In production, set it explicitly if your hosting/proxy origin is not stable.
+
+## Google Login Setup
+
+Google login uses the server-side OpenID Connect authorization-code flow. Configure OAuth credentials in Google Cloud and add these authorized redirect URIs:
+
+```text
+http://localhost:4173/api/auth/google/callback
+https://your-production-domain/api/auth/google/callback
+```
+
+Then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` on the server or Vercel environment.
+
+Behavior:
+
+- Existing active users can sign in with Google when the Google account email matches their app email.
+- New users can create a `worker` account through the worker registration Google button.
+- Google login does not auto-create company, client, developer, manager, employee, or contractor accounts. Those remain controlled by company registration, direct user creation, or invites.
+- The Google identity is stored in the existing user `profile.authProviders.google` data, so no extra Supabase table is required.
 
 ## Supabase Setup
 
@@ -148,7 +173,7 @@ Start command: npm run start
 Output directory: empty
 ```
 
-Set the Supabase environment variables before deploying. Do not use local filesystem persistence on Vercel.
+Set the Supabase environment variables before deploying. If Google login is enabled, also set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and optionally `GOOGLE_REDIRECT_URI`. Do not use local filesystem persistence on Vercel.
 
 If the public page shows a database setup warning, verify that `supabase/admin/reset_to_current_schema.sql` has been run and that the Vercel environment variables are set for the active deployment environment.
 

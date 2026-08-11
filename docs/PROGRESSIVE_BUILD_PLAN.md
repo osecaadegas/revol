@@ -174,16 +174,28 @@ Status: complete.
 - Kept `/cliente` as the reserved entry for client/developer project information.
 - Removed project-portal copy from the public homepage and kept private project/MVP content behind authenticated endpoints.
 
+### M17 - Google Login
+
+Status: complete.
+
+- Added Google OAuth authorization-code login through `/api/auth/google/start` and `/api/auth/google/callback`.
+- Existing active users can sign in with Google when the verified Google email matches their app account.
+- New Google users can self-create only `worker` accounts from the worker registration path.
+- Company, client, developer, manager, employee and contractor access remains controlled by the existing registration, user creation and invite flows.
+- Stored Google identity metadata in the existing user profile JSON so no extra Supabase table is required.
+
 ## Next Recommended Work
 
-1. Run `supabase/migrations/20260811000000_project_viewer_roles.sql` in the production Supabase project if it has not already been applied.
-2. Create or invite a `client` account and a `developer` account from the company `Equipa` tab.
-3. Verify `/` as the public job feed and `/cliente` as the reserved project login on production.
-4. Verify private `Projeto` and `MVP` tabs with client/developer roles on production.
-5. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
-6. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
-7. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-8. Add browser-driven regression coverage for public routes, public filtering and worker application.
+1. Configure Google OAuth credentials and authorized callback URLs for local and production.
+2. Run `supabase/migrations/20260811000000_project_viewer_roles.sql` in the production Supabase project if it has not already been applied.
+3. Create or invite a `client` account and a `developer` account from the company `Equipa` tab.
+4. Verify `/` as the public job feed and `/cliente` as the reserved project login on production.
+5. Verify Google login for an existing client/developer account, an existing company account and a new worker account.
+6. Verify private `Projeto` and `MVP` tabs with client/developer roles on production.
+7. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
+8. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+9. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+10. Add browser-driven regression coverage for public routes, public filtering and worker application.
 
 ## Agent Update Protocol
 

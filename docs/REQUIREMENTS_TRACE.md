@@ -72,7 +72,7 @@ The app must first behave like a public labor-market board:
 | --- | --- |
 | Mobile-first webapp accessible from phone, tablet, and computer | `public/index.html`, `public/styles.css`, responsive app shell |
 | Frontend separated from backend/API | Static frontend in `public/`, REST API in `server/index.js` |
-| Authentication | `/api/setup`, `/api/auth/login`, `/api/session`, bearer sessions |
+| Authentication | `/api/setup`, `/api/auth/login`, `/api/auth/google/start`, `/api/auth/google/callback`, `/api/session`, bearer sessions and same-origin session cookie |
 | Role separation | `worker` applies to jobs; `company/manager` manage marketplace and operations; `employee/contractor` execute tasks; `client/developer` view private project/MVP information |
 | Three profiles: manager, employee, contractor | Server roles `manager`, `employee`, `contractor`; role UI and API checks |
 | Manager manages users | Direct user creation, activation toggle, invite links |

@@ -2,6 +2,7 @@
 
 ## 2026-08-11
 
+- Added Google OAuth login for existing accounts plus worker-only Google self-registration, with server-side callback handling and setup documentation.
 - Added a more alive public interface with wider desktop search/filter controls, animated surface grid, header signal motion, card entrance states and service-worker cache bump.
 - Modernized the public job-network UI with a cleaner 2026-style surface, stronger hierarchy, refined search/feed cards, improved auth tabs and clearer candidate/company entry points.
 - Fixed stale public pages after deploy by replacing the service worker cache-first shell with network-first fetching, bumping the shell cache and disabling server cache for app shell files.
