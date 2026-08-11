@@ -4,7 +4,7 @@
 
 The repository started with only source PDFs and no existing app. This implementation creates the first app in the repository root.
 
-The corrected first product concept is a public labor-market board: vacancies are visible without login, workers register to apply, and companies register to publish vacancies. The operational work-order/evidence module remains part of the company workspace and is still backed by the contract annex.
+The corrected first product concept is a public labor-market board: vacancies are visible without login, workers register to apply, and companies register to publish vacancies. The homepage must feel like a practical LinkedIn-style job feed, while client/developer project information remains private. The operational work-order/evidence module remains part of the company workspace and is still backed by the contract annex.
 
 The engineering manuals and manifesto inform terminology and auditability principles, but they do not expand Phase 1 into Tiers, AI, blockchain, decentralized infrastructure, scoring, automated dispute resolution, or commercial SaaS.
 
@@ -162,15 +162,25 @@ Status: complete.
 - Prevented `client` and `developer` users from appearing as task assignees or operational workspace users.
 - Updated setup and API documentation for the new project-access flow.
 
+### M16 - Public Job Network Homepage
+
+Status: complete.
+
+- Made `/` the public vacancy marketplace instead of the client/project access page.
+- Added a LinkedIn-style job feed layout with first-screen search, quick filters, public result counts, job cards and account actions.
+- Kept `/cliente` as the reserved entry for client/developer project information.
+- Removed project-portal copy from the public homepage and kept private project/MVP content behind authenticated endpoints.
+
 ## Next Recommended Work
 
 1. Run `supabase/migrations/20260811000000_project_viewer_roles.sql` in the production Supabase project if it has not already been applied.
 2. Create or invite a `client` account and a `developer` account from the company `Equipa` tab.
-3. Verify private `Projeto` and `MVP` tabs with those roles on production.
-4. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
-5. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
-6. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-7. Add browser-driven regression coverage for public routes, public filtering and worker application.
+3. Verify `/` as the public job feed and `/cliente` as the reserved project login on production.
+4. Verify private `Projeto` and `MVP` tabs with client/developer roles on production.
+5. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
+6. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+7. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+8. Add browser-driven regression coverage for public routes, public filtering and worker application.
 
 ## Agent Update Protocol
 

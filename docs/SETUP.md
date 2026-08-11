@@ -28,7 +28,7 @@ http://localhost:4173
 
 ## First Run
 
-When the app opens, visitors see only the MANIFESTO client access area and the public vacancy board. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access.
+When the app opens, visitors see the public vacancy marketplace first. It should feel like a job network: search, quick filters, visible job cards and clear worker/company account actions. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access through `/cliente`.
 
 Use the vacancy filters in the marketplace section to search by company/keyword/contract, cargo or function, location, and radius around known Portuguese cities.
 
@@ -47,7 +47,7 @@ After company registration, use the company account to:
 - Create and assign tasks.
 - Review submitted evidence.
 
-Use a `client` or `developer` account to view the private MANIFESTO project dashboard and private MVP development cockpit.
+Use `/cliente` with a `client` or `developer` account to view the private MANIFESTO project dashboard and private MVP development cockpit. Worker and company registration remain on the public vacancies page.
 
 ## Environment Variables
 
@@ -168,4 +168,4 @@ npm run smoke
 
 `npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, application submission, application review, user creation, work order creation, task assignment, evidence upload, task submission, manager approval, and authenticated image access.
 
-Manual UI verification should include `/`, `/cliente`, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` and `MVP` workspace tabs for client/developer users, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes for company/manager/employee/contractor users.
+Manual UI verification should include `/` as the public vacancy feed, `/cliente` as the reserved project login, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` and `MVP` workspace tabs for client/developer users, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes for company/manager/employee/contractor users.

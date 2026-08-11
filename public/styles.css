@@ -791,6 +791,208 @@ td span:not(.status-badge) {
   grid-template-columns: 1fr;
 }
 
+.jobs-home {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: clamp(22px, 4vw, 42px) clamp(16px, 4vw, 42px) 56px;
+}
+
+.jobs-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 18px;
+}
+
+.jobs-hero-copy {
+  max-width: 780px;
+}
+
+.jobs-hero-copy h1,
+.jobs-feed-header h2,
+.client-login-copy h1 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.jobs-hero-copy h1 {
+  font-size: clamp(2rem, 4vw, 4rem);
+  line-height: 1.02;
+}
+
+.jobs-hero-copy p:not(.eyebrow),
+.jobs-sidebar-block p,
+.client-login-copy p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.jobs-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.jobs-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+.jobs-sidebar,
+.jobs-account-panel {
+  position: sticky;
+  top: 86px;
+  display: grid;
+  gap: 12px;
+}
+
+.jobs-sidebar-block {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 1px 0 rgba(16, 35, 31, 0.03);
+}
+
+.jobs-sidebar-block h2 {
+  margin: 0 0 10px;
+  font-size: 0.96rem;
+}
+
+.jobs-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.jobs-stat-grid div {
+  display: grid;
+  gap: 2px;
+  border-radius: 7px;
+  padding: 10px;
+  background: var(--soft);
+}
+
+.jobs-stat-grid strong {
+  font-size: 1.35rem;
+}
+
+.jobs-stat-grid span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.quick-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-filter-row button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: var(--muted);
+  background: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.quick-filter-row button:hover,
+.quick-filter-row button.active {
+  border-color: rgba(45, 103, 177, 0.32);
+  color: var(--accent);
+  background: #edf4fc;
+}
+
+.jobs-results {
+  min-width: 0;
+}
+
+.jobs-feed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.jobs-feed-header h2 {
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.jobs-feed {
+  gap: 10px;
+}
+
+.job-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.company-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #d8e5f4;
+  border-radius: 8px;
+  color: var(--accent);
+  background: #eef6ff;
+  font-weight: 900;
+}
+
+.client-login-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  gap: clamp(22px, 5vw, 70px);
+  align-items: start;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(42px, 8vw, 96px) clamp(18px, 4vw, 56px) 70px;
+}
+
+.client-login-copy h1 {
+  max-width: 720px;
+  font-size: clamp(2.1rem, 5vw, 4.6rem);
+  line-height: 0.98;
+}
+
+.client-login-copy p {
+  max-width: 680px;
+}
+
+.client-login-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.client-login-points span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.client-login-panel {
+  position: sticky;
+  top: 86px;
+}
+
 .client-access-hero {
   padding-bottom: 20px;
 }
@@ -1495,6 +1697,12 @@ td span:not(.status-badge) {
   box-shadow: 0 12px 36px rgba(16, 35, 31, 0.08);
 }
 
+.jobs-results .market-filter-bar {
+  max-width: none;
+  margin-right: 0;
+  margin-left: 0;
+}
+
 .market-filter-main {
   display: grid;
   grid-template-columns: minmax(180px, 1.25fr) minmax(160px, 1fr) minmax(160px, 1fr) 150px;
@@ -1646,6 +1854,8 @@ td span:not(.status-badge) {
   .main-layout,
   .section-grid,
   .public-grid,
+  .jobs-layout,
+  .client-login-page,
   .manifesto-hero,
   .status-dashboard,
   .mvp-stage,
@@ -1713,6 +1923,21 @@ td span:not(.status-badge) {
   }
 
   .public-auth {
+    position: static;
+  }
+
+  .jobs-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .jobs-hero-actions {
+    justify-content: flex-start;
+  }
+
+  .jobs-sidebar,
+  .jobs-account-panel,
+  .client-login-panel {
     position: static;
   }
 
@@ -1817,7 +2042,8 @@ td span:not(.status-badge) {
   .order-card header,
   .user-card header,
   .job-card header,
-  .panel-header {
+  .panel-header,
+  .jobs-feed-header {
     flex-direction: column;
     align-items: stretch;
   }
@@ -1829,6 +2055,8 @@ td span:not(.status-badge) {
   .manifesto-hero,
   .public-page-hero,
   .public-section,
+  .jobs-home,
+  .client-login-page,
   .client-cta,
   .public-footer {
     padding-right: 16px;

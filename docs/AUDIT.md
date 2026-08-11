@@ -22,7 +22,7 @@
 
 ## Issues Found
 
-- Public entrypoint looked like a simple vacancy prototype rather than a professional engineering project portal.
+- Public entrypoint briefly carried too much project-portal framing instead of feeling like the intended public job marketplace.
 - Main public navigation did not communicate the MANIFESTO information architecture.
 - Project status, roadmap, scope, deliverables, requirements traceability and documentation structure must be visible only to authenticated client/developer users.
 - No public changelog or client-area route existed.
@@ -32,7 +32,7 @@
 
 ## Changes Implemented
 
-- Rebuilt the public experience around a restricted MANIFESTO client access area.
+- Rebuilt the public experience around a LinkedIn-style vacancy feed, with the restricted MANIFESTO client access kept on `/cliente`.
 - Moved project information into the authenticated workspace `Projeto` tab.
 - Moved private project dashboard copy out of the public static bundle and into authenticated server-rendered HTML.
 - Added a private MVP development cockpit to connect the active build phase to live marketplace, account, task, evidence and audit data.

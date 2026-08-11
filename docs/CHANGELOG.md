@@ -2,6 +2,8 @@
 
 ## 2026-08-11
 
+- Reworked the public homepage into a LinkedIn-style vacancy feed with first-screen search, quick filters, result counts, job cards and worker/company account actions.
+- Kept project/client/developer information out of the public homepage and left `/cliente` as the reserved project access route.
 - Repositioned the public application as MANIFESTO, a professional engineering project portal.
 - Added public routes for `/cliente` and `/changelog`.
 - Added structured UI data for phases, roadmap, modules, requirements, acceptance criteria, deliverables, documentation groups, change requests, feedback and versions.

@@ -13,7 +13,7 @@
 
 ## Current Product Concept
 
-The public product surface now exposes only the MANIFESTO client access area and the public vacancy marketplace. Project status, roadmap, MVP scope, future evolution, requirement traceability, modules, deliverables, feedback, changelog and documentation structure are private workspace information.
+The public product surface now behaves first like a LinkedIn-style vacancy marketplace. Project status, roadmap, MVP scope, future evolution, requirement traceability, modules, deliverables, feedback, changelog and documentation structure are private workspace information for authenticated client/developer users only.
 
 The existing labor-market and operational evidence workflows remain preserved as MVP modules inside the platform.
 
@@ -33,8 +33,9 @@ The app must first behave like a public labor-market board:
 
 | Requirement | Implementation |
 | --- | --- |
-| Public vacancies visible without login | `/api/jobs/public`, public board in `public/app.js` |
+| Public vacancies visible without login | `/api/jobs/public`, public homepage board in `public/app.js` |
 | Public vacancy discovery works like a labor-market board | Shared marketplace filters in `public/app.js` for keyword/company/contract, cargo/function, location, and known-city radius |
+| Public homepage feels like a job network | `/` renders a vacancy feed with search, quick filters, result counts, job cards and account actions before any private project entry |
 | Worker registration required to apply | `/api/register/worker`, `/api/job-offers/:id/apply` requires `worker` |
 | Company registration required to create vacancies | `/api/register/company`, `/api/job-offers` requires `company` or legacy `manager` |
 | Company can manage received applications | `/api/applications/:id`, company marketplace view |
@@ -45,10 +46,10 @@ The app must first behave like a public labor-market board:
 
 | Requirement | Implementation |
 | --- | --- |
-| Public client access only | Public shell exposes `Area do Cliente` and login/register controls without project details |
+| Public client access only | `/cliente` exposes reserved login controls without project details or worker/company registration tabs |
 | Private project dashboard | Authenticated `Projeto` workspace tab for `client` and `developer` users; content is served by `/api/project/private` |
 | Private data not in public bundle | Detailed project copy is generated server-side in `server/private-project.js`, not embedded in `public/app.js` |
-| Main public navigation | Only `Area do Cliente` is shown to unauthenticated visitors |
+| Main public navigation | Unauthenticated visitors see `Vagas` and `Area do Cliente`; project, MVP, roadmap and documentation links stay private |
 | Project status dashboard | Data-driven `projectPhases` and `renderProjectStatusSection()` |
 | Roadmap | Data-driven `roadmapSteps` and responsive `renderRoadmapSection()` |
 | MVP development cockpit | Private `MVP` workspace tab for `client` and `developer` users loads server-rendered `/api/mvp/private` readiness from marketplace, accounts, tasks, evidence and audit data |

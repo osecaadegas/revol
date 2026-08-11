@@ -93,7 +93,10 @@
     funchal: { lat: 32.6669, lon: -16.9241, label: "Funchal" }
   };
 
-  const publicNavItems = [["Area do Cliente", "/cliente"]];
+  const publicNavItems = [
+    ["Vagas", "/"],
+    ["Area do Cliente", "/cliente"]
+  ];
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -199,6 +202,47 @@
       location: "",
       radius: "all"
     };
+  }
+
+  function topMarketValues(jobs, key, fallback = []) {
+    const counts = new Map();
+    jobs.forEach((job) => {
+      const value = cleanDisplayValue(job[key]);
+      if (!value) return;
+      counts.set(value, (counts.get(value) || 0) + 1);
+    });
+    const values = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([value]) => value)
+      .slice(0, 5);
+    return values.length ? values : fallback;
+  }
+
+  function cleanDisplayValue(value) {
+    return String(value || "").trim();
+  }
+
+  function renderQuickFilterGroup(title, filter, values) {
+    if (!values.length) return "";
+    return `
+      <section class="jobs-sidebar-block">
+        <h2>${escapeHtml(title)}</h2>
+        <div class="quick-filter-row">
+          ${values
+            .map(
+              (value) => `
+                <button
+                  class="${state.marketFilters[filter] === value ? "active" : ""}"
+                  type="button"
+                  data-market-preset="${escapeHtml(filter)}"
+                  data-market-value="${escapeHtml(value)}"
+                >${escapeHtml(value)}</button>
+              `
+            )
+            .join("")}
+        </div>
+      </section>
+    `;
   }
 
   function renderMarketFilters(context, totalJobs, shownJobs) {
@@ -399,10 +443,10 @@
     return `
       <header class="public-topbar">
         <a class="public-brand" href="/">
-          <span class="brand-mark">M</span>
+          <span class="brand-mark">LT</span>
           <div>
-            <strong>MANIFESTO</strong>
-            <span>Plataforma Digital de Engenharia</span>
+            <strong>LuisTrata Jobs</strong>
+            <span>Vagas e trabalho</span>
           </div>
         </a>
         <button class="public-menu-button" type="button" data-action="toggle-public-menu" aria-expanded="${state.publicMenuOpen ? "true" : "false"}" aria-label="Abrir navegacao">
@@ -410,7 +454,10 @@
         </button>
         <nav class="public-nav ${state.publicMenuOpen ? "open" : ""}" aria-label="Navegacao principal">
           ${publicNavItems
-            .map(([label, href]) => `<a href="${href}" class="${activeRoute === "cliente" && href === "/cliente" ? "active" : ""}" data-close-public-menu>${escapeHtml(label)}</a>`)
+            .map(([label, href]) => {
+              const active = (activeRoute === "home" && href === "/") || (activeRoute === "cliente" && href === "/cliente");
+              return `<a href="${href}" class="${active ? "active" : ""}" data-close-public-menu>${escapeHtml(label)}</a>`;
+            })
             .join("")}
         </nav>
       </header>
@@ -420,7 +467,7 @@
   function renderPublicShell(content, route = "home") {
     document.title = route === "cliente"
         ? "Area do Cliente - MANIFESTO"
-        : "MANIFESTO - Plataforma Digital de Engenharia";
+        : "LuisTrata Jobs - Vagas abertas";
     app.innerHTML = `
       <main class="manifesto-shell">
         ${renderPublicTopNav(route)}
@@ -436,9 +483,10 @@
     return `
       <footer class="public-footer">
         <div>
-          <strong>MANIFESTO</strong>
-          <span>Area publica de acesso</span>
+          <strong>LuisTrata Jobs</strong>
+          <span>Vagas abertas para consulta publica</span>
         </div>
+        <a href="/">Vagas</a>
         <a href="/cliente">Area do cliente</a>
       </footer>
     `;
@@ -466,7 +514,11 @@
 
   function renderPublicBoard() {
     const route = publicRoute();
-    if (route === "cliente" || route === "home") {
+    if (route === "home") {
+      renderPublicMarketplacePage();
+      return;
+    }
+    if (route === "cliente") {
       renderClientAreaPage();
       return;
     }
@@ -477,66 +529,88 @@
     renderClientAreaPage();
   }
 
-  function renderPublicJobsSection(options = {}) {
-    const includeAuth = options.includeAuth !== false;
+  function renderPublicMarketplacePage() {
     const allJobs = state.publicJobs || [];
     const jobs = filterJobs(allJobs);
-    return `
-      <section class="public-section alt" id="mercado">
-        <div class="public-grid manifesto-market ${includeAuth ? "" : "single"}">
-          <div class="panel">
-            <div class="public-heading">
-              <p class="eyebrow">Mercado aberto</p>
-              <h2>Vagas publicas</h2>
-              <p>As oportunidades ficam visiveis para todos. Candidaturas exigem conta worker; publicacao exige conta empresa.</p>
-            </div>
+    const openJobs = allJobs.filter((job) => job.status === "open").length;
+    const companies = new Set(allJobs.map((job) => job.companyName).filter(Boolean)).size;
+    const locations = topMarketValues(allJobs, "location", ["Braga", "Porto", "Lisboa", "Vila Real"]);
+    const positions = topMarketValues(allJobs, "position", ["Agricultura", "Construcao", "Servicos", "Logistica"]);
+
+    renderPublicShell(`
+      ${noticeHtml()}
+      ${state.publicJobsWarning ? `<div class="public-warning notice error">${escapeHtml(state.publicJobsWarning)}</div>` : ""}
+      <section class="jobs-home">
+        <section class="jobs-hero">
+          <div class="jobs-hero-copy">
+            <p class="eyebrow">Mercado de trabalho</p>
+            <h1>Encontre vagas abertas perto de si.</h1>
+            <p>Pesquise por cargo, empresa, localizacao e raio. As ofertas ficam sempre visiveis; para candidatar-se crie uma conta worker.</p>
+          </div>
+          <div class="jobs-hero-actions">
+            <a class="btn primary" href="#vagas">Ver vagas</a>
+            <button class="btn ghost" type="button" data-public-create-job>Sou empresa</button>
+          </div>
+        </section>
+
+        <section class="jobs-layout" id="vagas">
+          <aside class="jobs-sidebar" aria-label="Filtros rapidos">
+            <section class="jobs-sidebar-block jobs-stats">
+              <h2>Mercado</h2>
+              <div class="jobs-stat-grid">
+                <div><strong>${openJobs}</strong><span>vagas abertas</span></div>
+                <div><strong>${companies}</strong><span>empresas</span></div>
+              </div>
+            </section>
+            ${renderQuickFilterGroup("Localizacoes", "location", locations)}
+            ${renderQuickFilterGroup("Funcoes", "position", positions)}
+          </aside>
+
+          <main class="jobs-results">
             ${renderMarketFilters("public", allJobs.length, jobs.length)}
-            <div class="panel-header">
-              <h3>Ofertas disponiveis</h3>
-              <span class="chip">${jobs.length}/${allJobs.length}</span>
+            <div class="jobs-feed-header">
+              <div>
+                <p class="eyebrow">Resultados</p>
+                <h2>${jobs.length ? `${jobs.length} vagas encontradas` : "Sem vagas encontradas"}</h2>
+              </div>
+              ${activeMarketFilterCount() ? `<button class="btn ghost" type="button" data-action="clear-market-filters" data-market-context="public">Limpar filtros</button>` : ""}
             </div>
-            <div class="list">
+            <div class="list jobs-feed">
               ${jobs.length ? jobs.map((job) => renderJobCard(job, { publicMode: true })).join("") : empty(activeMarketFilterCount() ? "Nenhuma vaga corresponde aos filtros escolhidos." : "Ainda nao existem vagas publicadas.")}
             </div>
-          </div>
-          ${includeAuth ? `<aside class="public-auth">${renderAuthSwitcher()}</aside>` : ""}
-        </div>
-      </section>
-    `;
-  }
+          </main>
 
-  function renderClientCtaSection() {
-    return `
-      <section class="client-cta">
-        <div>
-          <span>Area do Cliente</span>
-          <h2>Uma leitura executiva do projeto em menos de 10 segundos.</h2>
-        </div>
-        <a class="btn primary" href="/cliente">Abrir area do cliente</a>
+          <aside class="jobs-account-panel" id="acesso">
+            <div class="jobs-sidebar-block">
+              <h2>Acesso</h2>
+              <p>Workers candidatam-se. Empresas publicam vagas. Cliente e developer entram pela area reservada.</p>
+            </div>
+            ${renderAuthSwitcher()}
+          </aside>
+        </section>
       </section>
-    `;
+    `, "home");
   }
 
   function renderClientAreaPage() {
     renderPublicShell(`
       ${noticeHtml()}
       ${state.publicJobsWarning ? `<div class="public-warning notice error">${escapeHtml(state.publicJobsWarning)}</div>` : ""}
-      <section class="public-page-hero client-access-hero">
-        <p class="eyebrow">Area do Cliente</p>
-        <h1>Acesso ao workspace MANIFESTO</h1>
-        <p>Esta area publica serve apenas para entrada, registo e descoberta de vagas. A informacao detalhada do projeto fica reservada a cliente e equipa de desenvolvimento autenticados.</p>
-      </section>
-      <section class="public-section split client-access-grid">
-        <article class="concept-panel">
-          <span>Informacao privada</span>
-          <h2>Conteudo de projeto bloqueado</h2>
-          <p>O acompanhamento detalhado aparece apenas depois de iniciar sessao com uma conta autorizada de cliente ou desenvolvimento.</p>
+      <section class="client-login-page">
+        <article class="client-login-copy">
+          <p class="eyebrow">Area do Cliente</p>
+          <h1>Acesso reservado</h1>
+          <p>Informacao de projeto, progresso do MVP, documentacao e acompanhamento ficam apenas no workspace autenticado para cliente e developer.</p>
+          <div class="client-login-points">
+            <span>Projeto</span>
+            <span>MVP</span>
+            <span>Documentacao</span>
+          </div>
         </article>
-        <div>
-          ${renderAuthSwitcher()}
+        <div class="client-login-panel">
+          ${renderClientLoginForm()}
         </div>
       </section>
-      ${renderPublicJobsSection({ includeAuth: false })}
     `, "cliente");
   }
 
@@ -617,6 +691,28 @@
         </div>
         <button class="btn primary full" type="submit">Entrar</button>
       </form>
+    `;
+  }
+
+  function renderClientLoginForm() {
+    return `
+      <div class="panel">
+        <form class="form-grid" data-form="login">
+          <div>
+            <h2>Entrar na area reservada</h2>
+            <p class="muted">Use uma conta autorizada de cliente ou developer para acompanhar projeto, MVP e documentacao privada.</p>
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input name="email" required type="email" autocomplete="email" placeholder="cliente@empresa.pt">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input name="password" required type="password" autocomplete="current-password">
+          </div>
+          <button class="btn primary full" type="submit">Entrar</button>
+        </form>
+      </div>
     `;
   }
 
@@ -849,6 +945,19 @@
         renderPublicBoard();
       });
     });
+
+    document.querySelectorAll("[data-market-preset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const filter = button.dataset.marketPreset;
+        const value = button.dataset.marketValue || "";
+        state.marketFilters[filter] = state.marketFilters[filter] === value ? "" : value;
+        if (filter === "location" && value && state.marketFilters.radius === "all") {
+          state.marketFilters.radius = "50";
+        }
+        clearNotice();
+        renderPublicBoard();
+      });
+    });
   }
 
   function bindMarketFilters(renderTarget) {
@@ -1070,16 +1179,20 @@
     const existingApplication = applications.find((application) => application.jobOfferId === job.id);
     const publicMode = options.publicMode;
     const positionLabel = job.position || job.title;
+    const companyInitial = cleanDisplayValue(job.companyName || "Empresa").slice(0, 1).toUpperCase() || "E";
     return `
       <article class="job-card">
         <header>
-          <div>
-            <h3>${escapeHtml(job.title)}</h3>
-            <div class="meta-row">
-              ${positionLabel ? `<span class="chip job-position">${escapeHtml(positionLabel)}</span>` : ""}
-              <span>${escapeHtml(job.companyName || "Empresa")}</span>
-              <span>${escapeHtml(job.location)}</span>
-              <span>${formatDate(job.createdAt)}</span>
+          <div class="job-title-row">
+            <span class="company-avatar">${escapeHtml(companyInitial)}</span>
+            <div>
+              <h3>${escapeHtml(job.title)}</h3>
+              <div class="meta-row">
+                ${positionLabel ? `<span class="chip job-position">${escapeHtml(positionLabel)}</span>` : ""}
+                <span>${escapeHtml(job.companyName || "Empresa")}</span>
+                <span>${escapeHtml(job.location)}</span>
+                <span>${formatDate(job.createdAt)}</span>
+              </div>
             </div>
           </div>
           <span class="chip ${job.status === "open" ? "approved" : "rejected"}">${job.status === "open" ? "Aberta" : "Fechada"}</span>
