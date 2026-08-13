@@ -2209,6 +2209,19 @@ td span:not(.status-badge) {
   font-size: 0.82rem;
 }
 
+.evidence-card.expired img {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+.evidence-download {
+  margin-top: 10px;
+  min-height: 34px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  white-space: normal;
+}
+
 .history-card {
   gap: 7px;
 }

@@ -145,6 +145,7 @@ create table public.meo_tasks (
   updated_at timestamptz not null,
   started_at timestamptz,
   completed_at timestamptz,
+  validation_due_at timestamptz,
   approved_at timestamptz,
   rejected_at timestamptz
 );
@@ -162,6 +163,12 @@ create table public.meo_evidences (
   stored_name text not null,
   note text,
   location jsonb not null default '{"status": "not_requested"}'::jsonb,
+  captured_at timestamptz not null,
+  uploaded_at timestamptz not null,
+  expires_at timestamptz not null,
+  file_hash text not null default '',
+  metadata jsonb not null default '{}'::jsonb,
+  authenticity jsonb not null default '{}'::jsonb,
   created_at timestamptz not null,
   constraint meo_evidences_has_parent check (task_id is not null or work_order_id is not null)
 );
@@ -223,6 +230,8 @@ create index meo_tasks_assignee_idx on public.meo_tasks(assignee_id);
 create index meo_tasks_work_order_idx on public.meo_tasks(work_order_id);
 create index meo_evidences_company_idx on public.meo_evidences(company_id);
 create index meo_evidences_task_idx on public.meo_evidences(task_id);
+create index meo_evidences_expires_idx on public.meo_evidences(expires_at);
+create index meo_tasks_validation_due_idx on public.meo_tasks(validation_due_at);
 create index meo_audit_logs_company_idx on public.meo_audit_logs(company_id);
 create index meo_job_offers_company_idx on public.meo_job_offers(company_id);
 create index meo_job_offers_status_idx on public.meo_job_offers(status);

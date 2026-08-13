@@ -58,6 +58,8 @@
     rejected: "Rejeitada"
   };
 
+  const finalEvidenceMinimum = 3;
+
   const navItems = [
     ["project", "Projeto"],
     ["mvp", "MVP"],
@@ -453,6 +455,19 @@
 
   function taskEvidence(taskId) {
     return (state.data?.evidences || []).filter((evidence) => evidence.taskId === taskId);
+  }
+
+  function qualifyingEvidence(taskId) {
+    return taskEvidence(taskId).filter(
+      (evidence) =>
+        !evidenceExpired(evidence) &&
+        evidence.location?.status === "granted" &&
+        evidence.authenticity?.status === "accepted"
+    );
+  }
+
+  function evidenceExpired(evidence) {
+    return evidence.expiresAt && new Date(evidence.expiresAt).getTime() <= Date.now();
   }
 
   function orderEvidence(orderId) {
@@ -1610,6 +1625,7 @@
   function renderTaskCard(task) {
     const order = orderById(task.workOrderId);
     const evidenceCount = taskEvidence(task.id).length;
+    const acceptedCount = qualifyingEvidence(task.id).length;
     return `
       <article class="task-card">
         <header>
@@ -1625,7 +1641,9 @@
         </header>
         ${task.description ? `<p class="muted">${escapeHtml(task.description)}</p>` : ""}
         <div class="meta-row">
-          <span>${evidenceCount} provas</span>
+          <span>${acceptedCount}/${finalEvidenceMinimum} provas finais validas</span>
+          <span>${evidenceCount} fotos retidas</span>
+          ${task.validationDueAt ? `<span>Validar ate ${formatDate(task.validationDueAt)}</span>` : ""}
           ${task.blockReason ? `<span>Bloqueio: ${escapeHtml(task.blockReason)}</span>` : ""}
           ${task.validationComment ? `<span>Decisao: ${escapeHtml(task.validationComment)}</span>` : ""}
         </div>
@@ -1642,7 +1660,7 @@
         <header>
           <div>
             <h3>${escapeHtml(task.title)}</h3>
-            <div class="meta-row"><span>${escapeHtml(task.assigneeName)}</span><span>${formatDate(task.updatedAt)}</span></div>
+            <div class="meta-row"><span>${escapeHtml(task.assigneeName)}</span><span>${task.validationDueAt ? `Validar ate ${formatDate(task.validationDueAt)}` : formatDate(task.updatedAt)}</span></div>
           </div>
           <span class="chip ${task.status}">${escapeHtml(statusLabel(task.status))}</span>
         </header>
@@ -1791,7 +1809,10 @@
       "task.created": "Tarefa criada",
       "task.status_changed": "Estado da tarefa alterado",
       "evidence.created": "Prova fotografica submetida",
+      "evidence.retention_deleted": "Prova apagada por retencao",
+      "evidence.watermarked_downloaded": "Download com marca de agua",
       "task.approved": "Tarefa aprovada",
+      "task.auto_approved": "Tarefa aprovada automaticamente",
       "task.rejected": "Tarefa rejeitada"
     };
     return labels[action] || action;
@@ -1810,6 +1831,7 @@
     if (!task) return "";
     const order = orderById(task.workOrderId);
     const evidence = taskEvidence(task.id);
+    const acceptedEvidence = qualifyingEvidence(task.id);
     const logs = taskLogs(task.id);
     return `
       <div class="drawer-backdrop" data-close-drawer>
@@ -1822,6 +1844,7 @@
                 <span>${escapeHtml(order?.title || "Ordem removida")}</span>
                 <span>${escapeHtml(task.assigneeName)}</span>
                 <span>Prazo ${formatDate(task.dueDate)}</span>
+                ${task.validationDueAt ? `<span>Validacao ate ${formatDate(task.validationDueAt)}</span>` : ""}
               </div>
             </div>
             <button class="btn ghost" data-action="close-drawer">Fechar</button>
@@ -1831,7 +1854,8 @@
           ${task.validationComment ? `<div class="notice success">Decisao: ${escapeHtml(task.validationComment)}</div>` : ""}
           ${renderTaskActions(task)}
           <div class="panel">
-            <div class="panel-header"><h2>Provas</h2><span class="chip">${evidence.length}</span></div>
+            <div class="panel-header"><h2>Provas finais</h2><span class="chip">${acceptedEvidence.length}/${finalEvidenceMinimum}</span></div>
+            ${acceptedEvidence.length < finalEvidenceMinimum && !["pending_validation", "approved"].includes(task.status) ? `<div class="notice error">Para concluir, submeta pelo menos ${finalEvidenceMinimum} fotografias com GPS autorizado.</div>` : ""}
             ${renderEvidenceForm(task)}
             <div class="evidence-grid" style="margin-top: 14px">
               ${evidence.length ? evidence.map(renderEvidenceCard).join("") : empty("Sem fotografias submetidas.")}
@@ -1851,14 +1875,17 @@
   function renderTaskActions(task) {
     const canOperate = isManager() || task.assigneeId === currentUser().id;
     const canChange = canOperate && task.status !== "approved";
+    const readyForValidation = qualifyingEvidence(task.id).length >= finalEvidenceMinimum;
+    const canSubmitForValidation = canChange && readyForValidation && task.status !== "pending_validation";
     return `
       <div class="panel">
         <div class="panel-header"><h2>Acoes</h2></div>
         <div class="card-actions">
           <button class="btn accent" data-task-status="${task.id}" data-next-status="in_progress" ${!canChange ? "disabled" : ""}>Iniciar</button>
           <button class="btn warn" data-action="show-block" ${!canChange ? "disabled" : ""}>Bloquear</button>
-          <button class="btn primary" data-task-status="${task.id}" data-next-status="pending_validation" ${!canChange ? "disabled" : ""}>Concluir para validacao</button>
+          <button class="btn primary" data-task-status="${task.id}" data-next-status="pending_validation" ${!canSubmitForValidation ? "disabled" : ""}>Concluir para validacao</button>
         </div>
+        ${!readyForValidation && !["pending_validation", "approved"].includes(task.status) ? `<p class="muted">A conclusao fica disponivel depois de ${finalEvidenceMinimum} fotografias finais com GPS e autenticidade aceite.</p>` : ""}
         <form class="form-grid" data-form="block-task" data-task-id="${escapeHtml(task.id)}" style="display:none; margin-top: 12px">
           <div class="field">
             <label>Justificacao do bloqueio</label>
@@ -1883,23 +1910,24 @@
   }
 
   function renderEvidenceForm(task) {
-    const canAdd = (isManager() || task.assigneeId === currentUser().id) && task.status !== "approved";
+    const canAdd = (isManager() || task.assigneeId === currentUser().id) && !["pending_validation", "approved"].includes(task.status);
     if (!canAdd) return `<p class="muted">Esta tarefa ja nao aceita novas provas.</p>`;
     return `
       <form class="form-grid" data-form="evidence" data-task-id="${escapeHtml(task.id)}">
         <div class="field">
-          <label>Fotografia</label>
-          <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" required>
+          <label>Fotografias finais com GPS</label>
+          <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" multiple required>
+          <p class="muted">Pode selecionar varias fotos. Cada envio fica guardado 7 dias e precisa de localizacao autorizada.</p>
         </div>
         <div class="field">
           <label>Observacao</label>
           <textarea name="note" placeholder="Nota curta sobre a prova"></textarea>
         </div>
         <div class="card-actions">
-          <button class="btn ghost" type="button" data-action="capture-location">Pedir localizacao pontual</button>
+          <button class="btn ghost" type="button" data-action="capture-location">Autorizar GPS pontual</button>
           <span class="chip" id="location-status">${locationLabel(state.locationDraft)}</span>
         </div>
-        <button class="btn primary" type="submit">Submeter prova</button>
+        <button class="btn primary" type="submit">Submeter fotografias</button>
       </form>
     `;
   }
@@ -1911,15 +1939,38 @@
     return "Localizacao indisponivel";
   }
 
+  function gpsLabel(location) {
+    if (!location || location.status !== "granted") return locationLabel(location);
+    const latitude = Number(location.latitude);
+    const longitude = Number(location.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return "GPS autorizado";
+    return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+  }
+
+  function authenticityLabel(evidence) {
+    if (evidence.authenticity?.status === "accepted") return "Autenticidade aceite";
+    return "Autenticidade incompleta";
+  }
+
+  function shortHash(value) {
+    return value ? String(value).slice(0, 12) : "sem hash";
+  }
+
   function renderEvidenceCard(evidence) {
+    const expired = evidenceExpired(evidence);
     return `
-      <article class="evidence-card">
+      <article class="evidence-card ${expired ? "expired" : ""}">
         <img src="${escapeHtml(evidence.fileUrl)}" alt="Prova fotografica" loading="lazy">
         <div>
           <strong>${escapeHtml(evidence.userName || "Utilizador")}</strong><br>
-          <span>${formatDate(evidence.createdAt)}</span><br>
-          <span>${escapeHtml(locationLabel(evidence.location))}</span>
+          <span>Captada: ${formatDate(evidence.capturedAt || evidence.createdAt)}</span><br>
+          <span>Enviada: ${formatDate(evidence.uploadedAt || evidence.createdAt)}</span><br>
+          <span>GPS: ${escapeHtml(gpsLabel(evidence.location))}</span><br>
+          <span>${escapeHtml(authenticityLabel(evidence))}</span><br>
+          <span>Retencao: ${expired ? "expirada" : `ate ${formatDate(evidence.expiresAt)}`}</span><br>
+          <span>SHA-256: ${escapeHtml(shortHash(evidence.fileHash))}</span>
           ${evidence.note ? `<p>${escapeHtml(evidence.note)}</p>` : ""}
+          ${!expired ? `<a class="btn ghost full evidence-download" href="${escapeHtml(evidence.downloadUrl)}">Descarregar com marca de agua</a>` : ""}
         </div>
       </article>
     `;
@@ -2155,20 +2206,23 @@
 
   async function submitEvidence(form) {
     const input = form.querySelector("input[type='file']");
-    const [photo] = await filesToPhotos(input.files, 1);
-    if (!photo) throw new Error("Escolha uma fotografia.");
+    const photos = await filesToPhotos(input.files, 12);
+    if (!photos.length) throw new Error("Escolha pelo menos uma fotografia.");
+    if (state.locationDraft?.status !== "granted") {
+      throw new Error("Autorize o GPS pontual antes de submeter fotografias finais.");
+    }
     const data = Object.fromEntries(new FormData(form).entries());
     const payload = await api(`/api/tasks/${form.dataset.taskId}/evidence`, {
       method: "POST",
       body: {
-        photo,
+        photos,
         note: data.note,
         location: state.locationDraft || { status: "not_requested" }
       }
     });
     state.data = payload.bootstrap;
     state.locationDraft = { status: "not_requested" };
-    setNotice("Prova submetida.");
+    setNotice(`${payload.evidences?.length || photos.length} fotografia(s) submetida(s).`);
   }
 
   async function blockTask(form) {
@@ -2244,7 +2298,13 @@
         (file) =>
           new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = () => resolve({ name: file.name, dataUrl: reader.result });
+            reader.onload = () => resolve({
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              lastModified: file.lastModified,
+              dataUrl: reader.result
+            });
             reader.onerror = () => reject(new Error("Nao foi possivel ler a fotografia."));
             reader.readAsDataURL(file);
           })
@@ -2266,7 +2326,8 @@
           status: "granted",
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy
+          accuracy: position.coords.accuracy,
+          capturedAt: new Date(position.timestamp || Date.now()).toISOString()
         };
         if (status) status.textContent = locationLabel(state.locationDraft);
       },

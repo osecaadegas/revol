@@ -113,8 +113,9 @@ For a dirty Supabase project that already contains old prototype tables, run the
 4. Run `supabase/migrations/20260810010000_marketplace_jobs.sql`.
 5. Run `supabase/migrations/20260810020000_job_offer_position.sql`.
 6. Run `supabase/migrations/20260811000000_project_viewer_roles.sql`.
-7. Confirm the private storage bucket `meo-evidence` exists.
-8. Set these environment variables on the host:
+7. Run `supabase/migrations/20260812000000_evidence_validation_retention.sql`.
+8. Confirm the private storage bucket `meo-evidence` exists.
+9. Set these environment variables on the host:
 
 ```text
 APP_STORAGE_DRIVER=supabase
@@ -123,7 +124,7 @@ SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 SUPABASE_EVIDENCE_BUCKET=meo-evidence
 ```
 
-9. Start or redeploy the Node app.
+10. Start or redeploy the Node app.
 
 The app still uses its own Phase 1 email/password/session system. Supabase Auth is not used in this phase, because the existing server already enforces roles, task visibility, and private evidence access.
 
@@ -144,7 +145,7 @@ Back up both together. The JSON database references files in `uploads/`.
 
 Do not expose `data/uploads/` through a static web server. Images must be served through `/api/evidence/:id/file`, which checks authentication and task access.
 
-In `APP_STORAGE_DRIVER=supabase`, operational records are stored in Supabase tables prefixed with `meo_`, and photos are stored in the private Supabase bucket. Backups should be configured in Supabase.
+In `APP_STORAGE_DRIVER=supabase`, operational records are stored in Supabase tables prefixed with `meo_`, and photos are stored in the private Supabase bucket. Evidence photos are retained for seven days from upload, then deleted by the app during authenticated maintenance passes. Backups should be configured in Supabase.
 
 ## Production Notes
 
@@ -194,6 +195,6 @@ npm run smoke
 
 `npm run check` validates JavaScript syntax.
 
-`npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, application submission, application review, user creation, work order creation, task assignment, evidence upload, task submission, manager approval, and authenticated image access.
+`npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, application submission, application review, user creation, work order creation, task assignment, GPS-required multi-photo evidence upload, three-photo validation enforcement, task submission, manager approval, authenticated image access, and watermarked evidence download.
 
 Manual UI verification should include `/` as the public vacancy feed, `/cliente` as the reserved project login, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` and `MVP` workspace tabs for client/developer users, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes for company/manager/employee/contractor users.

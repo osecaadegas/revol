@@ -10,6 +10,23 @@ const { createServer } = require("./index");
 
 const onePixelPng =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+const gpsLocation = {
+  status: "granted",
+  latitude: 41.5454,
+  longitude: -8.4265,
+  accuracy: 8,
+  capturedAt: new Date().toISOString()
+};
+
+function smokePhoto(name) {
+  return {
+    dataUrl: onePixelPng,
+    name,
+    type: "image/png",
+    size: 68,
+    lastModified: Date.now()
+  };
+}
 
 function request(baseUrl, method, pathName, body, token, extraHeaders = {}) {
   const headers = { "Content-Type": "application/json", ...extraHeaders };
@@ -163,25 +180,63 @@ async function run() {
       status: "in_progress"
     }, employeeToken);
 
-    const evidence = await request(baseUrl, "POST", `/api/tasks/${taskId}/evidence`, {
-      photo: { dataUrl: onePixelPng, name: "proof.png" },
-      note: "Prova de teste.",
+    const deniedEvidence = await requestRaw(baseUrl, "POST", `/api/tasks/${taskId}/evidence`, {
+      photos: [smokePhoto("denied.png")],
+      note: "Prova sem GPS.",
       location: { status: "denied" }
     }, employeeToken);
+    if (deniedEvidence.status !== 400) {
+      throw new Error("Final task evidence without GPS should be rejected.");
+    }
 
-    await request(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
+    const firstEvidence = await request(baseUrl, "POST", `/api/tasks/${taskId}/evidence`, {
+      photos: [smokePhoto("proof-1.png"), smokePhoto("proof-2.png")],
+      note: "Provas de teste.",
+      location: gpsLocation
+    }, employeeToken);
+
+    const earlyValidation = await requestRaw(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
       status: "pending_validation"
     }, employeeToken);
+    if (earlyValidation.status !== 400) {
+      throw new Error("Task validation should require at least three GPS-authenticated photos.");
+    }
+
+    const thirdEvidence = await request(baseUrl, "POST", `/api/tasks/${taskId}/evidence`, {
+      photos: [smokePhoto("proof-3.png")],
+      note: "Terceira prova.",
+      location: gpsLocation
+    }, employeeToken);
+
+    const submittedTask = await request(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
+      status: "pending_validation"
+    }, employeeToken);
+    if (!submittedTask.task.validationDueAt) {
+      throw new Error("Submitted tasks should include a 12-hour validation deadline.");
+    }
 
     await request(baseUrl, "POST", `/api/tasks/${taskId}/decision`, {
       decision: "approved",
       reason: "Validado em smoke test."
     }, managerToken);
 
-    await request(baseUrl, "GET", `/api/evidence/${evidence.evidence.id}/file`, null, employeeToken);
-    await request(baseUrl, "GET", `/api/evidence/${evidence.evidence.id}/file`, null, "", {
+    const evidenceId = firstEvidence.evidences[0].id;
+    if (thirdEvidence.evidences.length !== 1) {
+      throw new Error("Third evidence upload did not store exactly one photo.");
+    }
+    await request(baseUrl, "GET", `/api/evidence/${evidenceId}/file`, null, employeeToken);
+    await request(baseUrl, "GET", `/api/evidence/${evidenceId}/file`, null, "", {
       Cookie: `meo_session=${employeeToken}`
     });
+    const watermarkedDownload = await request(baseUrl, "GET", `/api/evidence/${evidenceId}/download`, null, employeeToken);
+    const watermarkedSvg = new TextDecoder().decode(watermarkedDownload);
+    if (
+      !watermarkedSvg.includes('id="luistrata-evidence-metadata"') ||
+      !watermarkedSvg.includes("&quot;fileHash&quot;") ||
+      !watermarkedSvg.includes("&quot;location&quot;")
+    ) {
+      throw new Error("Watermarked evidence download should embed structured metadata.");
+    }
 
     const bootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, employeeToken);
     if (bootstrap.tasks.length !== 1 || bootstrap.tasks[0].id !== taskId) {

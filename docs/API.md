@@ -7,7 +7,7 @@ Authorization: Bearer <session-token>
 Content-Type: application/json
 ```
 
-Login, Google callback, setup, and invite acceptance also set an HttpOnly same-origin `meo_session` cookie. The cookie is required for browser-native requests that cannot attach bearer headers, such as evidence image previews and opening the basic JSON export in a new tab.
+Login, Google callback, setup, and invite acceptance also set an HttpOnly same-origin `meo_session` cookie. The cookie is required for browser-native requests that cannot attach bearer headers, such as evidence image previews, watermarked evidence downloads, and opening the basic JSON export in a new tab.
 
 ## Public Endpoints
 
@@ -117,19 +117,23 @@ Manager only. Creates an assigned task with deadline.
 
 `PATCH /api/tasks/:id/status`
 
-Manager or assigned responsible. Supports operational state changes. Blocking requires `blockReason`. Submitting for validation requires at least one photo evidence record.
+Manager or assigned responsible. Supports operational state changes. Blocking requires `blockReason`. Submitting for validation requires at least three non-expired task evidence photos with accepted authenticity metadata and granted GPS. When submitted, the server stamps `completedAt` and `validationDueAt` twelve hours later. Pending tasks past `validationDueAt` are auto-approved on the next authenticated maintenance pass.
 
 `POST /api/tasks/:id/evidence`
 
-Manager or assigned responsible. Uploads one image as evidence with optional note and location status.
+Manager or assigned responsible. Uploads one or more task evidence images with optional note. Final task evidence requires browser-granted point-in-time GPS. The server records capture/upload time metadata, GPS, SHA-256 file hash, authenticity checks, seven-day expiry, and private storage location.
 
 `POST /api/tasks/:id/decision`
 
-Manager only. Approves or rejects a task pending validation. Rejection requires reason.
+Manager only. Approves or rejects a task pending validation before the twelve-hour validation deadline. Rejection requires reason.
 
 `GET /api/evidence/:id/file`
 
-Returns the image file only when the current user can access the related task or work order. The file is read from local private storage or Supabase private Storage depending on `APP_STORAGE_DRIVER`.
+Returns the original image file only when the current user can access the related task or work order and the seven-day retention window has not expired. The file is read from local private storage or Supabase private Storage depending on `APP_STORAGE_DRIVER`.
+
+`GET /api/evidence/:id/download`
+
+Returns an authenticated watermarked SVG download that embeds the retained original image plus visible evidence id, task/order, user, capture/upload time, GPS and hash. The SVG also includes a structured JSON `<metadata id="luistrata-evidence-metadata">` block with the full evidence, task, work order, GPS, hash and authenticity record. The download is audited.
 
 `GET /api/export/basic`
 

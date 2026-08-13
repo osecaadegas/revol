@@ -14,7 +14,11 @@ const DB_FILE = path.join(DATA_DIR, "database.json");
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 const PORT = Number(process.env.PORT || 4173);
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB || 6) * 1024 * 1024;
+const MULTI_UPLOAD_BODY_BYTES = Math.max(16 * 1024 * 1024, MAX_UPLOAD_BYTES * 8);
 const SESSION_DAYS = 7;
+const EVIDENCE_RETENTION_DAYS = 7;
+const TASK_VALIDATION_HOURS = 12;
+const FINAL_TASK_EVIDENCE_MIN = 3;
 const SESSION_COOKIE = "meo_session";
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
@@ -167,6 +171,7 @@ const TABLES = [
       updatedAt: "updated_at",
       startedAt: "started_at",
       completedAt: "completed_at",
+      validationDueAt: "validation_due_at",
       approvedAt: "approved_at",
       rejectedAt: "rejected_at"
     }
@@ -188,6 +193,12 @@ const TABLES = [
       storedName: "stored_name",
       note: "note",
       location: "location",
+      capturedAt: "captured_at",
+      uploadedAt: "uploaded_at",
+      expiresAt: "expires_at",
+      fileHash: "file_hash",
+      metadata: "metadata",
+      authenticity: "authenticity",
       createdAt: "created_at"
     }
   },
@@ -270,6 +281,20 @@ function normalizeEmail(email) {
 
 function cleanString(value, max = 300) {
   return String(value || "").trim().slice(0, max);
+}
+
+function addHours(value, hours) {
+  return new Date(new Date(value).getTime() + hours * 60 * 60 * 1000).toISOString();
+}
+
+function addDays(value, days) {
+  return new Date(new Date(value).getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function isPast(value, reference = Date.now()) {
+  if (!value) return false;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) && timestamp <= reference;
 }
 
 function googleAuthConfigured() {
@@ -752,14 +777,23 @@ function publicWorkOrder(order) {
 }
 
 function publicTask(task) {
-  return { ...task };
+  return {
+    ...task,
+    validationDueAt: task.validationDueAt || null
+  };
 }
 
 function publicEvidence(evidence) {
   const { storedName, ...safe } = evidence;
   return {
     ...safe,
-    fileUrl: `/api/evidence/${evidence.id}/file`
+    capturedAt: evidence.capturedAt || evidence.createdAt,
+    uploadedAt: evidence.uploadedAt || evidence.createdAt,
+    expiresAt: evidence.expiresAt || addDays(evidence.createdAt || now(), EVIDENCE_RETENTION_DAYS),
+    metadata: evidence.metadata || {},
+    authenticity: evidence.authenticity || legacyAuthenticity(evidence),
+    fileUrl: `/api/evidence/${evidence.id}/file`,
+    downloadUrl: `/api/evidence/${evidence.id}/download`
   };
 }
 
@@ -792,6 +826,24 @@ function audit(db, auth, entityType, entityId, action, detail = {}, req) {
     actorId: auth.user.id,
     actorName: auth.user.name,
     actorRole: auth.user.role,
+    entityType,
+    entityId,
+    action,
+    detail,
+    ip: req?.socket?.remoteAddress || null,
+    createdAt: now()
+  };
+  db.auditLogs.unshift(entry);
+  return entry;
+}
+
+function auditSystem(db, companyId, entityType, entityId, action, detail = {}, req) {
+  const entry = {
+    id: nextId(db, "auditLogs", "log"),
+    companyId,
+    actorId: null,
+    actorName: "Sistema",
+    actorRole: "system",
     entityType,
     entityId,
     action,
@@ -1048,10 +1100,24 @@ function normalizeLocation(location) {
     const latitude = Number(location.latitude);
     const longitude = Number(location.longitude);
     const accuracy = Number(location.accuracy || 0);
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
       return { status: "unavailable" };
     }
-    return { status, latitude, longitude, accuracy: Number.isFinite(accuracy) ? accuracy : null };
+    const capturedAt = normalizeTimestamp(location.capturedAt || location.timestamp);
+    return {
+      status,
+      latitude,
+      longitude,
+      accuracy: Number.isFinite(accuracy) && accuracy >= 0 ? accuracy : null,
+      capturedAt: capturedAt.value
+    };
   }
   if (["denied", "unavailable", "not_requested"].includes(status)) {
     return { status };
@@ -1059,8 +1125,91 @@ function normalizeLocation(location) {
   return { status: "unavailable" };
 }
 
+function normalizeTimestamp(value) {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return { value: new Date(value).toISOString(), source: "client_epoch_ms" };
+  }
+  const parsed = new Date(String(value || ""));
+  if (Number.isFinite(parsed.getTime())) {
+    return { value: parsed.toISOString(), source: "client_iso" };
+  }
+  return { value: null, source: "missing" };
+}
+
+function photoCaptureTimestamp(photo, uploadTime) {
+  const fromLastModified = normalizeTimestamp(photo?.lastModified);
+  if (fromLastModified.value) {
+    return { value: fromLastModified.value, source: "browser_file_last_modified" };
+  }
+  const fromClient = normalizeTimestamp(photo?.capturedAt || photo?.lastModifiedDate);
+  if (fromClient.value) {
+    return { value: fromClient.value, source: fromClient.source };
+  }
+  return { value: uploadTime, source: "server_upload_time" };
+}
+
+function buildEvidenceAuthenticity(evidence, options = {}) {
+  const requiresGps = options.requireGps === true;
+  const checks = {
+    privateStorage: true,
+    acceptedMimeType: ["image/png", "image/jpeg", "image/webp"].includes(evidence.mimeType),
+    serverFileHash: Boolean(evidence.fileHash),
+    serverUploadTime: Boolean(evidence.uploadedAt),
+    evidenceTime: Boolean(evidence.capturedAt || evidence.uploadedAt),
+    gpsLocation: !requiresGps || evidence.location?.status === "granted"
+  };
+  const warnings = [];
+  if (requiresGps && evidence.location?.status !== "granted") warnings.push("missing_required_gps");
+  if (!evidence.metadata?.clientFileLastModified) warnings.push("client_capture_time_not_supplied");
+  return {
+    status: Object.values(checks).every(Boolean) ? "accepted" : "incomplete",
+    hashAlgorithm: "sha256",
+    checks,
+    warnings,
+    verifiedAt: evidence.uploadedAt
+  };
+}
+
+function legacyAuthenticity(evidence) {
+  return buildEvidenceAuthenticity({
+    ...evidence,
+    uploadedAt: evidence.uploadedAt || evidence.createdAt,
+    capturedAt: evidence.capturedAt || evidence.createdAt,
+    fileHash: evidence.fileHash || "",
+    metadata: evidence.metadata || {}
+  }, { requireGps: false });
+}
+
+function isEvidenceExpired(evidence, reference = Date.now()) {
+  return isPast(evidence.expiresAt || addDays(evidence.createdAt || now(), EVIDENCE_RETENTION_DAYS), reference);
+}
+
+function isEvidenceAccepted(evidence) {
+  return (evidence.authenticity || legacyAuthenticity(evidence)).status === "accepted";
+}
+
+function qualifyingTaskEvidence(db, task) {
+  return db.evidences.filter(
+    (evidence) =>
+      evidence.taskId === task.id &&
+      evidence.kind === "task_evidence" &&
+      !isEvidenceExpired(evidence) &&
+      evidence.location?.status === "granted" &&
+      isEvidenceAccepted(evidence)
+  );
+}
+
 async function storePhoto(db, auth, body, options) {
   const parsed = parsePhotoDataUrl(body.photo);
+  const uploadedAt = now();
+  const location = normalizeLocation(body.location);
+  if (options.requireGps && location.status !== "granted") {
+    const error = new Error("GPS location is required for final task evidence.");
+    error.status = 400;
+    throw error;
+  }
+  const capturedAt = photoCaptureTimestamp(body.photo, uploadedAt);
+  const fileHash = crypto.createHash("sha256").update(parsed.buffer).digest("hex");
   const evidence = {
     id: nextId(db, "evidences", "ev"),
     companyId: auth.company.id,
@@ -1073,9 +1222,28 @@ async function storePhoto(db, auth, body, options) {
     mimeType: parsed.mimeType,
     storedName: "",
     note: cleanString(body.note, 1000),
-    location: normalizeLocation(body.location),
-    createdAt: now()
+    location,
+    capturedAt: capturedAt.value,
+    uploadedAt,
+    expiresAt: addDays(uploadedAt, EVIDENCE_RETENTION_DAYS),
+    fileHash,
+    metadata: {
+      source: "webapp",
+      originalName: parsed.name,
+      mimeType: parsed.mimeType,
+      byteSize: parsed.buffer.length,
+      clientDeclaredType: cleanString(body.photo?.type, 120),
+      clientFileLastModified: capturedAt.source === "browser_file_last_modified" ? capturedAt.value : null,
+      captureTimeSource: capturedAt.source,
+      requestIp: options.req?.socket?.remoteAddress || null,
+      retentionDays: EVIDENCE_RETENTION_DAYS
+    },
+    authenticity: null,
+    createdAt: uploadedAt
   };
+  evidence.authenticity = buildEvidenceAuthenticity(evidence, {
+    requireGps: options.requireGps === true
+  });
   evidence.storedName = `${evidence.companyId}/${evidence.id}.${parsed.ext}`;
   await saveEvidenceFile(evidence, parsed.buffer);
   db.evidences.push(evidence);
@@ -1109,11 +1277,171 @@ async function readEvidenceFile(evidence) {
   return fsp.readFile(path.join(UPLOAD_DIR, evidence.storedName));
 }
 
+async function deleteEvidenceFile(evidence) {
+  if (APP_STORAGE_DRIVER === "supabase") {
+    const objectPath = encodeObjectPath(evidence.storedName);
+    await supabaseStorage(`object/${encodeURIComponent(SUPABASE_EVIDENCE_BUCKET)}/${objectPath}`, {
+      method: "DELETE"
+    });
+    return;
+  }
+  await fsp.rm(path.join(UPLOAD_DIR, evidence.storedName), { force: true });
+}
+
 function encodeObjectPath(storedName) {
   return String(storedName)
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/");
+}
+
+function svgEscape(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function safeFileName(value) {
+  return cleanString(value || "evidence", 80).replace(/[^a-z0-9._-]+/gi, "-") || "evidence";
+}
+
+function buildEvidenceDownloadMetadata(evidence, task, order) {
+  return {
+    format: "luistrata-evidence-download-v1",
+    generatedAt: now(),
+    evidence: {
+      id: evidence.id,
+      kind: evidence.kind,
+      companyId: evidence.companyId,
+      taskId: evidence.taskId || null,
+      workOrderId: evidence.workOrderId || null,
+      userId: evidence.userId,
+      userName: evidence.userName,
+      originalName: evidence.originalName,
+      mimeType: evidence.mimeType,
+      capturedAt: evidence.capturedAt || evidence.createdAt,
+      uploadedAt: evidence.uploadedAt || evidence.createdAt,
+      expiresAt: evidence.expiresAt || null,
+      fileHash: evidence.fileHash || "",
+      hashAlgorithm: "sha256",
+      note: evidence.note || "",
+      location: evidence.location || { status: "not_requested" },
+      metadata: evidence.metadata || {},
+      authenticity: evidence.authenticity || legacyAuthenticity(evidence)
+    },
+    task: task
+      ? {
+          id: task.id,
+          title: task.title,
+          assigneeId: task.assigneeId,
+          assigneeName: task.assigneeName,
+          status: task.status,
+          completedAt: task.completedAt || null,
+          validationDueAt: task.validationDueAt || null,
+          approvedAt: task.approvedAt || null,
+          rejectedAt: task.rejectedAt || null
+        }
+      : null,
+    workOrder: order
+      ? {
+          id: order.id,
+          title: order.title,
+          address: order.address,
+          createdAt: order.createdAt
+        }
+      : null
+  };
+}
+
+function buildWatermarkedEvidenceSvg(evidence, task, order, buffer) {
+  const location = evidence.location?.status === "granted"
+    ? `${Number(evidence.location.latitude).toFixed(6)}, ${Number(evidence.location.longitude).toFixed(6)}`
+    : "GPS indisponivel";
+  const metadataJson = JSON.stringify(buildEvidenceDownloadMetadata(evidence, task, order), null, 2);
+  const lines = [
+    "LuisTrata evidence",
+    `Evidence: ${evidence.id}`,
+    `Task: ${task?.title || "work order evidence"}`,
+    `Order: ${order?.title || evidence.workOrderId || ""}`,
+    `User: ${evidence.userName}`,
+    `Captured: ${evidence.capturedAt || evidence.createdAt}`,
+    `Uploaded: ${evidence.uploadedAt || evidence.createdAt}`,
+    `GPS: ${location}`,
+    `Hash: ${String(evidence.fileHash || "").slice(0, 24)}`
+  ].filter(Boolean);
+  const text = lines
+    .map((line, index) => `<text x="28" y="${40 + index * 24}">${svgEscape(line)}</text>`)
+    .join("");
+  const encoded = buffer.toString("base64");
+  return Buffer.from(`
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200">
+  <metadata id="luistrata-evidence-metadata" data-format="application/json">${svgEscape(metadataJson)}</metadata>
+  <desc>${svgEscape(`LuisTrata evidence ${evidence.id}. Full metadata is embedded in the luistrata-evidence-metadata node.`)}</desc>
+  <rect width="1600" height="1200" fill="#111827"/>
+  <image href="data:${svgEscape(evidence.mimeType)};base64,${encoded}" x="0" y="0" width="1600" height="1200" preserveAspectRatio="xMidYMid meet"/>
+  <rect x="0" y="0" width="1600" height="260" fill="rgba(17,24,39,0.78)"/>
+  <g fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">${text}</g>
+  <text x="800" y="620" fill="rgba(255,255,255,0.22)" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="900" text-anchor="middle" transform="rotate(-28 800 620)">LUISTRATA VERIFIED</text>
+</svg>`.trim());
+}
+
+async function purgeExpiredEvidence(db, req) {
+  const expired = db.evidences.filter((evidence) => isEvidenceExpired(evidence));
+  for (const evidence of expired) {
+    await deleteEvidenceFile(evidence);
+    auditSystem(db, evidence.companyId, "evidence", evidence.id, "evidence.retention_deleted", {
+      expiresAt: evidence.expiresAt || null,
+      taskId: evidence.taskId || null,
+      workOrderId: evidence.workOrderId || null
+    }, req);
+  }
+  if (expired.length) {
+    const expiredIds = new Set(expired.map((evidence) => evidence.id));
+    db.evidences = db.evidences.filter((evidence) => !expiredIds.has(evidence.id));
+  }
+}
+
+function applyValidationDeadlines(db, req) {
+  const timestamp = Date.now();
+  for (const task of db.tasks) {
+    if (task.status !== "pending_validation" || !task.validationDueAt || !isPast(task.validationDueAt, timestamp)) {
+      continue;
+    }
+    task.status = "approved";
+    task.updatedAt = now();
+    task.approvedAt = task.updatedAt;
+    task.validationComment = "Auto-approved after the 12-hour employer validation window.";
+    auditSystem(db, task.companyId, "task", task.id, "task.auto_approved", {
+      validationDueAt: task.validationDueAt
+    }, req);
+  }
+}
+
+async function maintainOperationalEvidence(db, req) {
+  await purgeExpiredEvidence(db, req);
+  applyValidationDeadlines(db, req);
+}
+
+function needsOperationalMaintenance(db) {
+  return (
+    db.evidences.some((evidence) => isEvidenceExpired(evidence)) ||
+    db.tasks.some((task) => task.status === "pending_validation" && task.validationDueAt && isPast(task.validationDueAt))
+  );
+}
+
+async function withMaintainedAuth(req, build) {
+  const db = await readDb();
+  const auth = requireAuth(db, req);
+  if (!needsOperationalMaintenance(db)) {
+    return build(db, auth);
+  }
+  return mutateDb(async (currentDb) => {
+    const currentAuth = requireAuth(currentDb, req);
+    await maintainOperationalEvidence(currentDb, req);
+    return build(currentDb, currentAuth);
+  });
 }
 
 function ensureWorkerPoolCompany(db) {
@@ -1378,18 +1706,20 @@ async function handleApi(req, res, pathname) {
   }
 
   if (req.method === "GET" && pathname === "/api/project/private") {
-    const db = await readDb();
-    const auth = requireAuth(db, req);
-    requireProjectViewer(auth);
-    sendJson(res, 200, { html: renderPrivateProjectHtml() });
+    const payload = await withMaintainedAuth(req, (db, auth) => {
+      requireProjectViewer(auth);
+      return { html: renderPrivateProjectHtml() };
+    });
+    sendJson(res, 200, payload);
     return;
   }
 
   if (req.method === "GET" && pathname === "/api/mvp/private") {
-    const db = await readDb();
-    const auth = requireAuth(db, req);
-    requireProjectViewer(auth);
-    sendJson(res, 200, { html: renderPrivateMvpHtml(buildPrivateMvpData(db, auth)) });
+    const payload = await withMaintainedAuth(req, (db, auth) => {
+      requireProjectViewer(auth);
+      return { html: renderPrivateMvpHtml(buildPrivateMvpData(db, auth)) };
+    });
+    sendJson(res, 200, payload);
     return;
   }
 
@@ -1636,9 +1966,8 @@ async function handleApi(req, res, pathname) {
   }
 
   if (req.method === "GET" && pathname === "/api/bootstrap") {
-    const db = await readDb();
-    const auth = requireAuth(db, req);
-    sendJson(res, 200, buildBootstrap(db, auth));
+    const bootstrap = await withMaintainedAuth(req, (db, auth) => buildBootstrap(db, auth));
+    sendJson(res, 200, bootstrap);
     return;
   }
 
@@ -1884,7 +2213,7 @@ async function handleApi(req, res, pathname) {
   }
 
   if (req.method === "POST" && pathname === "/api/work-orders") {
-    const body = await readBody(req);
+    const body = await readBody(req, MULTI_UPLOAD_BODY_BYTES);
     const result = await mutateDb(async (db) => {
       const auth = requireAuth(db, req);
       requireManager(auth);
@@ -1912,7 +2241,8 @@ async function handleApi(req, res, pathname) {
         await storePhoto(db, auth, { photo, note: "Initial work order photo" }, {
           kind: "initial_photo",
           workOrderId: order.id,
-          taskId: null
+          taskId: null,
+          req
         });
       }
       audit(db, auth, "work_order", order.id, "work_order.created", { title, address }, req);
@@ -1961,6 +2291,7 @@ async function handleApi(req, res, pathname) {
         updatedAt: now(),
         startedAt: null,
         completedAt: null,
+        validationDueAt: null,
         approvedAt: null,
         rejectedAt: null
       };
@@ -1980,8 +2311,9 @@ async function handleApi(req, res, pathname) {
   const evidenceMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/evidence$/);
   if (req.method === "POST" && evidenceMatch) {
     const taskId = decodeURIComponent(evidenceMatch[1]);
-    const body = await readBody(req);
+    const body = await readBody(req, MULTI_UPLOAD_BODY_BYTES);
     const result = await mutateDb(async (db) => {
+      await maintainOperationalEvidence(db, req);
       const auth = requireAuth(db, req);
       const task = db.tasks.find((item) => item.id === taskId);
       if (!canAccessTask(auth, task)) {
@@ -1989,22 +2321,40 @@ async function handleApi(req, res, pathname) {
         error.status = 404;
         throw error;
       }
-      if (task.status === "approved") {
-        const error = new Error("Approved tasks cannot receive more evidence.");
+      if (["approved", "pending_validation"].includes(task.status)) {
+        const error = new Error("Tasks already submitted or approved cannot receive more evidence.");
         error.status = 400;
         throw error;
       }
-      const evidence = await storePhoto(db, auth, body, {
-        kind: "task_evidence",
-        taskId: task.id,
-        workOrderId: task.workOrderId
-      });
+      const photos = Array.isArray(body.photos) ? body.photos : [body.photo].filter(Boolean);
+      if (!photos.length) {
+        const error = new Error("At least one photo is required.");
+        error.status = 400;
+        throw error;
+      }
+      const stored = [];
+      for (const photo of photos.slice(0, 12)) {
+        const evidence = await storePhoto(db, auth, { ...body, photo }, {
+          kind: "task_evidence",
+          taskId: task.id,
+          workOrderId: task.workOrderId,
+          requireGps: true,
+          req
+        });
+        stored.push(evidence);
+        audit(db, auth, "evidence", evidence.id, "evidence.created", {
+          taskId: task.id,
+          locationStatus: evidence.location.status,
+          expiresAt: evidence.expiresAt,
+          authenticity: evidence.authenticity.status
+        }, req);
+      }
       task.updatedAt = now();
-      audit(db, auth, "evidence", evidence.id, "evidence.created", {
-        taskId: task.id,
-        locationStatus: evidence.location.status
-      }, req);
-      return { evidence: publicEvidence(evidence), bootstrap: buildBootstrap(db, auth) };
+      return {
+        evidence: stored[0] ? publicEvidence(stored[0]) : null,
+        evidences: stored.map(publicEvidence),
+        bootstrap: buildBootstrap(db, auth)
+      };
     });
     sendJson(res, 201, result);
     return;
@@ -2014,7 +2364,8 @@ async function handleApi(req, res, pathname) {
   if (req.method === "PATCH" && statusMatch) {
     const taskId = decodeURIComponent(statusMatch[1]);
     const body = await readBody(req);
-    const result = await mutateDb((db) => {
+    const result = await mutateDb(async (db) => {
+      await maintainOperationalEvidence(db, req);
       const auth = requireAuth(db, req);
       const task = db.tasks.find((item) => item.id === taskId);
       if (!canAccessTask(auth, task)) {
@@ -2033,7 +2384,7 @@ async function handleApi(req, res, pathname) {
         error.status = 400;
         throw error;
       }
-      if (auth.user.role !== "manager" && task.assigneeId !== auth.user.id) {
+      if (!isCompanyAdmin(auth.user) && task.assigneeId !== auth.user.id) {
         const error = new Error("Only the responsible user can update this task.");
         error.status = 403;
         throw error;
@@ -2053,13 +2404,14 @@ async function handleApi(req, res, pathname) {
         task.blockReason = reason;
       }
       if (nextStatus === "pending_validation") {
-        const evidenceCount = db.evidences.filter((evidence) => evidence.taskId === task.id).length;
-        if (evidenceCount < 1) {
-          const error = new Error("At least one photo evidence is required before validation.");
+        const evidenceCount = qualifyingTaskEvidence(db, task).length;
+        if (evidenceCount < FINAL_TASK_EVIDENCE_MIN) {
+          const error = new Error(`At least ${FINAL_TASK_EVIDENCE_MIN} GPS-authenticated photos are required before validation.`);
           error.status = 400;
           throw error;
         }
         task.completedAt = now();
+        task.validationDueAt = addHours(task.completedAt, TASK_VALIDATION_HOURS);
       }
       if (nextStatus === "in_progress" && !task.startedAt) {
         task.startedAt = now();
@@ -2080,7 +2432,8 @@ async function handleApi(req, res, pathname) {
   if (req.method === "POST" && decisionMatch) {
     const taskId = decodeURIComponent(decisionMatch[1]);
     const body = await readBody(req);
-    const result = await mutateDb((db) => {
+    const result = await mutateDb(async (db) => {
+      await maintainOperationalEvidence(db, req);
       const auth = requireAuth(db, req);
       requireManager(auth);
       const task = db.tasks.find((item) => item.id === taskId);
@@ -2117,23 +2470,24 @@ async function handleApi(req, res, pathname) {
   const fileMatch = pathname.match(/^\/api\/evidence\/([^/]+)\/file$/);
   if (req.method === "GET" && fileMatch) {
     const evidenceId = decodeURIComponent(fileMatch[1]);
-    const db = await readDb();
-    const auth = requireAuth(db, req);
-    const evidence = db.evidences.find((item) => item.id === evidenceId);
-    assertSameCompany(auth, evidence);
-    let allowed = false;
-    if (evidence.taskId) {
-      const task = db.tasks.find((item) => item.id === evidence.taskId);
-      allowed = canAccessTask(auth, task);
-    } else {
-      const order = db.workOrders.find((item) => item.id === evidence.workOrderId);
-      allowed = canAccessWorkOrder(auth, db, order);
-    }
-    if (!allowed) {
-      const error = new Error("Evidence not found.");
-      error.status = 404;
-      throw error;
-    }
+    const { evidence } = await withMaintainedAuth(req, (db, auth) => {
+      const evidence = db.evidences.find((item) => item.id === evidenceId);
+      assertSameCompany(auth, evidence);
+      let allowed = false;
+      if (evidence.taskId) {
+        const task = db.tasks.find((item) => item.id === evidence.taskId);
+        allowed = canAccessTask(auth, task);
+      } else {
+        const order = db.workOrders.find((item) => item.id === evidence.workOrderId);
+        allowed = canAccessWorkOrder(auth, db, order);
+      }
+      if (!allowed) {
+        const error = new Error("Evidence not found.");
+        error.status = 404;
+        throw error;
+      }
+      return { evidence };
+    });
     const buffer = await readEvidenceFile(evidence);
     res.writeHead(200, {
       "Content-Type": evidence.mimeType,
@@ -2145,24 +2499,61 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
-  if (req.method === "GET" && pathname === "/api/export/basic") {
-    const db = await readDb();
-    const auth = requireAuth(db, req);
-    requireManager(auth);
-    const companyId = auth.company.id;
-    sendJson(res, 200, {
-      exportedAt: now(),
-      company: publicCompany(auth.company),
-      users: db.users.filter((item) => item.companyId === companyId).map(publicUser),
-      workOrders: db.workOrders.filter((item) => item.companyId === companyId).map(publicWorkOrder),
-      tasks: db.tasks.filter((item) => item.companyId === companyId).map(publicTask),
-      evidences: db.evidences.filter((item) => item.companyId === companyId).map(publicEvidence),
-      auditLogs: db.auditLogs.filter((item) => item.companyId === companyId),
-      jobOffers: db.jobOffers.filter((item) => item.companyId === companyId).map(publicJobOffer),
-      jobApplications: db.jobApplications
-        .filter((item) => item.companyId === companyId)
-        .map(publicJobApplication)
+  const downloadMatch = pathname.match(/^\/api\/evidence\/([^/]+)\/download$/);
+  if (req.method === "GET" && downloadMatch) {
+    const evidenceId = decodeURIComponent(downloadMatch[1]);
+    const context = await mutateDb(async (db) => {
+      const auth = requireAuth(db, req);
+      await maintainOperationalEvidence(db, req);
+      const evidence = db.evidences.find((item) => item.id === evidenceId);
+      assertSameCompany(auth, evidence);
+      const task = evidence.taskId ? db.tasks.find((item) => item.id === evidence.taskId) : null;
+      const order = db.workOrders.find((item) => item.id === evidence.workOrderId);
+      const allowed = evidence.taskId ? canAccessTask(auth, task) : canAccessWorkOrder(auth, db, order);
+      if (!allowed) {
+        const error = new Error("Evidence not found.");
+        error.status = 404;
+        throw error;
+      }
+      audit(db, auth, "evidence", evidence.id, "evidence.watermarked_downloaded", {
+        taskId: evidence.taskId || null,
+        workOrderId: evidence.workOrderId || null
+      }, req);
+      return { evidence, task, order };
     });
+    const source = await readEvidenceFile(context.evidence);
+    const watermarked = buildWatermarkedEvidenceSvg(context.evidence, context.task, context.order, source);
+    const filename = `${safeFileName(context.evidence.id)}-watermarked.svg`;
+    res.writeHead(200, {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Content-Length": watermarked.length,
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff"
+    });
+    res.end(watermarked);
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/export/basic") {
+    const payload = await withMaintainedAuth(req, (db, auth) => {
+      requireManager(auth);
+      const companyId = auth.company.id;
+      return {
+        exportedAt: now(),
+        company: publicCompany(auth.company),
+        users: db.users.filter((item) => item.companyId === companyId).map(publicUser),
+        workOrders: db.workOrders.filter((item) => item.companyId === companyId).map(publicWorkOrder),
+        tasks: db.tasks.filter((item) => item.companyId === companyId).map(publicTask),
+        evidences: db.evidences.filter((item) => item.companyId === companyId).map(publicEvidence),
+        auditLogs: db.auditLogs.filter((item) => item.companyId === companyId),
+        jobOffers: db.jobOffers.filter((item) => item.companyId === companyId).map(publicJobOffer),
+        jobApplications: db.jobApplications
+          .filter((item) => item.companyId === companyId)
+          .map(publicJobApplication)
+      };
+    });
+    sendJson(res, 200, payload);
     return;
   }
 

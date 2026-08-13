@@ -184,6 +184,16 @@ Status: complete.
 - Company, client, developer, manager, employee and contractor access remains controlled by the existing registration, user creation and invite flows.
 - Stored Google identity metadata in the existing user profile JSON so no extra Supabase table is required.
 
+### M18 - Evidence Validation Retention
+
+Status: complete.
+
+- Final task completion now requires at least three non-expired task evidence photos with accepted authenticity metadata and granted GPS.
+- Evidence uploads record browser file capture time, server upload time, GPS coordinates/timestamp, SHA-256 file hash, authenticity checks and seven-day expiry.
+- Submitted tasks receive a 12-hour employer validation deadline and auto-approve after the deadline on the next authenticated maintenance pass.
+- Authorized parties can download retained evidence through an audited watermarked SVG copy containing job, GPS, time and hash metadata.
+- Added a Supabase migration plus reset-schema updates for evidence metadata, retention expiry and task validation deadlines.
+
 ## Next Recommended Work
 
 1. Configure Google OAuth credentials and authorized callback URLs for local and production.
@@ -192,10 +202,11 @@ Status: complete.
 4. Verify `/` as the public job feed and `/cliente` as the reserved project login on production.
 5. Verify Google login for an existing client/developer account, an existing company account and a new worker account.
 6. Verify private `Projeto` and `MVP` tabs with client/developer roles on production.
-7. Verify worker/company registration, vacancy publishing, applications, and evidence upload against Supabase.
-8. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
-9. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-10. Add browser-driven regression coverage for public routes, public filtering and worker application.
+7. Run `supabase/migrations/20260812000000_evidence_validation_retention.sql` in production if the previous migrations are already applied.
+8. Verify worker/company registration, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads and seven-day retention against Supabase.
+9. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+10. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+11. Add browser-driven regression coverage for public routes, public filtering and worker application.
 
 ## Agent Update Protocol
 

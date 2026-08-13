@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-12
+
+- Added GPS-required final task evidence with at least three authenticated photos before validation.
+- Added evidence metadata for capture/upload time, GPS, SHA-256 hash, authenticity checks and seven-day retention expiry.
+- Added 12-hour employer validation deadlines with automatic approval after expiry.
+- Added authenticated watermarked evidence downloads with visible and embedded structured metadata, plus audit entries for downloads and retention deletion.
+- Added Supabase migration `20260812000000_evidence_validation_retention.sql` and updated reset/current schema SQL.
+
 ## 2026-08-11
 
 - Increased public homepage background visibility on large screens with stronger animated network lanes, higher contrast grid motion, translucent landing cards and a fresh app-shell cache version.
