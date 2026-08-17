@@ -2067,6 +2067,43 @@ td span:not(.status-badge) {
   background: #ffe5df;
 }
 
+.validation-reminders {
+  border-color: rgba(166, 107, 25, 0.22);
+  background: #fffdf8;
+}
+
+.validation-alert {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: #fff;
+}
+
+.validation-alert strong {
+  display: block;
+  line-height: 1.25;
+}
+
+.validation-alert p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.validation-alert.due_soon {
+  border-left-color: var(--amber);
+}
+
+.validation-alert.overdue {
+  border-left-color: var(--red);
+}
+
 .card-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2573,6 +2610,11 @@ td span:not(.status-badge) {
   .panel-header,
   .jobs-feed-header {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .validation-alert {
+    grid-template-columns: 1fr;
     align-items: stretch;
   }
 

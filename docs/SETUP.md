@@ -61,6 +61,7 @@ APP_STORAGE_DRIVER=local
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_EVIDENCE_BUCKET=meo-evidence
+CRON_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=
@@ -80,6 +81,8 @@ GOOGLE_REDIRECT_URI=
 
 `SUPABASE_EVIDENCE_BUCKET` defaults to the private bucket created by the migration.
 
+`CRON_SECRET` protects `/api/cron/operational-maintenance`. Set a long random value in production so Vercel Cron or an external scheduler can run evidence cleanup and validation reminders.
+
 `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable Google OAuth login.
 
 `GOOGLE_REDIRECT_URI` is optional. If empty, the server derives `/api/auth/google/callback` from the active request origin. In production, set it explicitly if your hosting/proxy origin is not stable.
@@ -90,7 +93,7 @@ Google login uses the server-side OpenID Connect authorization-code flow. Config
 
 ```text
 http://localhost:4173/api/auth/google/callback
-http://127.0.0.1:4176/api/auth/google/callback
+http://127.0.0.1:4173/api/auth/google/callback
 https://your-production-domain/api/auth/google/callback
 ```
 
@@ -145,7 +148,7 @@ Back up both together. The JSON database references files in `uploads/`.
 
 Do not expose `data/uploads/` through a static web server. Images must be served through `/api/evidence/:id/file`, which checks authentication and task access.
 
-In `APP_STORAGE_DRIVER=supabase`, operational records are stored in Supabase tables prefixed with `meo_`, and photos are stored in the private Supabase bucket. Evidence photos are retained for seven days from upload, then deleted by the app during authenticated maintenance passes. Backups should be configured in Supabase.
+In `APP_STORAGE_DRIVER=supabase`, operational records are stored in Supabase tables prefixed with `meo_`, and photos are stored in the private Supabase bucket. Evidence photos are retained for seven days from upload, then deleted by the app during authenticated maintenance passes or the protected scheduled maintenance endpoint. Backups should be configured in Supabase.
 
 ## Production Notes
 
@@ -177,6 +180,12 @@ Output directory: empty
 
 Set the Supabase environment variables before deploying. If Google login is enabled, also set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and optionally `GOOGLE_REDIRECT_URI`. Do not use local filesystem persistence on Vercel.
 
+Set `CRON_SECRET` before deploying. `vercel.json` schedules `/api/cron/operational-maintenance` daily at 07:00 UTC, which is compatible with broad Vercel plan limits. The endpoint can also be called more frequently by an external scheduler or a Vercel Pro cron if stricter reminder timing is required. The request must send:
+
+```text
+Authorization: Bearer <CRON_SECRET>
+```
+
 If the public page shows a database setup warning, verify that `supabase/admin/reset_to_current_schema.sql` has been run and that the Vercel environment variables are set for the active deployment environment.
 
 If a browser still shows an old public layout after deployment, reload once after the new service worker activates. The app shell uses network-first service-worker fetching and no-store headers for `index.html`, `app.js`, `styles.css`, `manifest.webmanifest`, and `service-worker.js` so stale public pages are not kept as the default.
@@ -195,6 +204,6 @@ npm run smoke
 
 `npm run check` validates JavaScript syntax.
 
-`npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, application submission, application review, user creation, work order creation, task assignment, GPS-required multi-photo evidence upload, three-photo validation enforcement, task submission, manager approval, authenticated image access, and watermarked evidence download.
+`npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, application submission, application review, user creation, work order creation, task assignment, GPS-required multi-photo evidence upload, three-photo validation enforcement, task submission, manager approval, scheduled maintenance authorization, employer validation reminders, authenticated image access, and watermarked evidence download.
 
 Manual UI verification should include `/` as the public vacancy feed, `/cliente` as the reserved project login, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` and `MVP` workspace tabs for client/developer users, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes for company/manager/employee/contractor users.

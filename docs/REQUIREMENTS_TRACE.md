@@ -85,17 +85,17 @@ The app must first behave like a public labor-market board:
 | Timestamp and user recording | Audit log plus evidence/task metadata, capture/upload timestamps, SHA-256 file hash and authenticity checks |
 | Point-in-time location request with user permission | Browser geolocation button; final task evidence requires granted GPS and records coordinates, accuracy and GPS timestamp |
 | No continuous location tracking | No background watcher or repeated location polling exists |
-| Manager approval/rejection | `/api/tasks/:id/decision`; rejection requires reason; pending validation tasks receive a 12-hour validation deadline and auto-approve after expiry |
+| Manager approval/rejection | `/api/tasks/:id/decision`; rejection requires reason; pending validation tasks receive a 12-hour validation deadline, manager reminder cards, reminder audit entries, and auto-approval after expiry |
 | Basic task history | `auditLogs` collection and History UI |
 | Basic search and filtering | Frontend filters by text, status, assignee |
 | Simple dashboard | Dashboard cards and operations list |
 | Iterative MVP status | Private `MVP` tab shows live module readiness, pending validation and recent audit events from authenticated server HTML |
-| Private photo access | `/api/evidence/:id/file` checks authenticated access before reading local/Supabase private storage; `/api/evidence/:id/download` provides an audited watermarked download while the seven-day retention window is active |
+| Private photo access | `/api/evidence/:id/file` checks authenticated access before reading local/Supabase private storage; `/api/evidence/:id/download` provides an audited watermarked download while the seven-day retention window is active; `/api/cron/operational-maintenance` deletes expired evidence from app storage |
 | Production build/startup without critical error | `npm run check` and `npm run smoke` |
 
 ## Persistence
 
-The server supports `APP_STORAGE_DRIVER=local` for development and `APP_STORAGE_DRIVER=supabase` for real deployment. The Supabase mode uses relational tables prefixed with `meo_`, including marketplace vacancies and applications, RLS enabled on all app tables, and a private storage bucket for evidence files. Evidence records now include retention expiry and are deleted from app storage after seven days.
+The server supports `APP_STORAGE_DRIVER=local` for development and `APP_STORAGE_DRIVER=supabase` for real deployment. The Supabase mode uses relational tables prefixed with `meo_`, including marketplace vacancies and applications, RLS enabled on all app tables, and a private storage bucket for evidence files. Evidence records now include retention expiry and are deleted from app storage after seven days by authenticated maintenance or the protected scheduled maintenance endpoint.
 
 Dirty Supabase projects with old prototype tables must be reset through `supabase/admin/reset_to_current_schema.sql`. The reset removes old unprefixed public tables and recreates the current `meo_*` model.
 
@@ -125,9 +125,10 @@ These are documented in the source PDFs as excluded or future-phase concepts and
 5. Responsible user starts task.
 6. Responsible user can block task only with justification.
 7. Responsible user uploads at least three final photo evidence files with granted point-in-time GPS.
-8. Responsible user submits task for validation; the employer receives a 12-hour validation window.
+8. Responsible user submits task for validation; the employer receives a 12-hour validation window and sees validation reminders in the manager dashboard.
 9. Manager/company approves or rejects before the validation deadline; pending tasks auto-approve after the deadline.
 10. Rejection requires reason.
 11. The history shows the main actions.
 12. Evidence images are not publicly accessible.
 13. Authorized parties can download retained evidence with a watermark for seven days.
+14. Scheduled maintenance can delete expired evidence and create validation reminder audit entries through `/api/cron/operational-maintenance`.

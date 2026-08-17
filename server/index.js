@@ -18,11 +18,13 @@ const MULTI_UPLOAD_BODY_BYTES = Math.max(16 * 1024 * 1024, MAX_UPLOAD_BYTES * 8)
 const SESSION_DAYS = 7;
 const EVIDENCE_RETENTION_DAYS = 7;
 const TASK_VALIDATION_HOURS = 12;
+const VALIDATION_REMINDER_HOURS_BEFORE = 2;
 const FINAL_TASK_EVIDENCE_MIN = 3;
 const SESSION_COOKIE = "meo_session";
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 const SUPABASE_EVIDENCE_BUCKET = String(process.env.SUPABASE_EVIDENCE_BUCKET || "meo-evidence");
+const CRON_SECRET = String(process.env.CRON_SECRET || "");
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
@@ -295,6 +297,13 @@ function isPast(value, reference = Date.now()) {
   if (!value) return false;
   const timestamp = new Date(value).getTime();
   return Number.isFinite(timestamp) && timestamp <= reference;
+}
+
+function hoursUntil(value, reference = Date.now()) {
+  if (!value) return null;
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return null;
+  return (timestamp - reference) / (60 * 60 * 1000);
 }
 
 function googleAuthConfigured() {
@@ -732,6 +741,19 @@ function requireCompanyAccount(auth) {
   }
 }
 
+function requireCronAuth(req) {
+  if (!CRON_SECRET) {
+    const error = new Error("CRON_SECRET is required for scheduled maintenance.");
+    error.status = 500;
+    throw error;
+  }
+  if (req.headers.authorization !== `Bearer ${CRON_SECRET}`) {
+    const error = new Error("Unauthorized scheduled maintenance request.");
+    error.status = 401;
+    throw error;
+  }
+}
+
 function isCompanyAdmin(user) {
   return user?.role === "manager" || user?.role === "company";
 }
@@ -966,6 +988,41 @@ function canAccessWorkOrder(auth, db, order) {
   return db.tasks.some((task) => task.workOrderId === order.id && task.assigneeId === auth.user.id);
 }
 
+function validationAlertStatus(task, reference = Date.now()) {
+  if (task.status !== "pending_validation" || !task.validationDueAt) return null;
+  const remainingHours = hoursUntil(task.validationDueAt, reference);
+  if (remainingHours === null) return null;
+  if (remainingHours <= 0) return "overdue";
+  if (remainingHours <= VALIDATION_REMINDER_HOURS_BEFORE) return "due_soon";
+  return "pending";
+}
+
+function lastValidationReminder(db, taskId) {
+  return db.auditLogs.find(
+    (entry) => entry.entityType === "task" && entry.entityId === taskId && entry.action === "task.validation_reminder"
+  );
+}
+
+function buildValidationAlerts(db, companyId, reference = Date.now()) {
+  return db.tasks
+    .filter((task) => task.companyId === companyId && task.status === "pending_validation")
+    .map((task) => {
+      const remainingHours = hoursUntil(task.validationDueAt, reference);
+      const reminder = lastValidationReminder(db, task.id);
+      return {
+        taskId: task.id,
+        title: task.title,
+        assigneeName: task.assigneeName,
+        validationDueAt: task.validationDueAt,
+        completedAt: task.completedAt || null,
+        hoursRemaining: remainingHours === null ? null : Number(remainingHours.toFixed(2)),
+        status: validationAlertStatus(task, reference) || "pending",
+        lastReminderAt: reminder?.createdAt || null
+      };
+    })
+    .sort((a, b) => String(a.validationDueAt).localeCompare(String(b.validationDueAt)));
+}
+
 function buildBootstrap(db, auth) {
   const isManager = isCompanyAdmin(auth.user);
   const companyUsers = db.users
@@ -1028,6 +1085,7 @@ function buildBootstrap(db, auth) {
     evidences: evidences.map(publicEvidence).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     auditLogs: logs.slice(0, 250),
     invites,
+    validationAlerts: isManager ? buildValidationAlerts(db, auth.company.id) : [],
     jobOffers: jobOffers.map(publicJobOffer).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     jobApplications: jobApplications
       .map(publicJobApplication)
@@ -1401,10 +1459,12 @@ async function purgeExpiredEvidence(db, req) {
     const expiredIds = new Set(expired.map((evidence) => evidence.id));
     db.evidences = db.evidences.filter((evidence) => !expiredIds.has(evidence.id));
   }
+  return expired.length;
 }
 
 function applyValidationDeadlines(db, req) {
   const timestamp = Date.now();
+  let approved = 0;
   for (const task of db.tasks) {
     if (task.status !== "pending_validation" || !task.validationDueAt || !isPast(task.validationDueAt, timestamp)) {
       continue;
@@ -1416,18 +1476,70 @@ function applyValidationDeadlines(db, req) {
     auditSystem(db, task.companyId, "task", task.id, "task.auto_approved", {
       validationDueAt: task.validationDueAt
     }, req);
+    approved += 1;
   }
+  return approved;
+}
+
+function hasValidationReminder(db, taskId, reminderType) {
+  return db.auditLogs.some(
+    (entry) =>
+      entry.entityType === "task" &&
+      entry.entityId === taskId &&
+      entry.action === "task.validation_reminder" &&
+      entry.detail?.reminderType === reminderType
+  );
+}
+
+function validationReminderTypes(task, reference = Date.now()) {
+  if (task.status !== "pending_validation" || !task.validationDueAt) return [];
+  const remainingHours = hoursUntil(task.validationDueAt, reference);
+  if (remainingHours === null || remainingHours <= 0) return [];
+  const types = ["submitted"];
+  if (remainingHours <= VALIDATION_REMINDER_HOURS_BEFORE) {
+    types.push("due_soon");
+  }
+  return types;
+}
+
+function createValidationReminders(db, req) {
+  const timestamp = Date.now();
+  let created = 0;
+  for (const task of db.tasks) {
+    for (const reminderType of validationReminderTypes(task, timestamp)) {
+      if (hasValidationReminder(db, task.id, reminderType)) continue;
+      const remainingHours = hoursUntil(task.validationDueAt, timestamp);
+      auditSystem(db, task.companyId, "task", task.id, "task.validation_reminder", {
+        reminderType,
+        validationDueAt: task.validationDueAt,
+        hoursRemaining: remainingHours === null ? null : Number(remainingHours.toFixed(2)),
+        assigneeId: task.assigneeId,
+        assigneeName: task.assigneeName
+      }, req);
+      created += 1;
+    }
+  }
+  return created;
 }
 
 async function maintainOperationalEvidence(db, req) {
-  await purgeExpiredEvidence(db, req);
-  applyValidationDeadlines(db, req);
+  const expiredEvidenceDeleted = await purgeExpiredEvidence(db, req);
+  const tasksAutoApproved = applyValidationDeadlines(db, req);
+  const validationRemindersCreated = createValidationReminders(db, req);
+  return {
+    expiredEvidenceDeleted,
+    tasksAutoApproved,
+    validationRemindersCreated
+  };
 }
 
 function needsOperationalMaintenance(db) {
   return (
     db.evidences.some((evidence) => isEvidenceExpired(evidence)) ||
-    db.tasks.some((task) => task.status === "pending_validation" && task.validationDueAt && isPast(task.validationDueAt))
+    db.tasks.some((task) => task.status === "pending_validation" && task.validationDueAt && isPast(task.validationDueAt)) ||
+    db.tasks.some((task) =>
+      validationReminderTypes(task).some((reminderType) => !hasValidationReminder(db, task.id, reminderType))
+    )
   );
 }
 
@@ -1622,6 +1734,17 @@ async function handleApi(req, res, pathname) {
       service: "motor-evidencia-operacional",
       storageDriver: APP_STORAGE_DRIVER,
       time: now()
+    });
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "POST") && pathname === "/api/cron/operational-maintenance") {
+    requireCronAuth(req);
+    const result = await mutateDb(async (db) => maintainOperationalEvidence(db, req));
+    sendJson(res, 200, {
+      ok: true,
+      ranAt: now(),
+      ...result
     });
     return;
   }

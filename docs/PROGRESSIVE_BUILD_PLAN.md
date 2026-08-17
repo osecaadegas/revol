@@ -194,6 +194,15 @@ Status: complete.
 - Authorized parties can download retained evidence through an audited watermarked SVG copy containing job, GPS, time and hash metadata.
 - Added a Supabase migration plus reset-schema updates for evidence metadata, retention expiry and task validation deadlines.
 
+### M19 - Scheduled Maintenance And Validation Reminders
+
+Status: complete.
+
+- Added protected `/api/cron/operational-maintenance` for scheduled evidence retention cleanup, validation auto-approval, and validation reminder audit entries.
+- Added Vercel Cron configuration for daily production maintenance.
+- Added manager dashboard validation reminder cards for pending tasks with due status, assignee and deadline.
+- Added smoke coverage for cron authorization, reminder creation and manager validation alerts.
+
 ## Next Recommended Work
 
 1. Configure Google OAuth credentials and authorized callback URLs for local and production.
@@ -203,10 +212,11 @@ Status: complete.
 5. Verify Google login for an existing client/developer account, an existing company account and a new worker account.
 6. Verify private `Projeto` and `MVP` tabs with client/developer roles on production.
 7. Run `supabase/migrations/20260812000000_evidence_validation_retention.sql` in production if the previous migrations are already applied.
-8. Verify worker/company registration, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads and seven-day retention against Supabase.
-9. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
-10. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-11. Add browser-driven regression coverage for public routes, public filtering and worker application.
+8. Set `CRON_SECRET` in production and verify `/api/cron/operational-maintenance` runs from the configured scheduler.
+9. Verify worker/company registration, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
+10. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+11. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+12. Add browser-driven regression coverage for public routes, public filtering and worker application.
 
 ## Agent Update Protocol
 

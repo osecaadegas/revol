@@ -1392,8 +1392,29 @@
     return labels[status] || status;
   }
 
+  function formatHoursRemaining(hours) {
+    if (hours === null || hours === undefined) return "prazo por confirmar";
+    if (hours <= 0) return "prazo expirado";
+    if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} min restantes`;
+    return `${Math.round(hours)} h restantes`;
+  }
+
+  function renderValidationAlert(alert) {
+    return `
+      <article class="validation-alert ${escapeHtml(alert.status)}">
+        <div>
+          <strong>${escapeHtml(alert.title)}</strong>
+          <p>${escapeHtml(alert.assigneeName || "Responsavel")} - ${formatHoursRemaining(alert.hoursRemaining)}</p>
+          <p>Validar ate ${formatDate(alert.validationDueAt)}${alert.lastReminderAt ? ` - ultimo lembrete ${formatDate(alert.lastReminderAt)}` : ""}</p>
+        </div>
+        <button class="btn ghost" data-open-task="${escapeHtml(alert.taskId)}">Abrir</button>
+      </article>
+    `;
+  }
+
   function renderDashboard() {
     const counts = getCounts();
+    const validationAlerts = state.data.validationAlerts || [];
     const nextTasks = [...state.data.tasks]
       .filter((task) => !["approved", "rejected"].includes(task.status))
       .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))
@@ -1425,6 +1446,14 @@
           </div>
         </div>
         <div>
+          ${isManager() && validationAlerts.length ? `
+            <div class="panel validation-reminders">
+              <div class="panel-header"><h2>Lembretes de validacao</h2><span class="chip pending_validation">${validationAlerts.length}</span></div>
+              <div class="list">
+                ${validationAlerts.map(renderValidationAlert).join("")}
+              </div>
+            </div>
+          ` : ""}
           <div class="panel">
             <div class="panel-header"><h2>A aguardar validacao</h2></div>
             <div class="list">
@@ -1808,6 +1837,7 @@
       "work_order.created": "Ordem criada",
       "task.created": "Tarefa criada",
       "task.status_changed": "Estado da tarefa alterado",
+      "task.validation_reminder": "Lembrete de validacao",
       "evidence.created": "Prova fotografica submetida",
       "evidence.retention_deleted": "Prova apagada por retencao",
       "evidence.watermarked_downloaded": "Download com marca de agua",

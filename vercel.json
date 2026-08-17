@@ -3,5 +3,11 @@
     "server.js": {
       "includeFiles": "public/**"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/operational-maintenance",
+      "schedule": "0 7 * * *"
+    }
+  ]
 }

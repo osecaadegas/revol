@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-17
+
+- Added protected scheduled maintenance endpoint `/api/cron/operational-maintenance`.
+- Added Vercel Cron scheduling for daily evidence cleanup, validation auto-approval and validation reminder generation.
+- Added manager dashboard validation reminder cards for tasks waiting on the 12-hour employer approval window.
+- Added `CRON_SECRET` setup documentation and smoke coverage for cron authorization and reminder alerts.
+
 ## 2026-08-12
 
 - Added GPS-required final task evidence with at least three authenticated photos before validation.

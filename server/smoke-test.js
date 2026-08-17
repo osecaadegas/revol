@@ -5,6 +5,7 @@ const path = require("path");
 const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "meo-smoke-"));
 process.env.APP_DATA_DIR = tempDataDir;
 process.env.PORT = "0";
+process.env.CRON_SECRET = "smoke-cron-secret";
 
 const { createServer } = require("./index");
 
@@ -220,6 +221,47 @@ async function run() {
       reason: "Validado em smoke test."
     }, managerToken);
 
+    const reminderTaskResult = await request(baseUrl, "POST", "/api/tasks", {
+      workOrderId,
+      title: "Tarefa para lembrete",
+      description: "Validar lembretes.",
+      assigneeId: employeeId,
+      dueDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+    }, managerToken);
+    const reminderTaskId = reminderTaskResult.task.id;
+
+    await request(baseUrl, "PATCH", `/api/tasks/${reminderTaskId}/status`, {
+      status: "in_progress"
+    }, employeeToken);
+
+    await request(baseUrl, "POST", `/api/tasks/${reminderTaskId}/evidence`, {
+      photos: [smokePhoto("reminder-1.png"), smokePhoto("reminder-2.png"), smokePhoto("reminder-3.png")],
+      note: "Provas para lembrete.",
+      location: gpsLocation
+    }, employeeToken);
+
+    await request(baseUrl, "PATCH", `/api/tasks/${reminderTaskId}/status`, {
+      status: "pending_validation"
+    }, employeeToken);
+
+    const cronUnauthorized = await requestRaw(baseUrl, "GET", "/api/cron/operational-maintenance", null, "");
+    if (cronUnauthorized.status !== 401) {
+      throw new Error("Cron maintenance should reject missing authorization.");
+    }
+
+    const cronResult = await request(baseUrl, "GET", "/api/cron/operational-maintenance", null, "smoke-cron-secret");
+    if (!cronResult.ok || cronResult.validationRemindersCreated < 1) {
+      throw new Error("Cron maintenance should create validation reminder audit entries.");
+    }
+
+    const managerBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, managerToken);
+    if (!managerBootstrap.validationAlerts?.some((alert) => alert.taskId === reminderTaskId)) {
+      throw new Error("Manager bootstrap should include pending validation alerts.");
+    }
+    if (!managerBootstrap.auditLogs.some((log) => log.action === "task.validation_reminder")) {
+      throw new Error("Manager audit history should include validation reminders.");
+    }
+
     const evidenceId = firstEvidence.evidences[0].id;
     if (thirdEvidence.evidences.length !== 1) {
       throw new Error("Third evidence upload did not store exactly one photo.");
@@ -239,7 +281,7 @@ async function run() {
     }
 
     const bootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, employeeToken);
-    if (bootstrap.tasks.length !== 1 || bootstrap.tasks[0].id !== taskId) {
+    if (!bootstrap.tasks.some((task) => task.id === taskId) || !bootstrap.tasks.some((task) => task.id === reminderTaskId)) {
       throw new Error("Employee bootstrap did not return the assigned task.");
     }
 

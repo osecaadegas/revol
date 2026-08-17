@@ -15,6 +15,10 @@ Login, Google callback, setup, and invite acceptance also set an HttpOnly same-o
 
 Returns server status and the active storage driver.
 
+`GET|POST /api/cron/operational-maintenance`
+
+Protected scheduled maintenance endpoint. Requires `Authorization: Bearer <CRON_SECRET>`. Deletes expired seven-day evidence files, auto-approves tasks past the 12-hour validation deadline, and writes employer validation reminder audit entries for submitted and near-due pending tasks. Intended for Vercel Cron or an external scheduler.
+
 `GET /api/setup/status`
 
 Returns whether the app has at least one active user.
@@ -67,7 +71,7 @@ Expires the current token.
 
 `GET /api/bootstrap`
 
-Returns current user, company, accessible users, work orders, tasks, evidence metadata, audit log, manager invite list, vacancies, and relevant applications.
+Returns current user, company, accessible users, work orders, tasks, evidence metadata, audit log, manager invite list, validation alerts, vacancies, and relevant applications.
 
 For `client` and `developer` accounts, operational records are not exposed directly through this payload. Their private project progress view is delivered through `GET /api/project/private` and `GET /api/mvp/private`.
 
