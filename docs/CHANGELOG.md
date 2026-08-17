@@ -6,11 +6,12 @@
 - Added Vercel Cron scheduling for daily evidence cleanup, validation auto-approval and validation reminder generation.
 - Added manager dashboard validation reminder cards for tasks waiting on the 12-hour employer approval window.
 - Added `CRON_SECRET` setup documentation and smoke coverage for cron authorization and reminder alerts.
-- Simplified the public landing page into a cleaner search-first vacancy page with featured jobs, market summary, company/worker calls to action and a refreshed shell cache.
+- Simplified the public landing page into a cleaner search-first vacancy page with featured jobs, market summary, company/trabalhador calls to action and a refreshed shell cache.
 - Added large dropdown suggestion menus for public cargo/function and location vacancy filters while preserving free-text search.
-- Added worker CV profiles with private profile photos, birth dates, skills, previous experience, references, application gating, company-visible profile cards and Supabase profile indexing.
-- Simplified public login/register by moving worker, company and login forms into a topbar-triggered modal and removing the large inline auth panel.
+- Added trabalhador CV profiles with private profile photos, birth dates, skills, previous experience, references, application gating, company-visible profile cards and Supabase profile indexing.
+- Simplified public login/register by moving trabalhador, company and login forms into a topbar-triggered modal and removing the large inline auth panel.
 - Made the public topbar account entry explicit as `Login / Registar` and restyled it so visitors can immediately find the login/register modal.
+- Renamed public-facing `worker` labels to `Trabalhador` while keeping the internal role, API paths and Supabase schema stable.
 
 ## 2026-08-12
 
@@ -23,12 +24,12 @@
 ## 2026-08-11
 
 - Increased public homepage background visibility on large screens with stronger animated network lanes, higher contrast grid motion, translucent landing cards and a fresh app-shell cache version.
-- Added Google OAuth login for existing accounts plus worker-only Google self-registration, with server-side callback handling and setup documentation.
+- Added Google OAuth login for existing accounts plus trabalhador-only Google self-registration, with server-side callback handling and setup documentation.
 - Added a more alive public interface with wider desktop search/filter controls, animated surface grid, header signal motion, card entrance states and service-worker cache bump.
 - Modernized the public job-network UI with a cleaner 2026-style surface, stronger hierarchy, refined search/feed cards, improved auth tabs and clearer candidate/company entry points.
 - Fixed stale public pages after deploy by replacing the service worker cache-first shell with network-first fetching, bumping the shell cache and disabling server cache for app shell files.
 - Added a more LinkedIn-like landing surface with a compact top search, candidate profile entry card, central job search card and company hiring card.
-- Reworked the public homepage into a LinkedIn-style vacancy feed with first-screen search, quick filters, result counts, job cards and worker/company account actions.
+- Reworked the public homepage into a LinkedIn-style vacancy feed with first-screen search, quick filters, result counts, job cards and trabalhador/company account actions.
 - Kept project/client/developer information out of the public homepage and left `/cliente` as the reserved project access route.
 - Repositioned the public application as MANIFESTO, a professional engineering project portal.
 - Added public routes for `/cliente` and `/changelog`.
@@ -51,7 +52,7 @@
 - Added same-origin HttpOnly session cookie support so private evidence images and JSON export work in the browser while API bearer tokens remain supported.
 - Added Supabase Postgres/Storage backend support with migration, private bucket, RLS-enabled tables, environment configuration, and selectable `APP_STORAGE_DRIVER`.
 - Added active storage driver reporting to `/api/health`.
-- Corrected product concept to a public vacancy marketplace: visible job offers, worker registration/application flow, company registration/vacancy creation flow, application review, new Supabase marketplace migration, and updated smoke coverage.
+- Corrected product concept to a public vacancy marketplace: visible job offers, trabalhador registration/application flow, company registration/vacancy creation flow, application review, new Supabase marketplace migration, and updated smoke coverage.
 - Improved the homepage into a public-first job board with keyword, cargo/function, location, and radius filters, plus a dedicated vacancy `position` field and Supabase migration for company postings.
 - Added an admin Supabase reset script and documentation to remove old unprefixed prototype tables and recreate the current `meo_*` schema.
 - Declared the Node server entrypoint in `package.json` and documented Vercel deployment settings.

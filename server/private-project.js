@@ -29,7 +29,7 @@ const mvpScope = {
   included: [
     "Area do Cliente publica para acesso, com estado do projeto, roadmap, modulos e documentacao apenas para contas client/developer.",
     "Mercado de vagas publico com filtros por pesquisa, cargo, localizacao e raio.",
-    "Registo de worker para candidatura e registo de empresa para publicacao de vagas.",
+    "Registo de trabalhador para candidatura e registo de empresa para publicacao de vagas.",
     "Area autenticada com ordens de trabalho, tarefas, evidencias fotograficas e validacao.",
     "Historico/auditoria basica das acoes principais.",
     "Persistencia local para desenvolvimento e Supabase para ambiente real."
@@ -71,7 +71,7 @@ const platformComparison = [
 
 const modules = [
   ["Portal de Projeto", "in-development", "Fundacao implementada", "Apresenta estado, roadmap, escopo, entregas, versoes e acesso preparado para cliente.", ["REQ-PORTAL-001", "REQ-DOC-001"]],
-  ["Mercado de Vagas", "testing", "Fluxo API coberto por smoke test", "Vagas publicas, filtros, contas worker/empresa, candidaturas e revisao pela empresa.", ["REQ-MKT-001", "REQ-MKT-002", "REQ-MKT-003"]],
+  ["Mercado de Vagas", "testing", "Fluxo API coberto por smoke test", "Vagas publicas, filtros, contas trabalhador/empresa, candidaturas e revisao pela empresa.", ["REQ-MKT-001", "REQ-MKT-002", "REQ-MKT-003"]],
   ["Operacoes e Tarefas", "testing", "MVP funcional", "Ordens de trabalho, atribuicao de tarefas, estados operacionais e bloqueios com justificacao.", ["REQ-OPS-001", "REQ-OPS-002"]],
   ["Evidencia e Validacao", "testing", "Privacidade de ficheiros validada em smoke test", "Fotografias privadas, notas, timestamp, localizacao pontual e decisao do gestor.", ["REQ-EVD-001", "REQ-EVD-002"]],
   ["Rastreabilidade de Requisitos", "planned", "Estrutura UI criada", "Modelo Manual -> Requisito -> Funcionalidade -> Estado, pronto para base de dados futura.", ["REQ-TRACE-001"]],
@@ -88,7 +88,7 @@ const manualBlocks = [
 
 const requirements = [
   ["REQ-MKT-001", "Contrato / correcao de conceito", "Vagas publicas", "O visitante consegue ver ofertas sem iniciar sessao.", "Mercado de Vagas", "implemented", "Smoke test API"],
-  ["REQ-MKT-002", "Contrato / correcao de conceito", "Candidatura autenticada", "A candidatura exige conta worker e impede duplicados por vaga.", "Mercado de Vagas", "implemented", "Smoke test API"],
+  ["REQ-MKT-002", "Contrato / correcao de conceito", "Candidatura autenticada", "A candidatura exige conta de trabalhador e impede duplicados por vaga.", "Mercado de Vagas", "implemented", "Smoke test API"],
   ["REQ-MKT-003", "Contrato / correcao de conceito", "Publicacao por empresa", "Criar vagas exige conta empresa ou gestor autorizado.", "Mercado de Vagas", "implemented", "Smoke test API"],
   ["REQ-OPS-001", "Anexo de fase 1", "Ordens e tarefas", "Gestor cria ordens e tarefas com responsavel e prazo.", "Operacoes e Tarefas", "implemented", "Smoke test API"],
   ["REQ-EVD-001", "Anexo de fase 1", "Evidencia privada", "Fotografias sao privadas e servidas apenas por API autenticada.", "Evidencia e Validacao", "implemented", "Smoke test API"],
@@ -96,7 +96,7 @@ const requirements = [
 ];
 
 const acceptanceCriteria = [
-  ["Mercado de Vagas", "testing", [["Vagas abertas aparecem ao publico", "passed"], ["Worker autenticado consegue candidatar-se", "passed"], ["Empresa consegue publicar vaga", "passed"], ["Revisao de candidaturas pela empresa", "passed"], ["Validacao cliente", "not-tested"]]],
+  ["Mercado de Vagas", "testing", [["Vagas abertas aparecem ao publico", "passed"], ["Trabalhador autenticado consegue candidatar-se", "passed"], ["Empresa consegue publicar vaga", "passed"], ["Revisao de candidaturas pela empresa", "passed"], ["Validacao cliente", "not-tested"]]],
   ["Operacoes e Evidencias", "testing", [["Gestor cria ordem de trabalho", "passed"], ["Gestor atribui tarefa", "passed"], ["Responsavel submete evidencia", "passed"], ["Imagem privada exige autenticacao", "passed"], ["Validacao em producao Supabase", "not-tested"]]],
   ["Portal MANIFESTO", "testing", [["Area publica nao expoe informacao privada", "passed"], ["Projeto privado visivel a client/developer", "passed"], ["Documentacao privada nao e ligada publicamente", "testing"], ["Aprovacao cliente", "not-tested"]]]
 ];
@@ -106,7 +106,7 @@ const deliverables = [
   ["Modelo Supabase", "completed", "Tabelas meo_*, RLS e bucket privado de evidencias.", "Persistencia", "2026-08-10"],
   ["Area do Cliente e workspace privado", "in-development", "Acesso publico controlado, com estado, roadmap, modulos, escopo e documentacao no workspace autenticado.", "Acompanhamento", "2026-08-11"],
   ["Cockpit de Desenvolvimento do MVP", "in-development", "Vista privada com progresso vivo de mercado, contas, tarefas, evidencias, validacao e auditoria.", "MVP", "2026-08-11"],
-  ["Roles client/developer", "completed", "Acesso privado do projeto separado dos perfis worker, company e operacionais.", "Permissoes", "2026-08-11"],
+  ["Roles client/developer", "completed", "Acesso privado do projeto separado dos perfis trabalhador, company e operacionais.", "Permissoes", "2026-08-11"],
   ["Validacao Supabase em producao", "pending", "Confirmar registo, vagas, candidaturas, tarefas e evidencias com ambiente real.", "QA", "Pendente"],
   ["Aprovacao formal do cliente", "pending", "Registo de aceitacao por criterios e pedidos de alteracao.", "Handoff", "Pendente"]
 ];
@@ -143,7 +143,7 @@ const versionHistory = [
   {
     version: "v0.3.0",
     date: "2026-08-10",
-    added: ["Mercado de vagas", "Registo worker/empresa", "Filtros por localizacao e raio"],
+    added: ["Mercado de vagas", "Registo trabalhador/empresa", "Filtros por localizacao e raio"],
     improved: ["Conceito alinhado com marketplace publico"],
     fixed: []
   }

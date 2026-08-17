@@ -24,9 +24,9 @@ Private project information is now restricted to first-class `client` and `devel
 The app must first behave like a public labor-market board:
 
 - Job offers/vacancies are always visible to visitors.
-- Applying to a vacancy requires a registered `worker` account.
+- Applying to a vacancy requires a registered trabalhador account. Internally this remains role `worker`.
 - Creating a vacancy requires a registered `company` account.
-- Company users can review worker applications.
+- Company users can review trabalhador applications.
 - The operational work-order/evidence module remains available as a company workspace feature, but it is not the first public concept.
 
 ## Implemented Marketplace Requirements
@@ -36,19 +36,19 @@ The app must first behave like a public labor-market board:
 | Public vacancies visible without login | `/api/jobs/public`, public homepage board in `public/app.js` |
 | Public vacancy discovery works like a labor-market board | Shared marketplace filters in `public/app.js` for keyword/company/contract, cargo/function and location dropdown suggestions, free-text entries, and known-city radius |
 | Public homepage is simple and organized | `/` renders a search-first public vacancy page with concise market summary, featured vacancies, candidate/company calls to action and a visible topbar `Login / Registar` modal trigger before any private project entry |
-| Worker registration required to apply | `/api/register/worker`, `/api/job-offers/:id/apply` requires `worker` |
+| Trabalhador registration required to apply | `/api/register/worker`, `/api/job-offers/:id/apply` requires internal role `worker` |
 | Company registration required to create vacancies | `/api/register/company`, `/api/job-offers` requires `company` or legacy `manager` |
 | Company can manage received applications | `/api/applications/:id`, company marketplace view |
-| Worker can track submitted applications | `jobApplications` in `/api/bootstrap`, worker marketplace view |
-| Worker CV profile required for applications | Worker marketplace CV form in `public/app.js`, `PATCH /api/workers/profile`, and server-side application gate before `/api/job-offers/:id/apply` |
-| Published worker CVs visible to companies | Company marketplace receives `workerProfiles`, application cards include published worker CV details, and profile photos are served by authenticated `/api/workers/:id/profile-photo` |
+| Trabalhador can track submitted applications | `jobApplications` in `/api/bootstrap`, trabalhador marketplace view |
+| Trabalhador CV profile required for applications | Trabalhador marketplace CV form in `public/app.js`, `PATCH /api/workers/profile`, and server-side application gate before `/api/job-offers/:id/apply` |
+| Published trabalhador CVs visible to companies | Company marketplace receives `workerProfiles`, application cards include published trabalhador CV details, and profile photos are served by authenticated `/api/workers/:id/profile-photo` |
 | Supabase-ready marketplace persistence | `meo_job_offers`, `meo_job_applications`, `profile` and company metadata migrations |
 
 ## Implemented MANIFESTO Portal Requirements
 
 | Requirement | Implementation |
 | --- | --- |
-| Public client access only | `/cliente` exposes reserved login controls without project details or worker/company registration tabs |
+| Public client access only | `/cliente` exposes reserved login controls without project details or trabalhador/company registration tabs |
 | Private project dashboard | Authenticated `Projeto` workspace tab for `client` and `developer` users; content is served by `/api/project/private` |
 | Private data not in public bundle | Detailed project copy is generated server-side in `server/private-project.js`, not embedded in `public/app.js` |
 | Main public navigation | Unauthenticated visitors see `Vagas` and `Area do Cliente`; project, MVP, roadmap and documentation links stay private |
@@ -75,7 +75,7 @@ The app must first behave like a public labor-market board:
 | Mobile-first webapp accessible from phone, tablet, and computer | `public/index.html`, `public/styles.css`, responsive app shell |
 | Frontend separated from backend/API | Static frontend in `public/`, REST API in `server/index.js` |
 | Authentication | `/api/setup`, `/api/auth/login`, `/api/auth/google/start`, `/api/auth/google/callback`, `/api/session`, bearer sessions and same-origin session cookie |
-| Role separation | `worker` applies to jobs; `company/manager` manage marketplace and operations; `employee/contractor` execute tasks; `client/developer` view private project/MVP information |
+| Role separation | Public `Trabalhador` accounts use internal role `worker` to apply to jobs; `company/manager` manage marketplace and operations; `employee/contractor` execute tasks; `client/developer` view private project/MVP information |
 | Three profiles: manager, employee, contractor | Server roles `manager`, `employee`, `contractor`; role UI and API checks |
 | Manager manages users | Direct user creation, activation toggle, invite links |
 | Secure invite associated to company and role | `/api/invites`, token-bound company/role acceptance |

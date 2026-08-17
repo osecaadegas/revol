@@ -787,7 +787,7 @@ function requireProjectViewer(auth) {
 
 function requireWorker(auth) {
   if (auth.user.role !== "worker") {
-    const error = new Error("Worker registration is required to apply.");
+    const error = new Error("Conta de trabalhador obrigatoria para candidatura.");
     error.status = 403;
     throw error;
   }
@@ -888,14 +888,14 @@ function isWorkerProfilePublished(user) {
 
 function validatePublishedWorkerProfile(profile) {
   const missing = [];
-  if (!profile.headline) missing.push("professional title");
-  if (!profile.location) missing.push("location");
-  if (!profile.birthDate) missing.push("birth date");
-  if (!profile.skills.length) missing.push("skills");
-  if (!profile.experience.length) missing.push("previous experience");
-  if (!profile.references.length) missing.push("references");
+  if (!profile.headline) missing.push("titulo profissional");
+  if (!profile.location) missing.push("localizacao");
+  if (!profile.birthDate) missing.push("data de nascimento");
+  if (!profile.skills.length) missing.push("competencias");
+  if (!profile.experience.length) missing.push("experiencia anterior");
+  if (!profile.references.length) missing.push("referencias");
   if (missing.length) {
-    const error = new Error(`Complete the worker CV before publishing: ${missing.join(", ")}.`);
+    const error = new Error(`Complete o CV de trabalhador antes de publicar: ${missing.join(", ")}.`);
     error.status = 400;
     throw error;
   }
@@ -2371,14 +2371,14 @@ async function handleApi(req, res, pathname) {
     const { photo } = await withMaintainedAuth(req, (db, auth) => {
       const worker = db.users.find((user) => user.id === workerId && user.role === "worker");
       if (!worker) {
-        const error = new Error("Worker profile not found.");
+        const error = new Error("Perfil de trabalhador nao encontrado.");
         error.status = 404;
         throw error;
       }
       const cv = existingWorkerCv(worker);
       const allowed = worker.id === auth.user.id || (isCompanyAdmin(auth.user) && cv.published);
       if (!allowed || !cv.profilePhoto?.storedName) {
-        const error = new Error("Worker profile photo not found.");
+        const error = new Error("Foto de perfil de trabalhador nao encontrada.");
         error.status = 404;
         throw error;
       }
@@ -2483,7 +2483,7 @@ async function handleApi(req, res, pathname) {
         (application) => application.jobOfferId === jobOffer.id && application.workerId === auth.user.id
       );
       if (!isWorkerProfilePublished(auth.user)) {
-        const error = new Error("Publish your worker CV profile before applying to vacancies.");
+        const error = new Error("Publique o CV de trabalhador antes de se candidatar a vagas.");
         error.status = 400;
         throw error;
       }

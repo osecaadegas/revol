@@ -39,9 +39,9 @@ meo_job_offers
 meo_job_applications
 ```
 
-Worker CV profiles are stored inside `meo_users.profile.workerCv`, so no separate worker-profile table is expected.
+Trabalhador CV profiles are stored inside `meo_users.profile.workerCv`, so no separate worker-profile table is expected.
 
-It creates or updates the private `meo-evidence` storage bucket. Evidence photos and worker profile photos are private storage objects. It does not delete the old `evidencias` bucket or storage objects; remove those manually only after confirming nothing needs to be kept.
+It creates or updates the private `meo-evidence` storage bucket. Evidence photos and trabalhador profile photos are private storage objects. It does not delete the old `evidencias` bucket or storage objects; remove those manually only after confirming nothing needs to be kept.
 
 The current user and invite role set is:
 

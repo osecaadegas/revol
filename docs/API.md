@@ -7,7 +7,7 @@ Authorization: Bearer <session-token>
 Content-Type: application/json
 ```
 
-Login, Google callback, setup, and invite acceptance also set an HttpOnly same-origin `meo_session` cookie. The cookie is required for browser-native requests that cannot attach bearer headers, such as evidence image previews, worker profile photos, watermarked evidence downloads, and opening the basic JSON export in a new tab.
+Login, Google callback, setup, and invite acceptance also set an HttpOnly same-origin `meo_session` cookie. The cookie is required for browser-native requests that cannot attach bearer headers, such as evidence image previews, trabalhador profile photos, watermarked evidence downloads, and opening the basic JSON export in a new tab.
 
 ## Public Endpoints
 
@@ -33,7 +33,7 @@ Body: `email`, `password`.
 
 `GET /api/auth/google/start`
 
-Starts Google OAuth. Query params: `intent=login|worker` and optional same-origin `next` path. `intent=login` signs in an existing active account by matching the verified Google email. `intent=worker` may create a new `worker` account when no matching user exists.
+Starts Google OAuth. Query params: `intent=login|worker` and optional same-origin `next` path. `intent=login` signs in an existing active account by matching the verified Google email. `intent=worker` may create a new trabalhador account using the internal `worker` role when no matching user exists.
 
 `GET /api/auth/google/callback`
 
@@ -45,7 +45,7 @@ Returns open vacancies visible without authentication. The frontend applies keyw
 
 `POST /api/register/worker`
 
-Creates a worker account and session with an unpublished CV draft. Workers must publish the CV before applying to vacancies.
+Creates a trabalhador account and session with an unpublished CV draft. Trabalhadores must publish the CV before applying to vacancies.
 
 `POST /api/register/company`
 
@@ -71,7 +71,7 @@ Expires the current token.
 
 `GET /api/bootstrap`
 
-Returns current user, company, accessible users, work orders, tasks, evidence metadata, audit log, manager invite list, validation alerts, vacancies, relevant applications, and published worker CV profiles for company/manager review.
+Returns current user, company, accessible users, work orders, tasks, evidence metadata, audit log, manager invite list, validation alerts, vacancies, relevant applications, and published trabalhador CV profiles for company/manager review.
 
 For `client` and `developer` accounts, operational records are not exposed directly through this payload. Their private project progress view is delivered through `GET /api/project/private` and `GET /api/mvp/private`.
 
@@ -85,11 +85,11 @@ Client/developer only. Returns the private MVP development cockpit HTML. Live ma
 
 `PATCH /api/workers/profile`
 
-Worker only. Saves and publishes the worker CV profile. Required fields before publishing are professional title, location, birth date, at least one skill, at least one previous experience entry, and at least one reference. Optional profile photo is stored in private local/Supabase storage and served through the authenticated photo endpoint.
+Trabalhador only. Saves and publishes the trabalhador CV profile. Required fields before publishing are professional title, location, birth date, at least one skill, at least one previous experience entry, and at least one reference. Optional profile photo is stored in private local/Supabase storage and served through the authenticated photo endpoint.
 
 `GET /api/workers/:id/profile-photo`
 
-Returns a worker profile photo only to the owning worker or to authenticated company/manager users when that worker CV is published.
+Returns a trabalhador profile photo only to the owning trabalhador or to authenticated company/manager users when that trabalhador CV is published.
 
 `POST /api/job-offers`
 
@@ -101,7 +101,7 @@ Company/manager only. Updates `title`, `position`, `location`, `contractType`, `
 
 `POST /api/job-offers/:id/apply`
 
-Worker only. Submits one application to an open vacancy. The server requires the worker CV profile to be published before accepting the application.
+Trabalhador only. Submits one application to an open vacancy. The server requires the trabalhador CV profile to be published before accepting the application.
 
 `PATCH /api/applications/:id`
 

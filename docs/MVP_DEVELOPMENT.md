@@ -7,7 +7,7 @@ This document is the working guide for the active phase named `Desenvolvimento d
 The goal of this phase is to make the Phase 1 product testable as one connected loop:
 
 1. Public visitors can discover open vacancies.
-2. Workers can register and apply.
+2. Trabalhadores can register and apply.
 3. Companies can register, publish vacancies and review applications.
 4. Company/manager users can create operational accounts.
 5. Company/manager users can create work orders and assigned tasks.
@@ -18,7 +18,7 @@ The goal of this phase is to make the Phase 1 product testable as one connected 
 
 ## Current Build Surface
 
-The authenticated workspace includes an `MVP` tab for `client` and `developer` users. It is private and not rendered for public visitors, workers, companies, managers, employees or contractors.
+The authenticated workspace includes an `MVP` tab for `client` and `developer` users. It is private and not rendered for public visitors, trabalhadores, companies, managers, employees or contractors.
 
 The tab loads server-rendered private HTML from `GET /api/mvp/private`. That endpoint requires `client` or `developer` access and calculates its status from company data:
 
@@ -37,7 +37,7 @@ These checks are not contractual completion percentages. They are workspace read
 | Capability | Frontend | API |
 | --- | --- | --- |
 | Public vacancies and filters | `public/app.js` marketplace/public board renderers | `GET /api/jobs/public` |
-| Worker registration and applications | `register-worker`, `apply-job` forms | `POST /api/register/worker`, `POST /api/job-offers/:id/apply` |
+| Trabalhador registration and applications | `register-worker`, `apply-job` forms | `POST /api/register/worker`, `POST /api/job-offers/:id/apply` |
 | Company registration and vacancies | `register-company`, `create-job` forms | `POST /api/register/company`, `POST /api/job-offers`, `PATCH /api/job-offers/:id` |
 | Operational accounts | `team` view | `POST /api/users`, `PATCH /api/users/:id`, `POST /api/invites` |
 | Work orders and tasks | `orders`, `tasks` views | `POST /api/work-orders`, `POST /api/tasks`, `PATCH /api/tasks/:id/status` |
@@ -73,7 +73,7 @@ Use this order when testing or extending the MVP:
 ## Acceptance Criteria
 
 - Public vacancies remain visible without login.
-- Applying requires a worker account.
+- Applying requires a trabalhador account.
 - Publishing vacancies requires company/manager access.
 - Creating operational users, work orders and tasks requires company/manager access.
 - Evidence files remain private and load only through authenticated API access.

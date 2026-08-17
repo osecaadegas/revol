@@ -4,7 +4,7 @@
 
 The repository started with only source PDFs and no existing app. This implementation creates the first app in the repository root.
 
-The corrected first product concept is a public labor-market board: vacancies are visible without login, workers register to apply, and companies register to publish vacancies. The homepage must feel like a practical LinkedIn-style job feed, while client/developer project information remains private. The operational work-order/evidence module remains part of the company workspace and is still backed by the contract annex.
+The corrected first product concept is a public labor-market board: vacancies are visible without login, trabalhador accounts register to apply, and companies register to publish vacancies. The homepage must feel like a practical LinkedIn-style job feed, while client/developer project information remains private. The operational work-order/evidence module remains part of the company workspace and is still backed by the contract annex.
 
 The engineering manuals and manifesto inform terminology and auditability principles, but they do not expand Phase 1 into Tiers, AI, blockchain, decentralized infrastructure, scoring, automated dispute resolution, or commercial SaaS.
 
@@ -14,7 +14,7 @@ The engineering manuals and manifesto inform terminology and auditability princi
 - No-dependency Node API in `server/`.
 - Selectable persistence: local JSON/private files for development, or Supabase Postgres/private Storage for deployment.
 - Bearer-token authentication with server-side session validation.
-- Server-enforced role access for worker, company, manager, employee, contractor, client, and developer profiles.
+- Server-enforced role access for internal worker, company, manager, employee, contractor, client, and developer profiles. Public UI labels the worker role as `Trabalhador`.
 - PWA metadata and shell caching without advanced offline synchronization.
 
 This keeps the MVP fully runnable without external services while also supporting a real Supabase backend for deployment. The API boundary remains suitable for future Vercel functions or a native mobile client.
@@ -83,7 +83,7 @@ Status: complete.
 Status: complete.
 
 - Reworked the public entrypoint into a vacancy board.
-- Added worker registration and authenticated applications.
+- Added trabalhador registration and authenticated applications.
 - Added company registration, vacancy creation, close/reopen controls, and application review.
 - Added marketplace persistence to the local and Supabase data model.
 - Updated smoke tests to cover the public job board and application workflow.
@@ -94,7 +94,7 @@ Status: complete.
 
 - Kept the homepage publicly accessible instead of login-first.
 - Added LinkedIn-style vacancy filters for keyword/company/contract, cargo/function, location, and radius around known Portuguese cities.
-- Added a separate vacancy `position` field and Supabase follow-up migration so companies can publish a clear role/function and workers can filter by it.
+- Added a separate vacancy `position` field and Supabase follow-up migration so companies can publish a clear role/function and trabalhadores can filter by it.
 - Shared the same filtering controls between the public board and logged-in marketplace.
 
 ### M9 - Supabase Clean Reset
@@ -180,7 +180,7 @@ Status: complete.
 
 - Added Google OAuth authorization-code login through `/api/auth/google/start` and `/api/auth/google/callback`.
 - Existing active users can sign in with Google when the verified Google email matches their app account.
-- New Google users can self-create only `worker` accounts from the worker registration path.
+- New Google users can self-create only internal `worker` accounts from the trabalhador registration path.
 - Company, client, developer, manager, employee and contractor access remains controlled by the existing registration, user creation and invite flows.
 - Stored Google identity metadata in the existing user profile JSON so no extra Supabase table is required.
 
@@ -209,7 +209,7 @@ Status: complete.
 
 - Simplified the public landing page into a cleaner search-first structure inspired by the current `trataimobiliaria.pt` homepage flow.
 - Removed the busy animated network background and three-column social-card composition from the public entry.
-- Preserved the public vacancy marketplace, filters, worker/company account creation and private `/cliente` entry.
+- Preserved the public vacancy marketplace, filters, trabalhador/company account creation and private `/cliente` entry.
 - Bumped the service-worker shell cache so deployed browsers fetch the revised public shell.
 
 ### M21 - Marketplace Filter Dropdowns
@@ -220,21 +220,21 @@ Status: complete.
 - Kept free-text search, existing query filtering and known-city radius filtering unchanged.
 - Applied the same suggestions to the first-screen public search and the detailed marketplace filter bar.
 
-### M22 - Worker CV Profiles
+### M22 - Trabalhador CV Profiles
 
 Status: complete.
 
-- Added a worker-owned CV profile in the authenticated marketplace with profile photo, birth date, skills, previous experience, availability, bio and references.
-- Required workers to publish the CV profile before submitting vacancy applications.
-- Exposed published worker CV profiles to company/manager accounts and attached CV details to received applications.
-- Stored worker CV data in `meo_users.profile.workerCv` and protected profile photos through authenticated private local/Supabase storage.
+- Added a trabalhador-owned CV profile in the authenticated marketplace with profile photo, birth date, skills, previous experience, availability, bio and references.
+- Required trabalhadores to publish the CV profile before submitting vacancy applications.
+- Exposed published trabalhador CV profiles to company/manager accounts and attached CV details to received applications.
+- Stored trabalhador CV data in `meo_users.profile.workerCv` and protected profile photos through authenticated private local/Supabase storage.
 
 ### M23 - Public Login Modal
 
 Status: complete.
 
 - Simplified the public topbar brand text and moved public login/register forms into a modal opened from the topbar and page CTAs.
-- Removed the large inline homepage auth panel while preserving worker registration, company registration, login and Google OAuth behavior.
+- Removed the large inline homepage auth panel while preserving trabalhador registration, company registration, login and Google OAuth behavior.
 - Kept `/cliente` as the reserved client/developer page and left public job discovery visible without authentication.
 
 ### M24 - Topbar Account Clarity
@@ -245,6 +245,14 @@ Status: complete.
 - Restyled the account trigger as a bordered action and kept `Publicar vaga` as the company publishing shortcut.
 - Bumped the service-worker shell cache so browsers fetch the clearer topbar.
 
+### M25 - Trabalhador Label Cleanup
+
+Status: complete.
+
+- Replaced public-facing `Worker` copy with `Trabalhador` across account creation, Google registration, marketplace CV panels, company candidate lists, audit labels and server error messages.
+- Kept `worker` as the internal role/API/storage identifier to avoid a database migration or breaking existing sessions, rows and Supabase indexes.
+- Bumped the public shell cache and asset query string so browsers fetch the updated copy.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.
@@ -252,15 +260,15 @@ Status: complete.
 3. Run `supabase/migrations/20260811000000_project_viewer_roles.sql` in the production Supabase project if it has not already been applied.
 4. Create or invite a `client` account and a `developer` account from the company `Equipa` tab.
 5. Verify `/` as the simplified public vacancy page and `/cliente` as the reserved project login on production.
-6. Verify Google login for an existing client/developer account, an existing company account and a new worker account.
+6. Verify Google login for an existing client/developer account, an existing company account and a new trabalhador account.
 7. Verify private `Projeto` and `MVP` tabs with client/developer roles on production.
 8. Run `supabase/migrations/20260812000000_evidence_validation_retention.sql` in production if the previous migrations are already applied.
 9. Run `supabase/migrations/20260817000000_worker_cv_profiles.sql` in production.
 10. Verify `/api/cron/operational-maintenance` runs from the configured scheduler.
-11. Verify worker/company registration, worker CV publishing, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
+11. Verify trabalhador/company registration, trabalhador CV publishing, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
 12. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
 13. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-14. Add browser-driven regression coverage for public routes, public filtering and worker application.
+14. Add browser-driven regression coverage for public routes, public filtering and trabalhador application.
 
 ## Agent Update Protocol
 

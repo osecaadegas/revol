@@ -35,7 +35,7 @@
     manager: "Gestor",
     employee: "Funcionario",
     contractor: "Subempreiteiro",
-    worker: "Worker",
+    worker: "Trabalhador",
     company: "Empresa",
     client: "Cliente",
     developer: "Developer"
@@ -418,7 +418,7 @@
   function googleAuthMessage(code) {
     const messages = {
       google_not_configured: "Login Google ainda nao esta configurado no servidor.",
-      google_account_not_registered: "Nao existe conta para esse email Google. Crie uma conta worker ou peca convite/acesso ao responsavel.",
+      google_account_not_registered: "Nao existe conta para esse email Google. Crie uma conta de trabalhador ou peca convite/acesso ao responsavel.",
       google_forbidden: "Essa conta Google nao pode iniciar sessao nesta aplicacao.",
       google_cancelled: "Login Google cancelado.",
       google_missing_code: "Resposta Google incompleta. Tente novamente.",
@@ -681,7 +681,7 @@
   function renderPublicAuthModal() {
     if (!state.publicAuthModalOpen) return "";
     const title = state.authMode === "worker"
-      ? "Criar perfil worker"
+      ? "Criar perfil de trabalhador"
       : state.authMode === "company"
         ? "Registar empresa"
         : "Entrar";
@@ -839,8 +839,8 @@
           <article class="market-plain-panel">
             <p class="eyebrow">Candidatos</p>
             <h2>Candidatar-se e simples.</h2>
-            <p>Crie uma conta worker, responda a vagas abertas e acompanhe as candidaturas num unico lugar.</p>
-            <button class="btn accent" type="button" data-auth-preset="worker">Criar perfil worker</button>
+            <p>Crie uma conta de trabalhador, responda a vagas abertas e acompanhe as candidaturas num unico lugar.</p>
+            <button class="btn accent" type="button" data-auth-preset="worker">Criar perfil de trabalhador</button>
           </article>
           <article class="market-plain-panel">
             <p class="eyebrow">Empresas</p>
@@ -857,7 +857,7 @@
           </div>
           <div class="market-account-actions">
             <button class="btn primary" type="button" data-auth-preset="login">Entrar</button>
-            <button class="btn accent" type="button" data-auth-preset="worker">Criar worker</button>
+            <button class="btn accent" type="button" data-auth-preset="worker">Criar trabalhador</button>
             <button class="btn ghost" type="button" data-auth-preset="company">Registar empresa</button>
             <a class="btn ghost" href="/cliente">Area do cliente</a>
           </div>
@@ -940,7 +940,7 @@
       <div class="${options.bare ? "auth-switcher" : "panel auth-switcher"}">
         <div class="segmented">
           <button class="${mode === "login" ? "active" : ""}" data-auth-mode="login">Entrar</button>
-          <button class="${mode === "worker" ? "active" : ""}" data-auth-mode="worker">Worker</button>
+          <button class="${mode === "worker" ? "active" : ""}" data-auth-mode="worker">Trabalhador</button>
           <button class="${mode === "company" ? "active" : ""}" data-auth-mode="company">Empresa</button>
         </div>
         ${mode === "worker" ? renderWorkerRegistrationForm() : mode === "company" ? renderCompanyRegistrationForm() : renderLoginForm()}
@@ -998,10 +998,10 @@
     return `
       <form class="form-grid" data-form="register-worker">
         <div>
-          <h2>Registar worker</h2>
+          <h2>Registar trabalhador</h2>
           <p class="muted">Conta individual para candidatar-se a vagas publicas.</p>
         </div>
-        ${renderGoogleAuthButton("Criar worker com Google", "worker", "/")}
+        ${renderGoogleAuthButton("Criar trabalhador com Google", "worker", "/")}
         <div class="auth-divider"><span>ou formulario</span></div>
         <div class="field"><label>Nome</label><input name="name" required autocomplete="name"></div>
         <div class="field"><label>Email</label><input name="email" required type="email" autocomplete="email"></div>
@@ -1009,7 +1009,7 @@
         <div class="field"><label>Titulo profissional</label><input name="headline" placeholder="Ex: Operador agricola, jardineiro, pintor"></div>
         <div class="field"><label>Localizacao</label><input name="location" placeholder="Concelho ou regiao"></div>
         <div class="field"><label>Competencias</label><textarea name="skills" placeholder="Ferramentas, experiencia, certificacoes"></textarea></div>
-        <button class="btn accent full" type="submit">Criar conta worker</button>
+        <button class="btn accent full" type="submit">Criar conta de trabalhador</button>
       </form>
     `;
   }
@@ -1227,7 +1227,7 @@
         state.authMode = "worker";
         state.publicAuthModalOpen = true;
         state.publicMenuOpen = false;
-        setNotice("Registe-se como worker para se candidatar a esta vaga.");
+        setNotice("Registe-se como trabalhador para se candidatar a esta vaga.");
         renderPublicBoard();
       });
     });
@@ -1445,7 +1445,7 @@
     return `
       <div class="panel">
         <div class="panel-header"><h2>Acesso de leitura</h2></div>
-        <p class="muted">Esta conta pode consultar vagas abertas. Para candidatar-se use uma conta worker; para publicar vagas use uma conta empresa.</p>
+        <p class="muted">Esta conta pode consultar vagas abertas. Para candidatar-se use uma conta de trabalhador; para publicar vagas use uma conta empresa.</p>
       </div>
     `;
   }
@@ -1533,11 +1533,11 @@
     return `
       <form class="panel form-grid worker-profile-form" data-form="worker-profile">
         <div class="panel-header">
-          <h2>CV worker</h2>
+          <h2>CV de trabalhador</h2>
           <span class="chip ${profile.published ? "approved" : "planned"}">${profile.published ? "Publicado" : "Por publicar"}</span>
         </div>
         <div class="worker-profile-top">
-          ${renderProfilePhoto(profile, user?.name || "Worker")}
+          ${renderProfilePhoto(profile, user?.name || "Trabalhador")}
           <div class="field">
             <label>Foto de perfil</label>
             <input name="photo" type="file" accept="image/png,image/jpeg,image/webp">
@@ -1615,14 +1615,14 @@
 
   function renderWorkerProfileCard(profile, options = {}) {
     if (!profile) {
-      return `<div class="notice error">CV worker ainda nao publicado.</div>`;
+      return `<div class="notice error">CV de trabalhador ainda nao publicado.</div>`;
     }
     return `
       <article class="worker-profile-card ${options.compact ? "compact" : ""}">
         <header>
-          ${renderProfilePhoto(profile, profile.name || "Worker")}
+          ${renderProfilePhoto(profile, profile.name || "Trabalhador")}
           <div>
-            <h3>${escapeHtml(profile.name || "Worker")}</h3>
+            <h3>${escapeHtml(profile.name || "Trabalhador")}</h3>
             <div class="meta-row">
               ${profile.headline ? `<span>${escapeHtml(profile.headline)}</span>` : ""}
               ${profile.location ? `<span>${escapeHtml(profile.location)}</span>` : ""}
@@ -1657,11 +1657,11 @@
     return `
       <div class="panel">
         <div class="panel-header">
-          <h2>Workers publicados</h2>
+          <h2>Trabalhadores publicados</h2>
           <span class="chip">${profiles.length}</span>
         </div>
         <div class="list">
-          ${profiles.length ? profiles.map((profile) => renderWorkerProfileCard(profile, { compact: true })).join("") : empty("Ainda nao existem CVs publicados por workers.")}
+          ${profiles.length ? profiles.map((profile) => renderWorkerProfileCard(profile, { compact: true })).join("") : empty("Ainda nao existem CVs publicados por trabalhadores.")}
         </div>
       </div>
     `;
@@ -1712,7 +1712,7 @@
                 </div>
                 <button class="btn accent" type="submit">Candidatar-me</button>
               </form>
-            ` : `<div class="notice error">Publique o CV worker antes de se candidatar.</div>`}
+            ` : `<div class="notice error">Publique o CV de trabalhador antes de se candidatar.</div>`}
           `}
         ` : isManager() ? `
           <div class="card-actions">
@@ -1728,7 +1728,7 @@
     return `
       <article class="history-card">
         <strong>${escapeHtml(job?.title || "Vaga")} - ${escapeHtml(applicationStatusLabel(application.status))}</strong>
-        <p>${escapeHtml(application.workerName || "Worker")} - ${formatDate(application.createdAt)}</p>
+        <p>${escapeHtml(application.workerName || "Trabalhador")} - ${formatDate(application.createdAt)}</p>
         ${application.message ? `<p>${escapeHtml(application.message)}</p>` : ""}
         ${isManager() ? renderWorkerProfileCard(application.workerProfile, { compact: true }) : ""}
         ${application.decisionReason ? `<p>Decisao: ${escapeHtml(application.decisionReason)}</p>` : ""}
@@ -2195,7 +2195,7 @@
       "setup.completed": "Ambiente criado",
       "auth.login": "Entrada na aplicacao",
       "auth.google_login": "Entrada com Google",
-      "worker.google_registered": "Worker registado com Google",
+      "worker.google_registered": "Trabalhador registado com Google",
       "user.created": "Utilizador criado",
       "user.updated": "Utilizador atualizado",
       "invite.created": "Convite criado",
@@ -2612,12 +2612,12 @@
     });
     state.data = payload.bootstrap;
     state.view = "marketplace";
-    setNotice("CV worker publicado para empresas.");
+    setNotice("CV de trabalhador publicado para empresas.");
   }
 
   async function applyToJob(form) {
     if (!workerProfilePublished()) {
-      throw new Error("Publique o CV worker antes de se candidatar.");
+      throw new Error("Publique o CV de trabalhador antes de se candidatar.");
     }
     const data = Object.fromEntries(new FormData(form).entries());
     const payload = await api(`/api/job-offers/${form.dataset.jobId}/apply`, {

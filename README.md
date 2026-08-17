@@ -1,6 +1,6 @@
 # MANIFESTO
 
-Public worker/company marketplace plus private Phase 1 operational evidence workflows. The public homepage is a LinkedIn-style vacancy board and job-network landing; project status, roadmap, modules, documentation structure, changelog and traceability are reserved for authenticated client/developer access.
+Public marketplace for trabalhadores and companies plus private Phase 1 operational evidence workflows. The public homepage is a LinkedIn-style vacancy board and job-network landing; public UI labels use `Trabalhador` for the internal `worker` role; project status, roadmap, modules, documentation structure, changelog and traceability are reserved for authenticated client/developer access.
 
 ## Quick Start
 
@@ -11,7 +11,7 @@ npm run start
 
 Open `http://localhost:4173`.
 
-On launch, visitors see the public vacancy marketplace with filters for keyword, company, work position, location, and kilometer radius. Workers register to apply. Companies register to publish vacancies and review applications. Company/manager accounts use the operational workspace for user management, work orders, tasks, evidence upload, validation flow, and audit log. Client/developer accounts enter through `/cliente` to see the private project dashboard and MVP development cockpit.
+On launch, visitors see the public vacancy marketplace with filters for keyword, company, work position, location, and kilometer radius. Trabalhador accounts register to apply. Companies register to publish vacancies and review applications. Company/manager accounts use the operational workspace for user management, work orders, tasks, evidence upload, validation flow, and audit log. Client/developer accounts enter through `/cliente` to see the private project dashboard and MVP development cockpit.
 
 For real deployment, run the Supabase migrations in `supabase/migrations/` in timestamp order and set `APP_STORAGE_DRIVER=supabase` with the Supabase server environment variables documented in `docs/SETUP.md`.
 

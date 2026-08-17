@@ -34,22 +34,22 @@ Use the vacancy filters in the marketplace section to search by company/keyword/
 
 To use the marketplace:
 
-- Workers create a worker account to apply to vacancies.
-- Workers publish a CV profile with photo, birth date, skills, previous experience and references before submitting applications.
+- Trabalhadores create a trabalhador account to apply to vacancies.
+- Trabalhadores publish a CV profile with photo, birth date, skills, previous experience and references before submitting applications.
 - Companies create a company account to publish vacancies and review applications.
-- Companies can see published worker CV profiles and CV details attached to received applications.
+- Companies can see published trabalhador CV profiles and CV details attached to received applications.
 
 After company registration, use the company account to:
 
 - Publish vacancies.
-- Review worker applications.
+- Review trabalhador applications.
 - Create employees, contractors, client users or developer users directly.
 - Generate invite links for employees, contractors, clients or developers.
 - Create work orders.
 - Create and assign tasks.
 - Review submitted evidence.
 
-Use `/cliente` with a `client` or `developer` account to view the private MANIFESTO project dashboard and private MVP development cockpit. Worker and company registration remain on the public vacancies page.
+Use `/cliente` with a `client` or `developer` account to view the private MANIFESTO project dashboard and private MVP development cockpit. Trabalhador and company registration remain on the public vacancies page.
 
 ## Environment Variables
 
@@ -104,7 +104,7 @@ Use the exact local host and port you are running. Then set `GOOGLE_CLIENT_ID` a
 Behavior:
 
 - Existing active users can sign in with Google when the Google account email matches their app email.
-- New users can create a `worker` account through the worker registration Google button.
+- New users can create an internal `worker` account through the trabalhador registration Google button.
 - Google login does not auto-create company, client, developer, manager, employee, or contractor accounts. Those remain controlled by company registration, direct user creation, or invites.
 - The Google identity is stored in the existing user `profile.authProviders.google` data, so no extra Supabase table is required.
 
@@ -151,7 +151,7 @@ Back up both together. The JSON database references files in `uploads/`.
 
 Do not expose `data/uploads/` through a static web server. Images must be served through authenticated API routes such as `/api/evidence/:id/file` and `/api/workers/:id/profile-photo`, which check access before returning private files.
 
-In `APP_STORAGE_DRIVER=supabase`, operational records are stored in Supabase tables prefixed with `meo_`, and photos are stored in the private Supabase bucket. Evidence photos are retained for seven days from upload, then deleted by the app during authenticated maintenance passes or the protected scheduled maintenance endpoint. Worker CV profile photos remain private profile assets and are not part of the seven-day evidence retention cleanup. Backups should be configured in Supabase.
+In `APP_STORAGE_DRIVER=supabase`, operational records are stored in Supabase tables prefixed with `meo_`, and photos are stored in the private Supabase bucket. Evidence photos are retained for seven days from upload, then deleted by the app during authenticated maintenance passes or the protected scheduled maintenance endpoint. Trabalhador CV profile photos remain private profile assets and are not part of the seven-day evidence retention cleanup. Backups should be configured in Supabase.
 
 ## Production Notes
 
@@ -164,7 +164,7 @@ For production:
 - Configure Supabase backups.
 - Restrict server filesystem access.
 - Use strong passwords and remove inactive users quickly.
-- Review privacy/labor notices before using real worker data.
+- Review privacy/labor notices before using real trabalhador data.
 
 Local filesystem persistence is not suitable for serverless platforms that discard file writes between requests. For Vercel/serverless, set `APP_STORAGE_DRIVER=supabase`.
 
@@ -207,6 +207,6 @@ npm run smoke
 
 `npm run check` validates JavaScript syntax.
 
-`npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, worker CV publishing, application submission, application review, user creation, work order creation, task assignment, GPS-required multi-photo evidence upload, three-photo validation enforcement, task submission, manager approval, scheduled maintenance authorization, employer validation reminders, authenticated image access, and watermarked evidence download.
+`npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, trabalhador registration, trabalhador CV publishing, application submission, application review, user creation, work order creation, task assignment, GPS-required multi-photo evidence upload, three-photo validation enforcement, task submission, manager approval, scheduled maintenance authorization, employer validation reminders, authenticated image access, and watermarked evidence download.
 
 Manual UI verification should include `/` as the public vacancy feed, `/cliente` as the reserved project login, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` and `MVP` workspace tabs for client/developer users, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes for company/manager/employee/contractor users.

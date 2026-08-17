@@ -13,10 +13,10 @@
 ## Existing Functionality Preserved
 
 - Public vacancy listing through `/api/jobs/public`.
-- Worker registration and authenticated vacancy applications.
+- Trabalhador registration and authenticated vacancy applications.
 - Company registration, vacancy creation, vacancy status changes, and application review.
 - Company workspace with work orders, tasks, evidence upload, validation and audit history.
-- Server-side role checks for worker, company, manager, employee, contractor, client and developer.
+- Server-side role checks for internal worker, company, manager, employee, contractor, client and developer roles.
 - Private evidence delivery through authenticated API access.
 - Supabase reset/admin SQL and migrations.
 
