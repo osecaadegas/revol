@@ -237,6 +237,14 @@ Status: complete.
 - Removed the large inline homepage auth panel while preserving worker registration, company registration, login and Google OAuth behavior.
 - Kept `/cliente` as the reserved client/developer page and left public job discovery visible without authentication.
 
+### M24 - Topbar Account Clarity
+
+Status: complete.
+
+- Renamed the public topbar account trigger to `Login / Registar` so the login area is visible instead of reading like a secondary text link.
+- Restyled the account trigger as a bordered action and kept `Publicar vaga` as the company publishing shortcut.
+- Bumped the service-worker shell cache so browsers fetch the clearer topbar.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.

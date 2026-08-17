@@ -10,6 +10,7 @@
 - Added large dropdown suggestion menus for public cargo/function and location vacancy filters while preserving free-text search.
 - Added worker CV profiles with private profile photos, birth dates, skills, previous experience, references, application gating, company-visible profile cards and Supabase profile indexing.
 - Simplified public login/register by moving worker, company and login forms into a topbar-triggered modal and removing the large inline auth panel.
+- Made the public topbar account entry explicit as `Login / Registar` and restyled it so visitors can immediately find the login/register modal.
 
 ## 2026-08-12
 

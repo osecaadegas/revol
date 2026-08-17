@@ -190,6 +190,13 @@ a {
   text-decoration: none;
 }
 
+.public-nav-login {
+  color: var(--accent);
+  border: 1px solid rgba(10, 102, 194, 0.24);
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(10, 102, 194, 0.08);
+}
+
 .public-nav a:hover,
 .public-nav a.active,
 .public-nav-login:hover {
@@ -198,8 +205,13 @@ a {
 }
 
 .public-nav-button {
-  color: var(--accent);
-  background: #edf4fc;
+  color: #ffffff;
+  background: var(--accent-2);
+  box-shadow: 0 6px 16px rgba(22, 131, 111, 0.18);
+}
+
+.public-nav-button:hover {
+  background: #116b5c;
 }
 
 .public-menu-button {

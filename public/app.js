@@ -670,8 +670,8 @@
             })
             .join("")}
           ${activeRoute === "home" ? `
-            <button class="public-nav-login" type="button" data-auth-preset="login">Entrar</button>
-            <button class="public-nav-button" type="button" data-auth-preset="company">Publicar</button>
+            <button class="public-nav-login" type="button" data-auth-preset="login" aria-label="Abrir login e registo">Login / Registar</button>
+            <button class="public-nav-button" type="button" data-auth-preset="company">Publicar vaga</button>
           ` : ""}
         </nav>
       </header>
