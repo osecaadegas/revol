@@ -1851,6 +1851,123 @@ td span:not(.status-badge) {
   margin-top: 16px;
 }
 
+.marketplace-workspace {
+  display: grid;
+  gap: 16px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.marketplace-hero-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.55fr);
+  gap: clamp(18px, 3vw, 34px);
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(22px, 3.5vw, 34px);
+  background:
+    linear-gradient(135deg, rgba(10, 102, 194, 0.08), rgba(22, 131, 111, 0.08)),
+    rgba(255, 255, 255, 0.98);
+  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.04);
+}
+
+.marketplace-hero-panel h1 {
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 4.1rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.marketplace-hero-panel p:not(.eyebrow) {
+  max-width: 680px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.marketplace-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--line);
+}
+
+.marketplace-stat {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+  background: #fff;
+}
+
+.marketplace-stat strong {
+  overflow: hidden;
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marketplace-stat span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.market-filter-app {
+  max-width: none;
+  margin: 0;
+}
+
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+  gap: 16px;
+  align-items: start;
+}
+
+.worker-marketplace-grid {
+  grid-template-columns: minmax(360px, 0.85fr) minmax(500px, 1fr);
+}
+
+.marketplace-vacancies-panel,
+.marketplace-side-panel {
+  min-width: 0;
+}
+
+.marketplace-side-panel {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.marketplace-side-panel > .panel + .panel {
+  margin-top: 0;
+}
+
+.marketplace-empty {
+  gap: 8px;
+  align-content: center;
+  background: #fbfdff;
+}
+
+.marketplace-empty strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.marketplace-empty span {
+  max-width: 420px;
+  line-height: 1.45;
+}
+
 .panel {
   padding: 18px;
 }
@@ -2213,7 +2330,9 @@ td span:not(.status-badge) {
 }
 
 .worker-profile-form {
-  gap: 16px;
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
 }
 
 .worker-profile-top,
@@ -2249,6 +2368,162 @@ td span:not(.status-badge) {
   gap: 10px;
 }
 
+.worker-cv-header {
+  display: grid;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+  padding: 18px;
+  background:
+    linear-gradient(135deg, rgba(10, 102, 194, 0.07), rgba(22, 131, 111, 0.07)),
+    #fff;
+}
+
+.worker-cv-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.worker-cv-title-row h2 {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.2;
+}
+
+.worker-cv-header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.worker-cv-progress {
+  display: grid;
+  gap: 8px;
+}
+
+.worker-cv-progress > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.worker-cv-progress span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.worker-cv-progress strong {
+  font-size: 0.9rem;
+}
+
+.worker-cv-progress-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2ebf3;
+}
+
+.worker-cv-progress-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+.profile-upload-control {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: #fff;
+}
+
+.profile-upload-control span {
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.profile-upload-control input {
+  width: 100%;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.profile-upload-control input::file-selector-button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  margin-right: 10px;
+  padding: 7px 10px;
+  color: var(--ink);
+  background: var(--soft);
+  font-weight: 850;
+}
+
+.profile-section {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.profile-section + .profile-section {
+  border-top: 1px solid var(--line);
+}
+
+.profile-section-title {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.profile-section-title > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--accent);
+  background: #edf4fc;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.profile-section-title h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.profile-section-title p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.worker-profile-form textarea[name="skills"] {
+  min-height: 76px;
+}
+
+.worker-profile-form textarea[name="bio"] {
+  min-height: 90px;
+}
+
+.worker-profile-form .btn.full {
+  width: calc(100% - 36px);
+  margin: 0 18px 18px;
+}
+
 .profile-group h3,
 .worker-profile-card h3 {
   margin: 0;
@@ -2261,7 +2536,7 @@ td span:not(.status-badge) {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px;
-  background: var(--soft);
+  background: #fbfdff;
 }
 
 .worker-profile-card {
@@ -2338,6 +2613,14 @@ td span:not(.status-badge) {
 @media (max-width: 1439px) and (min-width: 981px) {
   .market-filter-main {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1260px) {
+  .marketplace-hero-panel,
+  .marketplace-grid,
+  .worker-marketplace-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2535,6 +2818,10 @@ td span:not(.status-badge) {
     width: 100%;
   }
 
+  .marketplace-stats {
+    grid-template-columns: 1fr;
+  }
+
   .client-cta,
   .public-footer {
     align-items: flex-start;
@@ -2589,6 +2876,17 @@ td span:not(.status-badge) {
   .deliverable-columns,
   .system-stack {
     grid-template-columns: 1fr;
+  }
+
+  .marketplace-hero-panel,
+  .worker-cv-header,
+  .profile-section {
+    padding: 16px;
+  }
+
+  .worker-profile-form .btn.full {
+    width: calc(100% - 32px);
+    margin: 0 16px 16px;
   }
 
   .roadmap-step {

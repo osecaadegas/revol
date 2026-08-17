@@ -263,6 +263,15 @@ Status: complete.
 - Added `PUBLIC_SITE_URL` as the production canonical-origin override while keeping request-origin fallback for local and preview environments.
 - Added smoke coverage for robots, sitemap, homepage metadata, job detail structured data and missing-job noindex behavior.
 
+### M27 - Trabalhador Marketplace Workspace
+
+Status: complete.
+
+- Reorganized the authenticated marketplace for trabalhador accounts into a simpler workspace with a compact market summary, full-width filters, a dedicated vacancy panel and a wider CV panel.
+- Split the trabalhador CV editor into clear sections for main details, previous experience and references, with a completion indicator and cleaner profile-photo upload control.
+- Preserved the existing internal `worker` role, application gate, company-visible published CV data and API/storage flow.
+- Bumped the public shell cache and asset query string so deployed browsers fetch the revised authenticated workspace.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.
@@ -275,7 +284,7 @@ Status: complete.
 8. Run `supabase/migrations/20260812000000_evidence_validation_retention.sql` in production if the previous migrations are already applied.
 9. Run `supabase/migrations/20260817000000_worker_cv_profiles.sql` in production.
 10. Verify `/api/cron/operational-maintenance` runs from the configured scheduler.
-11. Verify trabalhador/company registration, trabalhador CV publishing, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
+11. Verify trabalhador/company registration, trabalhador CV publishing, authenticated marketplace layout, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
 12. Set `PUBLIC_SITE_URL` in production to the final public origin and submit `/sitemap.xml` in Google Search Console after the first production deployment.
 13. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
 14. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.

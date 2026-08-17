@@ -39,8 +39,8 @@ The app must first behave like a public labor-market board:
 | Trabalhador registration required to apply | `/api/register/worker`, `/api/job-offers/:id/apply` requires internal role `worker` |
 | Company registration required to create vacancies | `/api/register/company`, `/api/job-offers` requires `company` or legacy `manager` |
 | Company can manage received applications | `/api/applications/:id`, company marketplace view |
-| Trabalhador can track submitted applications | `jobApplications` in `/api/bootstrap`, trabalhador marketplace view |
-| Trabalhador CV profile required for applications | Trabalhador marketplace CV form in `public/app.js`, `PATCH /api/workers/profile`, and server-side application gate before `/api/job-offers/:id/apply` |
+| Trabalhador can track submitted applications | `jobApplications` in `/api/bootstrap`, reorganized trabalhador marketplace workspace in `public/app.js` |
+| Trabalhador CV profile required for applications | Sectioned trabalhador marketplace CV form in `public/app.js`, `PATCH /api/workers/profile`, and server-side application gate before `/api/job-offers/:id/apply` |
 | Published trabalhador CVs visible to companies | Company marketplace receives `workerProfiles`, application cards include published trabalhador CV details, and profile photos are served by authenticated `/api/workers/:id/profile-photo` |
 | Supabase-ready marketplace persistence | `meo_job_offers`, `meo_job_applications`, `profile` and company metadata migrations |
 | SEO-ready public vacancy discovery | `/robots.txt`, `/sitemap.xml`, dynamic homepage metadata, and server-rendered `/vagas/:id` detail pages with JobPosting JSON-LD for open vacancies |

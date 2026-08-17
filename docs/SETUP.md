@@ -35,7 +35,7 @@ Use the vacancy filters in the marketplace section to search by company/keyword/
 To use the marketplace:
 
 - Trabalhadores create a trabalhador account to apply to vacancies.
-- Trabalhadores publish a CV profile with photo, birth date, skills, previous experience and references before submitting applications.
+- Trabalhadores publish a CV profile with photo, birth date, skills, previous experience and references before submitting applications. In the authenticated marketplace, the CV editor is sectioned into main details, experience and references so the profile is easier to complete.
 - Companies create a company account to publish vacancies and review applications.
 - Companies can see published trabalhador CV profiles and CV details attached to received applications.
 
@@ -230,6 +230,6 @@ npm run smoke
 
 `npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, trabalhador registration, trabalhador CV publishing, application submission, application review, user creation, work order creation, task assignment, GPS-required multi-photo evidence upload, three-photo validation enforcement, task submission, manager approval, scheduled maintenance authorization, employer validation reminders, authenticated image access, and watermarked evidence download.
 
-Manual UI verification should include `/` as the public vacancy feed, `/cliente` as the reserved project login, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` and `MVP` workspace tabs for client/developer users, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes for company/manager/employee/contractor users.
+Manual UI verification should include `/` as the public vacancy feed, `/cliente` as the reserved project login, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the authenticated trabalhador marketplace/CV workspace, the private `Projeto` and `MVP` workspace tabs for client/developer users, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes for company/manager/employee/contractor users.
 
 Manual SEO verification should include `/robots.txt`, `/sitemap.xml`, one open `/vagas/:id` URL, and one missing `/vagas/:id` URL.

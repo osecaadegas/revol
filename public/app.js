@@ -363,7 +363,7 @@
     const positionListId = `market-position-options-${context}`;
     const locationListId = `market-location-options-${context}`;
     return `
-      <form class="market-filter-bar" data-market-filter-form="${context}">
+      <form class="market-filter-bar market-filter-${escapeHtml(context)}" data-market-filter-form="${context}">
         <div class="market-filter-main">
           <div class="field compact">
             <label>Pesquisar</label>
@@ -559,6 +559,21 @@
 
   function workerProfilePublished() {
     return isWorker() && workerCvProfile().published === true;
+  }
+
+  function workerCvCompletion(profile) {
+    const checks = [
+      Boolean(profile.headline),
+      Boolean(profile.birthDate),
+      Boolean(profile.location),
+      profile.skills.length > 0,
+      profile.experience.length > 0,
+      profile.references.length > 0
+    ];
+    return {
+      complete: checks.filter(Boolean).length,
+      total: checks.length
+    };
   }
 
   function initials(value) {
@@ -1410,24 +1425,20 @@
     const jobs = filterJobs(allJobs);
     const applications = state.data.jobApplications || [];
     return `
-      <section class="view-heading">
-        <div>
-          <h1>Mercado de vagas</h1>
-          <p>${role === "worker" ? "Veja vagas abertas e acompanhe as suas candidaturas." : isManager() ? "Publique vagas, acompanhe candidaturas e mantenha as oportunidades visiveis no mercado." : "Veja as vagas abertas sem acesso a candidaturas ou publicacao."}</p>
-        </div>
-      </section>
-      ${renderMarketFilters("app", allJobs.length, jobs.length)}
-      <section class="section-grid">
-        <div class="panel">
+      <section class="marketplace-workspace">
+        ${renderMarketplaceHero(role, allJobs, jobs, applications)}
+        ${renderMarketFilters("app", allJobs.length, jobs.length)}
+        <section class="marketplace-grid ${isWorker() ? "worker-marketplace-grid" : ""}">
+        <div class="panel marketplace-vacancies-panel">
           <div class="panel-header">
             <h2>${isManager() ? "Vagas da empresa" : "Vagas abertas"}</h2>
             <span class="chip">${jobs.length}/${allJobs.length}</span>
           </div>
           <div class="list">
-            ${jobs.length ? jobs.map((job) => renderJobCard(job)).join("") : empty(activeMarketFilterCount() ? "Nenhuma vaga corresponde aos filtros escolhidos." : isManager() ? "A sua empresa ainda nao publicou vagas." : "Nao ha vagas abertas neste momento.")}
+            ${jobs.length ? jobs.map((job) => renderJobCard(job)).join("") : renderMarketplaceEmptyState(role)}
           </div>
         </div>
-        <div>
+        <div class="marketplace-side-panel">
           ${isManager() ? `
             ${renderJobOfferForm()}
             ${renderPublishedWorkerProfiles(state.data.workerProfiles || [])}
@@ -1438,6 +1449,75 @@
           ` : renderMarketplaceReadOnlyPanel()}
         </div>
       </section>
+      </section>
+    `;
+  }
+
+  function renderMarketplaceHero(role, allJobs, jobs, applications) {
+    const profile = isWorker() ? workerCvProfile() : null;
+    const title = isWorker()
+      ? "Vagas e candidaturas"
+      : isManager()
+        ? "Mercado da empresa"
+        : "Mercado de vagas";
+    const description = role === "worker"
+      ? "Procure oportunidades, mantenha o CV pronto e acompanhe as respostas das empresas."
+      : isManager()
+        ? "Publique vagas, acompanhe candidaturas e mantenha as oportunidades visiveis no mercado."
+        : "Veja vagas abertas sem acesso a candidaturas ou publicacao.";
+    const stats = isWorker()
+      ? [
+          [allJobs.length, "vagas abertas"],
+          [applications.length, "candidaturas"],
+          [profile?.published ? "Publicado" : "Por publicar", "estado do CV"]
+        ]
+      : isManager()
+        ? [
+            [allJobs.filter((job) => job.status === "open").length, "vagas abertas"],
+            [applications.length, "candidaturas"],
+            [(state.data.workerProfiles || []).length, "CVs publicados"]
+          ]
+        : [
+            [jobs.length, "vagas visiveis"],
+            [activeMarketFilterCount(), "filtros ativos"],
+            ["Leitura", "tipo de acesso"]
+          ];
+    return `
+      <section class="marketplace-hero-panel">
+        <div>
+          <p class="eyebrow">Mercado</p>
+          <h1>${escapeHtml(title)}</h1>
+          <p>${escapeHtml(description)}</p>
+        </div>
+        <div class="marketplace-stats" aria-label="Resumo do mercado">
+          ${stats.map(([value, label]) => `
+            <div class="marketplace-stat">
+              <strong>${escapeHtml(value)}</strong>
+              <span>${escapeHtml(label)}</span>
+            </div>
+          `).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderMarketplaceEmptyState(role) {
+    const filtered = activeMarketFilterCount() > 0;
+    const title = filtered
+      ? "Sem resultados para estes filtros"
+      : isManager()
+        ? "Ainda nao publicou vagas"
+        : "Ainda nao ha vagas abertas";
+    const text = filtered
+      ? "Experimente remover filtros ou procurar por outra localizacao."
+      : isManager()
+        ? "Crie a primeira vaga para comecar a receber candidaturas."
+        : "Quando uma empresa publicar uma oportunidade, ela aparece aqui.";
+    return `
+      <div class="empty marketplace-empty">
+        <strong>${escapeHtml(title)}</strong>
+        <span>${escapeHtml(text)}</span>
+      </div>
     `;
   }
 
@@ -1486,7 +1566,7 @@
   }
 
   function renderExperienceInputs(profile) {
-    return profileRows(profile.experience, 3, 6)
+    return profileRows(profile.experience, 2, 6)
       .map((item, index) => `
         <div class="profile-entry">
           <div class="split-fields">
@@ -1507,7 +1587,7 @@
   }
 
   function renderReferenceInputs(profile) {
-    return profileRows(profile.references, 3, 6)
+    return profileRows(profile.references, 2, 6)
       .map((item, index) => `
         <div class="profile-entry">
           <div class="split-fields">
@@ -1530,37 +1610,76 @@
   function renderWorkerProfilePanel() {
     const user = currentUser();
     const profile = workerCvProfile();
+    const completion = workerCvCompletion(profile);
+    const completionPercent = Math.round((completion.complete / completion.total) * 100);
     return `
       <form class="panel form-grid worker-profile-form" data-form="worker-profile">
-        <div class="panel-header">
-          <h2>CV de trabalhador</h2>
-          <span class="chip ${profile.published ? "approved" : "planned"}">${profile.published ? "Publicado" : "Por publicar"}</span>
-        </div>
-        <div class="worker-profile-top">
-          ${renderProfilePhoto(profile, user?.name || "Trabalhador")}
-          <div class="field">
-            <label>Foto de perfil</label>
+        <div class="worker-cv-header">
+          <div class="worker-profile-top">
+            ${renderProfilePhoto(profile, user?.name || "Trabalhador")}
+            <div>
+              <div class="worker-cv-title-row">
+                <h2>CV de trabalhador</h2>
+                <span class="chip ${profile.published ? "approved" : "planned"}">${profile.published ? "Publicado" : "Por publicar"}</span>
+              </div>
+              <p>Preencha os dados essenciais para se poder candidatar a vagas.</p>
+            </div>
+          </div>
+          <div class="worker-cv-progress">
+            <div>
+              <span>${completion.complete}/${completion.total} completo</span>
+              <strong>${profile.published ? "Visivel para empresas" : "Ainda nao publicado"}</strong>
+            </div>
+            <div class="worker-cv-progress-bar"><i style="width: ${completionPercent}%"></i></div>
+          </div>
+          <label class="profile-upload-control">
+            <span>Foto de perfil</span>
             <input name="photo" type="file" accept="image/png,image/jpeg,image/webp">
+          </label>
+        </div>
+        <div class="profile-section">
+          <div class="profile-section-title">
+            <span>1</span>
+            <div>
+              <h3>Dados principais</h3>
+              <p>Quem e, onde trabalha e quando esta disponivel.</p>
+            </div>
+          </div>
+          <div class="split-fields">
+            <div class="field"><label>Titulo profissional</label><input name="headline" required value="${escapeHtml(profile.headline)}" placeholder="Ex: Trabalhador agricola"></div>
+            <div class="field"><label>Data de nascimento</label><input name="birthDate" required type="date" value="${escapeHtml(profile.birthDate)}"></div>
+          </div>
+          <div class="split-fields">
+            <div class="field"><label>Localizacao</label><input name="location" required value="${escapeHtml(profile.location)}" placeholder="Concelho ou regiao"></div>
+            <div class="field"><label>Telefone</label><input name="phone" value="${escapeHtml(profile.phone)}" inputmode="tel"></div>
+          </div>
+          <div class="field"><label>Disponibilidade</label><input name="availability" value="${escapeHtml(profile.availability)}" placeholder="Ex: imediata, fins de semana, sazonal"></div>
+          <div class="field"><label>Competencias</label><textarea name="skills" required placeholder="Uma por linha ou separadas por virgula">${escapeHtml(profile.skills.join("\n"))}</textarea></div>
+          <div class="field"><label>Resumo profissional</label><textarea name="bio" placeholder="Experiencia, ferramentas, carta, certificacoes">${escapeHtml(profile.bio)}</textarea></div>
+        </div>
+        <div class="profile-section">
+          <div class="profile-section-title">
+            <span>2</span>
+            <div>
+              <h3>Experiencia anterior</h3>
+              <p>Adicione trabalhos anteriores que as empresas possam avaliar.</p>
+            </div>
+          </div>
+          <div class="profile-group">
+            ${renderExperienceInputs(profile)}
           </div>
         </div>
-        <div class="split-fields">
-          <div class="field"><label>Titulo profissional</label><input name="headline" required value="${escapeHtml(profile.headline)}" placeholder="Ex: Trabalhador agricola"></div>
-          <div class="field"><label>Data de nascimento</label><input name="birthDate" required type="date" value="${escapeHtml(profile.birthDate)}"></div>
-        </div>
-        <div class="split-fields">
-          <div class="field"><label>Localizacao</label><input name="location" required value="${escapeHtml(profile.location)}" placeholder="Concelho ou regiao"></div>
-          <div class="field"><label>Telefone</label><input name="phone" value="${escapeHtml(profile.phone)}" inputmode="tel"></div>
-        </div>
-        <div class="field"><label>Disponibilidade</label><input name="availability" value="${escapeHtml(profile.availability)}" placeholder="Ex: imediata, fins de semana, sazonal"></div>
-        <div class="field"><label>Competencias</label><textarea name="skills" required placeholder="Uma por linha ou separadas por virgula">${escapeHtml(profile.skills.join("\n"))}</textarea></div>
-        <div class="field"><label>Resumo profissional</label><textarea name="bio" placeholder="Experiencia, ferramentas, carta, certificacoes">${escapeHtml(profile.bio)}</textarea></div>
-        <div class="profile-group">
-          <h3>Experiencia anterior</h3>
-          ${renderExperienceInputs(profile)}
-        </div>
-        <div class="profile-group">
-          <h3>Referencias</h3>
-          ${renderReferenceInputs(profile)}
+        <div class="profile-section">
+          <div class="profile-section-title">
+            <span>3</span>
+            <div>
+              <h3>Referencias</h3>
+              <p>Contactos de antigos responsaveis ou empresas.</p>
+            </div>
+          </div>
+          <div class="profile-group">
+            ${renderReferenceInputs(profile)}
+          </div>
         </div>
         <button class="btn accent full" type="submit">Guardar e publicar CV</button>
       </form>
