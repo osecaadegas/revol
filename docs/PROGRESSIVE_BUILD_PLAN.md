@@ -279,6 +279,7 @@ Status: complete.
 - Selected `TrataPro` as the public marketplace/app brand after avoiding obvious visible conflicts with names such as ObraCerta, MaoCerta, ProvaWork, ProvaCerta, VagaCerta and TurnoPro.
 - Added the slogan `Trabalho certo. Prova feita.` to the public topbar, footer, reserved-access hero and PWA metadata.
 - Replaced the placeholder public `LuisTrata` / `LT` mark with a simple `TP` wordmark and SVG app icon.
+- Added a visible horizontal `logo.svg` wordmark to the public topbar and server-rendered pages, and used the SVG icon in the footer, reserved-access hero and authenticated shell so the brand is visible in the product UI.
 - Updated SEO site names, server-rendered vacancy pages, evidence watermark branding, package description, service-worker cache and asset query string.
 - Kept `MANIFESTO` terminology for the private client/developer project portal and source-document references.
 

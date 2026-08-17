@@ -152,12 +152,28 @@ a {
   text-decoration: none;
 }
 
-.public-brand .brand-mark,
-.manifesto-shell .brand-mark {
-  border-color: transparent;
-  color: #fff;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+.brand-logo-wordmark {
+  display: block;
+  width: clamp(154px, 18vw, 210px);
+  height: 44px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.brand-logo-mark {
+  display: block;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 10px;
   box-shadow: 0 8px 18px rgba(10, 102, 194, 0.2);
+}
+
+.brand-logo-mark-large {
+  width: 58px;
+  height: 58px;
+  flex-basis: 58px;
+  border-radius: 14px;
 }
 
 .public-brand strong {
@@ -759,6 +775,16 @@ td span:not(.status-badge) {
 .public-footer div {
   display: grid;
   gap: 4px;
+}
+
+.public-footer .footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.public-footer .footer-brand div {
+  min-width: 0;
 }
 
 .public-footer a {

@@ -668,12 +668,8 @@
   function renderPublicTopNav(activeRoute = "home") {
     return `
       <header class="public-topbar">
-        <a class="public-brand" href="/">
-          <span class="brand-mark">TP</span>
-          <div>
-            <strong>TrataPro</strong>
-            <span>Trabalho certo. Prova feita.</span>
-          </div>
+        <a class="public-brand" href="/" aria-label="TrataPro - Trabalho certo. Prova feita.">
+          <img class="brand-logo-wordmark" src="/logo.svg" alt="TrataPro">
         </a>
         <button class="public-menu-button" type="button" data-action="toggle-public-menu" aria-expanded="${state.publicMenuOpen ? "true" : "false"}" aria-label="Abrir navegacao">
           <span></span><span></span><span></span>
@@ -737,9 +733,12 @@
   function renderPublicFooter() {
     return `
       <footer class="public-footer">
-        <div>
-          <strong>TrataPro</strong>
-          <span>Trabalho certo. Prova feita.</span>
+        <div class="footer-brand">
+          <img class="brand-logo-mark" src="/icon.svg" alt="">
+          <div>
+            <strong>TrataPro</strong>
+            <span>Trabalho certo. Prova feita.</span>
+          </div>
         </div>
         <a href="/">Vagas</a>
         <a href="/cliente">Area do cliente</a>
@@ -751,7 +750,7 @@
     return `
       <section class="auth-hero access-hero">
         <div>
-          <span class="brand-mark">TP</span>
+          <img class="brand-logo-mark brand-logo-mark-large" src="/icon.svg" alt="TrataPro">
         </div>
         <div class="auth-title">
           <p class="eyebrow">Area reservada</p>
@@ -1320,7 +1319,7 @@
       <div class="main-layout">
         <aside class="sidebar">
           <div class="side-brand">
-            <span class="brand-mark">TP</span>
+            <img class="brand-logo-mark" src="/icon.svg" alt="">
             <div>
               <strong>TrataPro</strong>
               <span>${escapeHtml(state.data.company.name)}</span>
@@ -1336,7 +1335,7 @@
         <main class="content">
           <div class="topbar">
             <div class="side-brand" style="color: var(--ink)">
-              <span class="brand-mark" style="border-color: var(--line)">TP</span>
+              <img class="brand-logo-mark" src="/icon.svg" alt="">
               <div>
                 <strong>TrataPro</strong>
                 <span style="color: var(--muted)">${escapeHtml(state.data.company.name)}</span>

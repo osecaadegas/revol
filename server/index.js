@@ -32,7 +32,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20260817-tratapro-brand";
+const PUBLIC_ASSET_VERSION = "20260817-tratapro-logo";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -2048,7 +2048,7 @@ function siteStructuredData(req) {
         "@id": `${origin}/#organization`,
         name: PUBLIC_BRAND_NAME,
         url: `${origin}/`,
-        logo: absolutePublicUrl(req, "/icon.svg")
+        logo: absolutePublicUrl(req, "/logo.svg")
       },
       {
         "@type": "WebSite",
@@ -2192,12 +2192,8 @@ function renderPublicIndexHtml(template, req, pathname) {
 function renderPublicTopbarStatic(activePath = "/") {
   return `
       <header class="public-topbar">
-        <a class="public-brand" href="/">
-          <span class="brand-mark">TP</span>
-          <div>
-            <strong>${PUBLIC_BRAND_NAME}</strong>
-            <span>${PUBLIC_BRAND_SLOGAN}</span>
-          </div>
+        <a class="public-brand" href="/" aria-label="${PUBLIC_BRAND_NAME} - ${PUBLIC_BRAND_SLOGAN}">
+          <img class="brand-logo-wordmark" src="/logo.svg" alt="${PUBLIC_BRAND_NAME}">
         </a>
         <nav class="public-nav" aria-label="Navegacao principal">
           <a href="/" class="${activePath === "/" ? "active" : ""}">Procurar</a>

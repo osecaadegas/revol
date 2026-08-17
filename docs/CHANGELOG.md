@@ -15,6 +15,7 @@
 - Added SEO core routes with dynamic canonical metadata, `robots.txt`, `sitemap.xml`, server-rendered public vacancy detail pages and JobPosting structured data.
 - Reorganized the authenticated trabalhador marketplace into a cleaner workspace with summary stats, full-width filters, a clearer vacancy area and structured CV sections.
 - Added the `TrataPro` public brand with slogan `Trabalho certo. Prova feita.`, a new `TP` logo mark, refreshed metadata, PWA manifest and branded evidence watermark text.
+- Added a visible `TrataPro` horizontal logo asset to the public header and server-rendered vacancy pages, and replaced text-only shell badges with the SVG icon.
 
 ## 2026-08-12
 
