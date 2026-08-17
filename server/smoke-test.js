@@ -365,7 +365,7 @@ async function run() {
     const watermarkedDownload = await request(baseUrl, "GET", `/api/evidence/${evidenceId}/download`, null, employeeToken);
     const watermarkedSvg = new TextDecoder().decode(watermarkedDownload);
     if (
-      !watermarkedSvg.includes('id="luistrata-evidence-metadata"') ||
+      !watermarkedSvg.includes('id="tratapro-evidence-metadata"') ||
       !watermarkedSvg.includes("&quot;fileHash&quot;") ||
       !watermarkedSvg.includes("&quot;location&quot;")
     ) {

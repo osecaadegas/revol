@@ -32,7 +32,10 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20260817-worker-marketplace";
+const PUBLIC_ASSET_VERSION = "20260817-tratapro-brand";
+const PUBLIC_BRAND_NAME = "TrataPro";
+const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
+const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
 const GOOGLE_AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo";
@@ -1597,7 +1600,7 @@ function safeFileName(value) {
 
 function buildEvidenceDownloadMetadata(evidence, task, order) {
   return {
-    format: "luistrata-evidence-download-v1",
+    format: "tratapro-evidence-download-v1",
     generatedAt: now(),
     evidence: {
       id: evidence.id,
@@ -1649,7 +1652,7 @@ function buildWatermarkedEvidenceSvg(evidence, task, order, buffer) {
     : "GPS indisponivel";
   const metadataJson = JSON.stringify(buildEvidenceDownloadMetadata(evidence, task, order), null, 2);
   const lines = [
-    "LuisTrata evidence",
+    `${PUBLIC_BRAND_NAME} evidence`,
     `Evidence: ${evidence.id}`,
     `Task: ${task?.title || "work order evidence"}`,
     `Order: ${order?.title || evidence.workOrderId || ""}`,
@@ -1665,13 +1668,13 @@ function buildWatermarkedEvidenceSvg(evidence, task, order, buffer) {
   const encoded = buffer.toString("base64");
   return Buffer.from(`
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200">
-  <metadata id="luistrata-evidence-metadata" data-format="application/json">${svgEscape(metadataJson)}</metadata>
-  <desc>${svgEscape(`LuisTrata evidence ${evidence.id}. Full metadata is embedded in the luistrata-evidence-metadata node.`)}</desc>
+  <metadata id="tratapro-evidence-metadata" data-format="application/json">${svgEscape(metadataJson)}</metadata>
+  <desc>${svgEscape(`${PUBLIC_BRAND_NAME} evidence ${evidence.id}. Full metadata is embedded in the tratapro-evidence-metadata node.`)}</desc>
   <rect width="1600" height="1200" fill="#111827"/>
   <image href="data:${svgEscape(evidence.mimeType)};base64,${encoded}" x="0" y="0" width="1600" height="1200" preserveAspectRatio="xMidYMid meet"/>
   <rect x="0" y="0" width="1600" height="260" fill="rgba(17,24,39,0.78)"/>
   <g fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">${text}</g>
-  <text x="800" y="620" fill="rgba(255,255,255,0.22)" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="900" text-anchor="middle" transform="rotate(-28 800 620)">LUISTRATA VERIFIED</text>
+  <text x="800" y="620" fill="rgba(255,255,255,0.22)" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="900" text-anchor="middle" transform="rotate(-28 800 620)">TRATAPRO VERIFIED</text>
 </svg>`.trim());
 }
 
@@ -2043,15 +2046,15 @@ function siteStructuredData(req) {
       {
         "@type": "Organization",
         "@id": `${origin}/#organization`,
-        name: "LuisTrata",
+        name: PUBLIC_BRAND_NAME,
         url: `${origin}/`,
         logo: absolutePublicUrl(req, "/icon.svg")
       },
       {
         "@type": "WebSite",
         "@id": `${origin}/#website`,
-        name: "LuisTrata Jobs",
-        alternateName: "LuisTrata",
+        name: PUBLIC_BRAND_TITLE,
+        alternateName: PUBLIC_BRAND_NAME,
         url: `${origin}/`,
         inLanguage: "pt-PT",
         publisher: { "@id": `${origin}/#organization` }
@@ -2094,7 +2097,7 @@ function jobStructuredData(job, company, req) {
     description: jobDescriptionForStructuredData(job),
     identifier: {
       "@type": "PropertyValue",
-      name: job.companyName || company?.name || "LuisTrata",
+      name: job.companyName || company?.name || PUBLIC_BRAND_NAME,
       value: job.id
     },
     datePosted: safeDate(job.createdAt) || now(),
@@ -2129,7 +2132,7 @@ function jobStructuredData(job, company, req) {
 function seoForPublicPath(pathname, req) {
   if (pathname === "/cliente" || pathname === "/dashboard") {
     return {
-      title: "Area do Cliente - LuisTrata",
+      title: `Area do Cliente - ${PUBLIC_BRAND_NAME}`,
       description: "Acesso reservado para cliente e equipa de desenvolvimento acompanharem projeto, MVP e documentacao privada.",
       canonical: absolutePublicUrl(req, "/cliente"),
       robots: "index,follow",
@@ -2138,15 +2141,15 @@ function seoForPublicPath(pathname, req) {
   }
   if (pathname === "/changelog") {
     return {
-      title: "Acesso reservado - LuisTrata",
-      description: "Area reservada para acompanhamento privado do projeto LuisTrata.",
+      title: `Acesso reservado - ${PUBLIC_BRAND_NAME}`,
+      description: `Area reservada para acompanhamento privado do projeto ${PUBLIC_BRAND_NAME}.`,
       canonical: absolutePublicUrl(req, "/cliente"),
       robots: "noindex,follow",
       type: "website"
     };
   }
   return {
-    title: "LuisTrata Jobs - Vagas abertas",
+    title: PUBLIC_BRAND_TITLE,
     description: "Vagas publicas em Portugal para trabalhadores e empresas, com pesquisa por cargo, empresa, localizacao e raio.",
     canonical: absolutePublicUrl(req, "/"),
     robots: "index,follow",
@@ -2173,7 +2176,7 @@ function renderPublicIndexHtml(template, req, pathname) {
   html = replaceHeadTag(html, /<meta property="og:description" content="[^"]*">/i, `<meta property="og:description" content="${htmlEscape(seo.description)}">`);
   html = replaceHeadTag(html, /<meta property="og:type" content="[^"]*">/i, `<meta property="og:type" content="${seo.type}">`);
   html = replaceHeadTag(html, /<meta property="og:url" content="[^"]*">/i, `<meta property="og:url" content="${htmlEscape(seo.canonical)}">`);
-  html = replaceHeadTag(html, /<meta property="og:site_name" content="[^"]*">/i, `<meta property="og:site_name" content="LuisTrata">`);
+  html = replaceHeadTag(html, /<meta property="og:site_name" content="[^"]*">/i, `<meta property="og:site_name" content="${PUBLIC_BRAND_NAME}">`);
   html = replaceHeadTag(html, /<meta name="twitter:card" content="[^"]*">/i, `<meta name="twitter:card" content="summary">`);
   html = replaceHeadTag(html, /<meta name="twitter:title" content="[^"]*">/i, `<meta name="twitter:title" content="${htmlEscape(seo.title)}">`);
   html = replaceHeadTag(html, /<meta name="twitter:description" content="[^"]*">/i, `<meta name="twitter:description" content="${htmlEscape(seo.description)}">`);
@@ -2190,8 +2193,11 @@ function renderPublicTopbarStatic(activePath = "/") {
   return `
       <header class="public-topbar">
         <a class="public-brand" href="/">
-          <span class="brand-mark">LT</span>
-          <div><strong>LuisTrata</strong></div>
+          <span class="brand-mark">TP</span>
+          <div>
+            <strong>${PUBLIC_BRAND_NAME}</strong>
+            <span>${PUBLIC_BRAND_SLOGAN}</span>
+          </div>
         </a>
         <nav class="public-nav" aria-label="Navegacao principal">
           <a href="/" class="${activePath === "/" ? "active" : ""}">Procurar</a>
@@ -2203,7 +2209,7 @@ function renderPublicTopbarStatic(activePath = "/") {
 }
 
 function renderSeoJobPage(job, company, req) {
-  const title = `${plainText(job.position || job.title)} em ${plainText(job.location)} | ${plainText(job.companyName || "Empresa")} | LuisTrata`;
+  const title = `${plainText(job.position || job.title)} em ${plainText(job.location)} | ${plainText(job.companyName || "Empresa")} | ${PUBLIC_BRAND_NAME}`;
   const description = truncateText(`${job.position || job.title} em ${job.location} na ${job.companyName || "empresa"}. ${job.description}`, 156);
   const canonical = absolutePublicUrl(req, publicJobPath(job));
   return `<!doctype html>
@@ -2219,7 +2225,7 @@ function renderSeoJobPage(job, company, req) {
     <meta property="og:description" content="${htmlEscape(description)}">
     <meta property="og:type" content="article">
     <meta property="og:url" content="${htmlEscape(canonical)}">
-    <meta property="og:site_name" content="LuisTrata">
+    <meta property="og:site_name" content="${PUBLIC_BRAND_NAME}">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="${htmlEscape(title)}">
     <meta name="twitter:description" content="${htmlEscape(description)}">
@@ -2278,8 +2284,8 @@ function renderSeoNotFoundPage(req) {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Vaga nao encontrada | LuisTrata</title>
-    <meta name="description" content="A vaga ja nao esta aberta ou nao existe. Consulte as vagas abertas no LuisTrata.">
+    <title>Vaga nao encontrada | ${PUBLIC_BRAND_NAME}</title>
+    <meta name="description" content="A vaga ja nao esta aberta ou nao existe. Consulte as vagas abertas no ${PUBLIC_BRAND_NAME}.">
     <meta name="robots" content="noindex,follow">
     <link rel="canonical" href="${htmlEscape(canonical)}">
     <link rel="stylesheet" href="/styles.css?v=${PUBLIC_ASSET_VERSION}">

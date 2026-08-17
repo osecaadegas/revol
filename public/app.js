@@ -669,9 +669,10 @@
     return `
       <header class="public-topbar">
         <a class="public-brand" href="/">
-          <span class="brand-mark">LT</span>
+          <span class="brand-mark">TP</span>
           <div>
-            <strong>LuisTrata</strong>
+            <strong>TrataPro</strong>
+            <span>Trabalho certo. Prova feita.</span>
           </div>
         </a>
         <button class="public-menu-button" type="button" data-action="toggle-public-menu" aria-expanded="${state.publicMenuOpen ? "true" : "false"}" aria-label="Abrir navegacao">
@@ -719,8 +720,8 @@
 
   function renderPublicShell(content, route = "home") {
     document.title = route === "cliente"
-        ? "Area do Cliente - MANIFESTO"
-        : "LuisTrata Jobs - Vagas abertas";
+        ? "Area do Cliente - TrataPro"
+        : "TrataPro - Vagas abertas";
     app.innerHTML = `
       <main class="manifesto-shell">
         ${renderPublicTopNav(route)}
@@ -737,8 +738,8 @@
     return `
       <footer class="public-footer">
         <div>
-          <strong>LuisTrata</strong>
-          <span>Vagas, candidaturas e operacoes com evidencia</span>
+          <strong>TrataPro</strong>
+          <span>Trabalho certo. Prova feita.</span>
         </div>
         <a href="/">Vagas</a>
         <a href="/cliente">Area do cliente</a>
@@ -750,12 +751,12 @@
     return `
       <section class="auth-hero access-hero">
         <div>
-          <span class="brand-mark">M</span>
+          <span class="brand-mark">TP</span>
         </div>
         <div class="auth-title">
           <p class="eyebrow">Area reservada</p>
-          <h1>MANIFESTO</h1>
-          <p>Acesso privado para cliente, equipa de desenvolvimento e utilizadores autorizados.</p>
+          <h1>TrataPro</h1>
+          <p>Trabalho certo. Prova feita. Acesso privado para cliente, equipa de desenvolvimento e utilizadores autorizados.</p>
         </div>
         <div class="auth-facts">
           <div class="fact"><strong>01</strong><span>Entrar com conta autorizada</span></div>
@@ -1319,9 +1320,9 @@
       <div class="main-layout">
         <aside class="sidebar">
           <div class="side-brand">
-            <span class="brand-mark">M</span>
+            <span class="brand-mark">TP</span>
             <div>
-              <strong>MANIFESTO</strong>
+              <strong>TrataPro</strong>
               <span>${escapeHtml(state.data.company.name)}</span>
             </div>
           </div>
@@ -1335,9 +1336,9 @@
         <main class="content">
           <div class="topbar">
             <div class="side-brand" style="color: var(--ink)">
-              <span class="brand-mark" style="color: var(--ink); border-color: var(--line)">M</span>
+              <span class="brand-mark" style="border-color: var(--line)">TP</span>
               <div>
-                <strong>MANIFESTO</strong>
+                <strong>TrataPro</strong>
                 <span style="color: var(--muted)">${escapeHtml(state.data.company.name)}</span>
               </div>
             </div>

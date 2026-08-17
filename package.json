@@ -2,7 +2,7 @@
   "name": "motor-evidencia-operacional",
   "version": "0.1.0",
   "private": true,
-  "description": "MANIFESTO engineering project portal and Phase 1 operational webapp.",
+  "description": "TrataPro public marketplace and Phase 1 operational evidence webapp.",
   "main": "server.js",
   "scripts": {
     "start": "node server/index.js",

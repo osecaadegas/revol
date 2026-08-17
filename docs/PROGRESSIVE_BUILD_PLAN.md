@@ -272,6 +272,16 @@ Status: complete.
 - Preserved the existing internal `worker` role, application gate, company-visible published CV data and API/storage flow.
 - Bumped the public shell cache and asset query string so deployed browsers fetch the revised authenticated workspace.
 
+### M28 - TrataPro Public Brand
+
+Status: complete.
+
+- Selected `TrataPro` as the public marketplace/app brand after avoiding obvious visible conflicts with names such as ObraCerta, MaoCerta, ProvaWork, ProvaCerta, VagaCerta and TurnoPro.
+- Added the slogan `Trabalho certo. Prova feita.` to the public topbar, footer, reserved-access hero and PWA metadata.
+- Replaced the placeholder public `LuisTrata` / `LT` mark with a simple `TP` wordmark and SVG app icon.
+- Updated SEO site names, server-rendered vacancy pages, evidence watermark branding, package description, service-worker cache and asset query string.
+- Kept `MANIFESTO` terminology for the private client/developer project portal and source-document references.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.
@@ -285,7 +295,7 @@ Status: complete.
 9. Run `supabase/migrations/20260817000000_worker_cv_profiles.sql` in production.
 10. Verify `/api/cron/operational-maintenance` runs from the configured scheduler.
 11. Verify trabalhador/company registration, trabalhador CV publishing, authenticated marketplace layout, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
-12. Set `PUBLIC_SITE_URL` in production to the final public origin and submit `/sitemap.xml` in Google Search Console after the first production deployment.
+12. Run a proper trademark/domain/legal availability check for `TrataPro` before paid launch, then set `PUBLIC_SITE_URL` in production to the final public origin and submit `/sitemap.xml` in Google Search Console after the first production deployment.
 13. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
 14. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
 15. Add browser-driven regression coverage for public routes, public filtering and trabalhador application.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "luistrata-shell-v14";
+const CACHE_NAME = "tratapro-shell-v1";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

@@ -28,7 +28,7 @@ http://localhost:4173
 
 ## First Run
 
-When the app opens, visitors see the public vacancy marketplace first. It uses a simple search-first landing, compact market summary, featured vacancy list, candidate/company calls to action and modal-based account access from the topbar `Login / Registar` button and page buttons. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access through `/cliente`.
+When the app opens, visitors see the public `TrataPro` vacancy marketplace first. The public slogan is `Trabalho certo. Prova feita.` It uses a simple search-first landing, compact market summary, featured vacancy list, candidate/company calls to action and modal-based account access from the topbar `Login / Registar` button and page buttons. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access through `/cliente`.
 
 Use the vacancy filters in the marketplace section to search by company/keyword/contract, cargo or function, location, and radius around known Portuguese cities. Cargo/function and location fields include dropdown suggestions from common operational options, known Portuguese locations and live vacancy data while still accepting free text.
 
@@ -49,7 +49,7 @@ After company registration, use the company account to:
 - Create and assign tasks.
 - Review submitted evidence.
 
-Use `/cliente` with a `client` or `developer` account to view the private MANIFESTO project dashboard and private MVP development cockpit. Trabalhador and company registration remain on the public vacancies page.
+Use `/cliente` with a `client` or `developer` account to view the private MANIFESTO project dashboard and private MVP development cockpit. Trabalhador and company registration remain on the public `TrataPro` vacancies page.
 
 ## Environment Variables
 
