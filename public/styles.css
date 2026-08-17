@@ -34,7 +34,7 @@ body {
   margin: 0;
   overflow-x: hidden;
   color: var(--ink);
-  background: linear-gradient(180deg, #f8fafc 0, #edf2f7 48%, #f6f8fb 100%);
+  background: #f5f7fa;
 }
 
 button,
@@ -99,42 +99,16 @@ a {
   position: relative;
   isolation: isolate;
   min-height: 100vh;
-  background: transparent;
+  background: #f5f7fa;
   overflow-x: clip;
 }
 
 .manifesto-shell::before {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(115deg, transparent 0 32%, rgba(10, 102, 194, 0.13) 33%, rgba(22, 131, 111, 0.07) 35%, transparent 38% 100%),
-    linear-gradient(115deg, transparent 0 69%, rgba(22, 131, 111, 0.11) 70%, rgba(10, 102, 194, 0.055) 72%, transparent 75% 100%),
-    linear-gradient(0deg, rgba(10, 102, 194, 0.072) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(22, 131, 111, 0.062) 1px, transparent 1px);
-  background-position: 0 0, 0 0, 0 0, 0 0;
-  background-size: 640px 640px, 820px 820px, 82px 82px, 82px 82px;
-  content: "";
-  opacity: 0.92;
-  animation: surfaceDrift 24s linear infinite, gridPulse 8s ease-in-out infinite;
+  content: none;
 }
 
 .manifesto-shell::after {
-  position: fixed;
-  inset: 68px 0 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(115deg, transparent 0 150px, rgba(10, 102, 194, 0.18) 151px 153px, transparent 154px 360px),
-    repeating-linear-gradient(115deg, transparent 0 280px, rgba(22, 131, 111, 0.13) 281px 285px, transparent 286px 640px),
-    repeating-linear-gradient(0deg, transparent 0 150px, rgba(10, 102, 194, 0.07) 151px 152px, transparent 153px 300px);
-  background-position: 0 0, 240px 0, 0 0;
-  background-size: 860px 860px, 1180px 1180px, 100% 300px;
-  content: "";
-  mix-blend-mode: multiply;
-  opacity: 0.72;
-  animation: networkLaneFlow 16s linear infinite;
+  content: none;
 }
 
 .manifesto-shell > * {
@@ -150,52 +124,16 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 10px clamp(16px, 3.5vw, 46px);
+  padding: 12px clamp(18px, 4vw, 56px);
   border-bottom: 1px solid rgba(220, 227, 234, 0.82);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 1px 0 rgba(17, 24, 39, 0.04);
 }
 
 .public-topbar::after {
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 1px;
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent 0, rgba(10, 102, 194, 0.72) 38%, rgba(22, 131, 111, 0.68) 56%, transparent 100%);
-  background-size: 380px 1px;
-  content: "";
-  opacity: 0.5;
-  animation: signalSweep 7s linear infinite;
+  content: none;
 }
 
-.public-top-search {
-  display: grid;
-  grid-template-columns: minmax(220px, 1.45fr) minmax(180px, 0.95fr) minmax(112px, auto);
-  gap: 8px;
-  align-items: center;
-  flex: 1 1 780px;
-  max-width: 860px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 5px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.58);
-}
-
-.public-top-search input {
-  min-width: 0;
-  min-height: 34px;
-  border: 0;
-  border-radius: 6px;
-  padding: 8px 10px;
-  background: #f4f7fa;
-  outline: 0;
-}
-
-.public-top-search button,
 .public-nav-button {
   min-height: 34px;
   border: 0;
@@ -888,330 +826,187 @@ td span:not(.status-badge) {
   grid-template-columns: 1fr;
 }
 
-.jobs-home {
-  max-width: 1580px;
+.market-home {
+  max-width: 1180px;
   margin: 0 auto;
-  padding: clamp(28px, 3.6vw, 54px) clamp(16px, 4vw, 54px) 64px;
+  padding: clamp(28px, 5vw, 70px) clamp(16px, 4vw, 56px) 70px;
 }
 
-.network-landing {
+.market-hero {
   display: grid;
-  grid-template-columns: minmax(220px, 0.64fr) minmax(440px, 2.1fr) minmax(270px, 0.82fr);
-  gap: 20px;
-  align-items: stretch;
-  margin-bottom: 22px;
+  gap: 22px;
+  border-bottom: 1px solid var(--line);
+  padding: clamp(18px, 3vw, 34px) 0 clamp(28px, 5vw, 56px);
 }
 
-.network-profile-card,
-.network-search-card,
-.network-action-card {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-soft);
-  animation: surfaceEnter 0.48s ease both;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+.market-hero-copy {
+  max-width: 850px;
 }
 
-.network-profile-card:hover,
-.network-search-card:hover,
-.network-action-card:hover {
-  border-color: rgba(10, 102, 194, 0.22);
-  box-shadow: 0 18px 48px rgba(17, 24, 39, 0.11);
-  transform: translateY(-1px);
-}
-
-.network-profile-card,
-.network-action-card {
-  display: grid;
-  align-content: start;
-  gap: 13px;
-  overflow: hidden;
-  padding: 16px;
-}
-
-.network-profile-card {
-  text-align: center;
-}
-
-.network-cover {
-  height: 72px;
-  margin: -16px -16px 0;
-  background:
-    linear-gradient(135deg, rgba(10, 102, 194, 0.96), rgba(22, 131, 111, 0.96)),
-    var(--accent);
-  background-size: 180% 180%;
-  animation: coverShift 10s ease-in-out infinite;
-}
-
-.network-avatar {
-  display: inline-grid;
-  place-items: center;
-  width: 62px;
-  height: 62px;
-  margin: -38px auto 0;
-  border: 4px solid #fff;
-  border-radius: 50%;
-  color: #fff;
-  background: var(--ink);
-  font-weight: 950;
-  box-shadow: 0 0 0 0 rgba(10, 102, 194, 0.18);
-  animation: avatarPulse 4.5s ease-in-out infinite;
-}
-
-.network-profile-card h2,
-.network-action-card h2 {
+.market-hero-copy h1,
+.market-section-heading h2,
+.market-plain-panel h2,
+.market-access-copy h2 {
   margin: 0;
-  font-size: 1.1rem;
-}
-
-.network-profile-card p,
-.network-action-card p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.network-search-card {
-  position: relative;
-  display: grid;
-  align-content: start;
-  gap: 18px;
-  min-height: 420px;
-  overflow: hidden;
-  animation-delay: 0.06s;
-  padding: clamp(30px, 4.2vw, 56px);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.93), rgba(248, 251, 253, 0.91));
-}
-
-.network-search-card::before {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(120deg, transparent 0 34%, rgba(10, 102, 194, 0.13) 35%, rgba(22, 131, 111, 0.07) 39%, transparent 42% 100%),
-    linear-gradient(90deg, rgba(10, 102, 194, 0.07) 1px, transparent 1px);
-  background-position: 0 0, 0 0;
-  background-size: 520px 520px, 88px 100%;
-  content: "";
-  opacity: 0.92;
-  animation: cardRail 14s linear infinite;
-}
-
-.network-search-card > * {
-  position: relative;
-  z-index: 1;
-}
-
-.network-action-card {
-  animation-delay: 0.12s;
-}
-
-.network-search-card h1 {
-  max-width: 920px;
-  margin: 0;
-  font-size: clamp(2.35rem, 4.4vw, 4.65rem);
-  line-height: 1.02;
   letter-spacing: 0;
 }
 
-.landing-search-card {
+.market-hero-copy h1 {
+  font-size: clamp(2.3rem, 6vw, 5.2rem);
+  line-height: 0.98;
+}
+
+.market-hero-copy p:not(.eyebrow),
+.market-section-heading p,
+.market-plain-panel p,
+.market-access-copy p {
+  max-width: 720px;
+  color: var(--muted);
+  line-height: 1.58;
+}
+
+.market-search-panel {
   display: grid;
-  grid-template-columns: minmax(240px, 1.6fr) minmax(190px, 1fr) minmax(154px, auto);
+  grid-template-columns: minmax(240px, 1.45fr) minmax(190px, 0.9fr) minmax(150px, auto);
   gap: 12px;
   align-items: end;
-  width: 100%;
+  max-width: 900px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 12px;
+  padding: 14px;
   background: #fff;
-  box-shadow: 0 16px 40px rgba(17, 24, 39, 0.1);
+  box-shadow: var(--shadow-soft);
 }
 
-.landing-search-card .field {
-  min-width: 0;
-}
-
-.landing-search-card .field input {
-  min-height: 50px;
-  background: #f6f9fc;
-}
-
-.landing-search-card .btn {
+.market-search-panel input,
+.market-search-panel .btn {
   min-height: 50px;
 }
 
-.landing-suggestions {
+.market-hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-}
-
-.landing-suggestions button {
-  min-height: 34px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 7px 11px;
-  color: var(--muted);
-  background: #fff;
-  font-weight: 800;
-}
-
-.landing-suggestions button:hover {
-  border-color: rgba(45, 103, 177, 0.32);
-  color: var(--accent);
-  background: #edf4fc;
-}
-
-.network-metrics-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
-.network-metrics-row div {
+.market-trust-strip {
   display: grid;
-  gap: 3px;
-  border: 1px solid rgba(220, 227, 234, 0.86);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 18px 0;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.74);
+  overflow: hidden;
+  background: var(--line);
 }
 
-.network-metrics-row strong {
-  font-size: 1.45rem;
+.market-trust-strip div {
+  display: grid;
+  gap: 3px;
+  padding: 16px;
+  background: #fff;
+}
+
+.market-trust-strip strong {
+  font-size: clamp(1.55rem, 3vw, 2.25rem);
   line-height: 1;
 }
 
-.network-metrics-row span {
+.market-trust-strip span {
   color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 800;
+  font-size: 0.82rem;
+  font-weight: 820;
 }
 
-.network-action-card {
-  align-content: center;
+.market-section,
+.market-split-section,
+.market-access-section {
+  margin-top: clamp(26px, 5vw, 54px);
 }
 
-.network-action-list {
-  display: grid;
-  gap: 8px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  padding: 12px 0;
-}
-
-.network-action-list span {
-  position: relative;
-  padding-left: 18px;
-  color: var(--muted);
-  font-size: 0.86rem;
-  font-weight: 760;
-  line-height: 1.35;
-}
-
-.network-action-list span::before {
-  position: absolute;
-  top: 0.52em;
-  left: 0;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent-2);
-  content: "";
-}
-
-.jobs-hero {
+.market-section-heading {
   display: flex;
-  align-items: flex-end;
   justify-content: space-between;
-  gap: 22px;
-  margin-bottom: 18px;
+  gap: 18px;
+  align-items: flex-end;
+  margin-bottom: 16px;
 }
 
-.jobs-hero-copy {
-  max-width: 780px;
+.market-section-heading h2,
+.market-plain-panel h2,
+.market-access-copy h2 {
+  font-size: clamp(1.7rem, 3vw, 2.65rem);
+  line-height: 1.06;
 }
 
-.jobs-hero-copy h1,
-.jobs-feed-header h2,
+.market-filter-row {
+  margin-bottom: 14px;
+}
+
+.market-filter-row .market-filter-bar {
+  max-width: none;
+  margin: 0;
+  box-shadow: none;
+}
+
+.market-job-list {
+  gap: 10px;
+}
+
+.market-result-note {
+  margin-top: 12px;
+}
+
+.market-split-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.market-plain-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(18px, 3vw, 28px);
+  background: #fff;
+}
+
+.market-plain-panel p {
+  margin: 0;
+}
+
+.market-plain-panel .btn {
+  justify-self: start;
+}
+
+.market-access-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  gap: clamp(18px, 4vw, 44px);
+  align-items: start;
+  border-top: 1px solid var(--line);
+  padding-top: clamp(24px, 5vw, 48px);
+}
+
+.market-access-copy {
+  display: grid;
+  gap: 12px;
+}
+
+.market-auth-panel .panel {
+  box-shadow: var(--shadow-soft);
+}
+
 .client-login-copy h1 {
   margin: 0;
   letter-spacing: 0;
 }
 
-.jobs-hero-copy h1 {
-  font-size: clamp(2rem, 4vw, 4rem);
-  line-height: 1.02;
-}
-
-.jobs-hero-copy p:not(.eyebrow),
-.jobs-sidebar-block p,
 .client-login-copy p {
   color: var(--muted);
   line-height: 1.55;
-}
-
-.jobs-hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.jobs-layout {
-  display: grid;
-  grid-template-columns: minmax(210px, 0.65fr) minmax(0, 2.05fr) minmax(270px, 0.82fr);
-  gap: 18px;
-  align-items: start;
-  scroll-margin-top: 92px;
-}
-
-.jobs-sidebar,
-.jobs-account-panel {
-  position: sticky;
-  top: 86px;
-  display: grid;
-  gap: 12px;
-}
-
-.jobs-sidebar-block {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.04);
-}
-
-.jobs-sidebar-block h2 {
-  margin: 0 0 10px;
-  font-size: 0.96rem;
-}
-
-.jobs-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.jobs-stat-grid div {
-  display: grid;
-  gap: 2px;
-  border-radius: 7px;
-  padding: 10px;
-  background: var(--soft);
-}
-
-.jobs-stat-grid strong {
-  font-size: 1.35rem;
-}
-
-.jobs-stat-grid span {
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 750;
 }
 
 .quick-filter-row {
@@ -1236,22 +1031,6 @@ td span:not(.status-badge) {
   border-color: rgba(45, 103, 177, 0.32);
   color: var(--accent);
   background: #edf4fc;
-}
-
-.jobs-results {
-  min-width: 0;
-}
-
-.jobs-feed-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 12px;
-}
-
-.jobs-feed-header h2 {
-  font-size: clamp(1.35rem, 2vw, 1.8rem);
 }
 
 .jobs-feed {
@@ -1318,10 +1097,6 @@ td span:not(.status-badge) {
 .client-login-panel {
   position: sticky;
   top: 86px;
-}
-
-.jobs-account-panel .panel {
-  box-shadow: var(--shadow-soft);
 }
 
 .client-access-hero {
@@ -2130,12 +1905,6 @@ td span:not(.status-badge) {
   box-shadow: var(--shadow-soft);
 }
 
-.jobs-results .market-filter-bar {
-  max-width: none;
-  margin-right: 0;
-  margin-left: 0;
-}
-
 .market-filter-main {
   display: grid;
   grid-template-columns: minmax(230px, 1.35fr) minmax(185px, 1fr) minmax(200px, 1.05fr) minmax(155px, 0.72fr);
@@ -2273,6 +2042,107 @@ td span:not(.status-badge) {
   font-size: 0.86rem;
 }
 
+.worker-profile-form {
+  gap: 16px;
+}
+
+.worker-profile-top,
+.worker-profile-card header {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.worker-photo {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #fff;
+  background: var(--accent);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.worker-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-group {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-group h3,
+.worker-profile-card h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.profile-entry {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--soft);
+}
+
+.worker-profile-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+}
+
+.profile-chip-row,
+.profile-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-contact-row {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.profile-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profile-timeline {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.profile-timeline div {
+  display: grid;
+  gap: 3px;
+  border-left: 2px solid var(--line);
+  padding-left: 10px;
+}
+
+.profile-timeline span,
+.profile-timeline small,
+.profile-timeline p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .copy-box {
   display: flex;
   gap: 8px;
@@ -2295,105 +2165,9 @@ td span:not(.status-badge) {
   display: none;
 }
 
-@keyframes surfaceDrift {
-  to {
-    background-position: 640px 640px, -820px 820px, 82px 82px, 82px 82px;
-  }
-}
-
-@keyframes gridPulse {
-  0%,
-  100% {
-    opacity: 0.82;
-  }
-
-  50% {
-    opacity: 0.98;
-  }
-}
-
-@keyframes networkLaneFlow {
-  to {
-    background-position: -860px 860px, 1420px -1180px, 0 300px;
-  }
-}
-
-@keyframes signalSweep {
-  to {
-    background-position: 380px 0;
-  }
-}
-
-@keyframes cardRail {
-  to {
-    background-position: 520px 520px, 88px 0;
-  }
-}
-
-@keyframes coverShift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-@keyframes avatarPulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(10, 102, 194, 0.14);
-  }
-
-  50% {
-    box-shadow: 0 0 0 9px rgba(10, 102, 194, 0.04);
-  }
-}
-
-@keyframes surfaceEnter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (min-width: 1440px) {
-  .manifesto-shell::before {
-    opacity: 0.98;
-  }
-
-  .manifesto-shell::after {
-    opacity: 0.88;
-  }
-
-  .network-landing {
-    grid-template-columns: minmax(240px, 0.56fr) minmax(700px, 2.5fr) minmax(300px, 0.82fr);
-  }
-
-  .jobs-layout {
-    grid-template-columns: minmax(240px, 0.58fr) minmax(680px, 2.55fr) minmax(300px, 0.82fr);
-  }
-}
-
 @media (max-width: 1439px) and (min-width: 981px) {
-  .public-top-search {
-    display: none;
-  }
-
-  .landing-search-card,
   .market-filter-main {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .landing-search-card .btn {
-    grid-column: 1 / -1;
   }
 }
 
@@ -2402,9 +2176,11 @@ td span:not(.status-badge) {
   .main-layout,
   .section-grid,
   .public-grid,
-  .network-landing,
-  .jobs-layout,
   .client-login-page,
+  .market-search-panel,
+  .market-split-section,
+  .market-access-section,
+  .profile-columns,
   .manifesto-hero,
   .status-dashboard,
   .mvp-stage,
@@ -2420,10 +2196,6 @@ td span:not(.status-badge) {
   .public-menu-button {
     display: block;
     flex: 0 0 auto;
-  }
-
-  .public-top-search {
-    display: none;
   }
 
   .public-nav {
@@ -2483,26 +2255,11 @@ td span:not(.status-badge) {
     position: static;
   }
 
-  .jobs-hero {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .jobs-hero-actions {
-    justify-content: flex-start;
-  }
-
-  .jobs-sidebar,
-  .jobs-account-panel,
   .client-login-panel {
     position: static;
   }
 
-  .landing-search-card {
-    grid-template-columns: 1fr;
-  }
-
-  .network-metrics-row {
+  .market-trust-strip {
     grid-template-columns: 1fr;
   }
 
@@ -2607,8 +2364,7 @@ td span:not(.status-badge) {
   .order-card header,
   .user-card header,
   .job-card header,
-  .panel-header,
-  .jobs-feed-header {
+  .panel-header {
     flex-direction: column;
     align-items: stretch;
   }
@@ -2625,7 +2381,7 @@ td span:not(.status-badge) {
   .manifesto-hero,
   .public-page-hero,
   .public-section,
-  .jobs-home,
+  .market-home,
   .client-login-page,
   .client-cta,
   .public-footer {

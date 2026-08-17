@@ -238,6 +238,9 @@ create index meo_job_offers_status_idx on public.meo_job_offers(status);
 create index meo_job_applications_company_idx on public.meo_job_applications(company_id);
 create index meo_job_applications_worker_idx on public.meo_job_applications(worker_id);
 create index meo_job_applications_offer_idx on public.meo_job_applications(job_offer_id);
+create index meo_users_worker_cv_published_idx
+  on public.meo_users ((profile->'workerCv'->>'published'))
+  where role = 'worker';
 
 alter table public.meo_app_meta enable row level security;
 alter table public.meo_companies enable row level security;

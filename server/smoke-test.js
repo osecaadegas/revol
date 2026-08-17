@@ -109,9 +109,62 @@ async function run() {
     });
     const workerToken = workerRegistration.session.token;
 
+    const blockedApplication = await requestRaw(baseUrl, "POST", `/api/job-offers/${jobResult.jobOffer.id}/apply`, {
+      message: "Tentativa antes de publicar CV."
+    }, workerToken);
+    if (blockedApplication.status !== 400) {
+      throw new Error("Workers should need a published CV before applying.");
+    }
+
+    const workerProfile = await request(baseUrl, "PATCH", "/api/workers/profile", {
+      published: true,
+      headline: "Operador operacional",
+      birthDate: "1990-01-01",
+      location: "Braga",
+      phone: "+351 910 000 000",
+      availability: "Imediata",
+      skills: ["Operacao", "Ferramentas", "Seguranca"],
+      bio: "Experiencia pratica em servicos operacionais.",
+      experience: [
+        {
+          title: "Operador",
+          company: "Empresa Antiga",
+          location: "Braga",
+          startDate: "2020-01-01",
+          endDate: "2023-01-01",
+          description: "Servicos operacionais e apoio de equipa."
+        }
+      ],
+      references: [
+        {
+          name: "Chefe Antigo",
+          company: "Empresa Antiga",
+          role: "Encarregado",
+          relationship: "Antigo responsavel",
+          phone: "+351 920 000 000",
+          email: "chefe@example.test"
+        }
+      ],
+      photo: smokePhoto("profile.png")
+    }, workerToken);
+    if (!workerProfile.profile?.published || !workerProfile.profile.profilePhotoUrl) {
+      throw new Error("Worker profile should be published with a private photo URL.");
+    }
+    await request(baseUrl, "GET", workerProfile.profile.profilePhotoUrl, null, workerToken);
+
     const application = await request(baseUrl, "POST", `/api/job-offers/${jobResult.jobOffer.id}/apply`, {
       message: "Tenho disponibilidade imediata."
     }, workerToken);
+
+    const companyCandidateBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, managerToken);
+    if (!companyCandidateBootstrap.workerProfiles?.some((profile) => profile.id === workerProfile.profile.id)) {
+      throw new Error("Company bootstrap should expose published worker CV profiles.");
+    }
+    const companyApplication = companyCandidateBootstrap.jobApplications.find((item) => item.id === application.application.id);
+    if (!companyApplication?.workerProfile?.skills?.includes("Operacao")) {
+      throw new Error("Company application should include the published worker CV.");
+    }
+    await request(baseUrl, "GET", companyApplication.workerProfile.profilePhotoUrl, null, managerToken);
 
     await request(baseUrl, "PATCH", `/api/applications/${application.application.id}`, {
       status: "reviewed",

@@ -203,20 +203,48 @@ Status: complete.
 - Added manager dashboard validation reminder cards for pending tasks with due status, assignee and deadline.
 - Added smoke coverage for cron authorization, reminder creation and manager validation alerts.
 
+### M20 - Public Landing Simplification
+
+Status: complete.
+
+- Simplified the public landing page into a cleaner search-first structure inspired by the current `trataimobiliaria.pt` homepage flow.
+- Removed the busy animated network background and three-column social-card composition from the public entry.
+- Preserved the public vacancy marketplace, filters, worker/company account creation and private `/cliente` entry.
+- Bumped the service-worker shell cache so deployed browsers fetch the revised public shell.
+
+### M21 - Marketplace Filter Dropdowns
+
+Status: complete.
+
+- Added large dropdown suggestion lists for cargo/function and location filters using common Portuguese operational roles, known locations and live vacancy values.
+- Kept free-text search, existing query filtering and known-city radius filtering unchanged.
+- Applied the same suggestions to the first-screen public search and the detailed marketplace filter bar.
+
+### M22 - Worker CV Profiles
+
+Status: complete.
+
+- Added a worker-owned CV profile in the authenticated marketplace with profile photo, birth date, skills, previous experience, availability, bio and references.
+- Required workers to publish the CV profile before submitting vacancy applications.
+- Exposed published worker CV profiles to company/manager accounts and attached CV details to received applications.
+- Stored worker CV data in `meo_users.profile.workerCv` and protected profile photos through authenticated private local/Supabase storage.
+
 ## Next Recommended Work
 
-1. Configure Google OAuth credentials and authorized callback URLs for local and production.
-2. Run `supabase/migrations/20260811000000_project_viewer_roles.sql` in the production Supabase project if it has not already been applied.
-3. Create or invite a `client` account and a `developer` account from the company `Equipa` tab.
-4. Verify `/` as the public job feed and `/cliente` as the reserved project login on production.
-5. Verify Google login for an existing client/developer account, an existing company account and a new worker account.
-6. Verify private `Projeto` and `MVP` tabs with client/developer roles on production.
-7. Run `supabase/migrations/20260812000000_evidence_validation_retention.sql` in production if the previous migrations are already applied.
-8. Set `CRON_SECRET` in production and verify `/api/cron/operational-maintenance` runs from the configured scheduler.
-9. Verify worker/company registration, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
-10. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
-11. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-12. Add browser-driven regression coverage for public routes, public filtering and worker application.
+1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.
+2. Redeploy production so Vercel picks up the new env vars, cron config and simplified public shell.
+3. Run `supabase/migrations/20260811000000_project_viewer_roles.sql` in the production Supabase project if it has not already been applied.
+4. Create or invite a `client` account and a `developer` account from the company `Equipa` tab.
+5. Verify `/` as the simplified public vacancy page and `/cliente` as the reserved project login on production.
+6. Verify Google login for an existing client/developer account, an existing company account and a new worker account.
+7. Verify private `Projeto` and `MVP` tabs with client/developer roles on production.
+8. Run `supabase/migrations/20260812000000_evidence_validation_retention.sql` in production if the previous migrations are already applied.
+9. Run `supabase/migrations/20260817000000_worker_cv_profiles.sql` in production.
+10. Verify `/api/cron/operational-maintenance` runs from the configured scheduler.
+11. Verify worker/company registration, worker CV publishing, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
+12. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+13. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+14. Add browser-driven regression coverage for public routes, public filtering and worker application.
 
 ## Agent Update Protocol
 

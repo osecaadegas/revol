@@ -34,12 +34,14 @@ The app must first behave like a public labor-market board:
 | Requirement | Implementation |
 | --- | --- |
 | Public vacancies visible without login | `/api/jobs/public`, public homepage board in `public/app.js` |
-| Public vacancy discovery works like a labor-market board | Shared marketplace filters in `public/app.js` for keyword/company/contract, cargo/function, location, and known-city radius |
-| Public homepage feels like a job network | `/` renders a modern LinkedIn-like landing with compact top search, expanded desktop filters, candidate/company entry cards, market metrics, visible animated network background, vacancy feed, quick filters, polished job cards and account actions before any private project entry |
+| Public vacancy discovery works like a labor-market board | Shared marketplace filters in `public/app.js` for keyword/company/contract, cargo/function and location dropdown suggestions, free-text entries, and known-city radius |
+| Public homepage is simple and organized | `/` renders a search-first public vacancy page with concise market summary, featured vacancies, candidate/company calls to action and clear account access before any private project entry |
 | Worker registration required to apply | `/api/register/worker`, `/api/job-offers/:id/apply` requires `worker` |
 | Company registration required to create vacancies | `/api/register/company`, `/api/job-offers` requires `company` or legacy `manager` |
 | Company can manage received applications | `/api/applications/:id`, company marketplace view |
 | Worker can track submitted applications | `jobApplications` in `/api/bootstrap`, worker marketplace view |
+| Worker CV profile required for applications | Worker marketplace CV form in `public/app.js`, `PATCH /api/workers/profile`, and server-side application gate before `/api/job-offers/:id/apply` |
+| Published worker CVs visible to companies | Company marketplace receives `workerProfiles`, application cards include published worker CV details, and profile photos are served by authenticated `/api/workers/:id/profile-photo` |
 | Supabase-ready marketplace persistence | `meo_job_offers`, `meo_job_applications`, `profile` and company metadata migrations |
 
 ## Implemented MANIFESTO Portal Requirements

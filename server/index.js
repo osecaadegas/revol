@@ -20,6 +20,9 @@ const EVIDENCE_RETENTION_DAYS = 7;
 const TASK_VALIDATION_HOURS = 12;
 const VALIDATION_REMINDER_HOURS_BEFORE = 2;
 const FINAL_TASK_EVIDENCE_MIN = 3;
+const WORKER_PROFILE_EXPERIENCE_LIMIT = 8;
+const WORKER_PROFILE_REFERENCE_LIMIT = 6;
+const WORKER_PROFILE_SKILL_LIMIT = 30;
 const SESSION_COOKIE = "meo_session";
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
@@ -285,6 +288,60 @@ function cleanString(value, max = 300) {
   return String(value || "").trim().slice(0, max);
 }
 
+function cleanDate(value) {
+  const text = cleanString(value, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return "";
+  const timestamp = new Date(`${text}T00:00:00.000Z`).getTime();
+  if (!Number.isFinite(timestamp) || timestamp > Date.now()) return "";
+  return text;
+}
+
+function cleanStringList(value, maxItems = WORKER_PROFILE_SKILL_LIMIT, maxLength = 80) {
+  const source = Array.isArray(value)
+    ? value
+    : String(value || "")
+        .split(/[\n,;]+/)
+        .map((item) => item.trim());
+  const unique = new Map();
+  source.forEach((item) => {
+    const cleaned = cleanString(item, maxLength);
+    if (!cleaned) return;
+    const key = cleaned.toLowerCase();
+    if (!unique.has(key)) unique.set(key, cleaned);
+  });
+  return Array.from(unique.values()).slice(0, maxItems);
+}
+
+function cleanWorkerExperience(items) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .slice(0, WORKER_PROFILE_EXPERIENCE_LIMIT)
+    .map((item) => ({
+      title: cleanString(item?.title, 140),
+      company: cleanString(item?.company, 140),
+      location: cleanString(item?.location, 140),
+      startDate: cleanDate(item?.startDate),
+      endDate: cleanDate(item?.endDate),
+      description: cleanString(item?.description, 900)
+    }))
+    .filter((item) => item.title || item.company || item.description);
+}
+
+function cleanWorkerReferences(items) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .slice(0, WORKER_PROFILE_REFERENCE_LIMIT)
+    .map((item) => ({
+      name: cleanString(item?.name, 140),
+      company: cleanString(item?.company, 140),
+      role: cleanString(item?.role, 140),
+      phone: cleanString(item?.phone, 80),
+      email: normalizeEmail(item?.email),
+      relationship: cleanString(item?.relationship, 180)
+    }))
+    .filter((item) => item.name || item.company || item.phone || item.email);
+}
+
 function addHours(value, hours) {
   return new Date(new Date(value).getTime() + hours * 60 * 60 * 1000).toISOString();
 }
@@ -427,6 +484,9 @@ function ensureShape(db) {
   ]) {
     if (!Array.isArray(db[key])) db[key] = [];
   }
+  db.users.forEach((user) => {
+    if (!user.profile || typeof user.profile !== "object") user.profile = {};
+  });
   return db;
 }
 
@@ -555,7 +615,7 @@ async function supabaseStorage(pathname, options = {}) {
 function toRow(record, fields) {
   const row = {};
   for (const [appKey, column] of Object.entries(fields)) {
-    row[column] = record[appKey] === undefined ? null : record[appKey];
+    row[column] = record[appKey] === undefined && appKey === "profile" ? {} : record[appKey] === undefined ? null : record[appKey];
   }
   return row;
 }
@@ -766,6 +826,103 @@ function isProjectViewer(user) {
   return PROJECT_VIEWER_ROLES.has(user?.role);
 }
 
+function existingWorkerCv(user) {
+  const profile = user?.profile && typeof user.profile === "object" ? user.profile : {};
+  const cv = profile.workerCv && typeof profile.workerCv === "object" ? profile.workerCv : {};
+  return {
+    published: cv.published === true,
+    headline: cleanString(cv.headline || profile.headline, 160),
+    location: cleanString(cv.location || profile.location, 160),
+    birthDate: cleanDate(cv.birthDate),
+    phone: cleanString(cv.phone, 80),
+    availability: cleanString(cv.availability, 160),
+    bio: cleanString(cv.bio || profile.bio, 1600),
+    skills: cleanStringList(Array.isArray(cv.skills) ? cv.skills : profile.skills),
+    experience: cleanWorkerExperience(cv.experience),
+    references: cleanWorkerReferences(cv.references),
+    profilePhoto: cv.profilePhoto && typeof cv.profilePhoto === "object" ? cv.profilePhoto : null,
+    publishedAt: cv.publishedAt || null,
+    updatedAt: cv.updatedAt || user?.createdAt || null
+  };
+}
+
+function workerProfilePhotoUrl(user, cv = existingWorkerCv(user)) {
+  return cv.profilePhoto?.storedName ? `/api/workers/${encodeURIComponent(user.id)}/profile-photo` : "";
+}
+
+function publicWorkerProfile(user, options = {}) {
+  if (!user || user.role !== "worker") return null;
+  const cv = existingWorkerCv(user);
+  if (!options.includeUnpublished && !cv.published) return null;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    published: cv.published,
+    headline: cv.headline,
+    location: cv.location,
+    birthDate: cv.birthDate,
+    phone: cv.phone,
+    availability: cv.availability,
+    bio: cv.bio,
+    skills: cv.skills,
+    experience: cv.experience,
+    references: cv.references,
+    profilePhotoUrl: workerProfilePhotoUrl(user, cv),
+    publishedAt: cv.publishedAt,
+    updatedAt: cv.updatedAt
+  };
+}
+
+function publicProfileForUser(user) {
+  const profile = user?.profile && typeof user.profile === "object" ? { ...user.profile } : {};
+  if (user?.role === "worker") {
+    profile.workerCv = publicWorkerProfile(user, { includeUnpublished: true });
+  }
+  return profile;
+}
+
+function isWorkerProfilePublished(user) {
+  return publicWorkerProfile(user, { includeUnpublished: false }) !== null;
+}
+
+function validatePublishedWorkerProfile(profile) {
+  const missing = [];
+  if (!profile.headline) missing.push("professional title");
+  if (!profile.location) missing.push("location");
+  if (!profile.birthDate) missing.push("birth date");
+  if (!profile.skills.length) missing.push("skills");
+  if (!profile.experience.length) missing.push("previous experience");
+  if (!profile.references.length) missing.push("references");
+  if (missing.length) {
+    const error = new Error(`Complete the worker CV before publishing: ${missing.join(", ")}.`);
+    error.status = 400;
+    throw error;
+  }
+}
+
+function buildWorkerProfileUpdate(user, body, photoRecord = null) {
+  const current = existingWorkerCv(user);
+  const published = body.published !== false;
+  const next = {
+    published,
+    headline: cleanString(body.headline, 160),
+    location: cleanString(body.location, 160),
+    birthDate: cleanDate(body.birthDate),
+    phone: cleanString(body.phone, 80),
+    availability: cleanString(body.availability, 160),
+    bio: cleanString(body.bio, 1600),
+    skills: cleanStringList(body.skills),
+    experience: cleanWorkerExperience(body.experience),
+    references: cleanWorkerReferences(body.references),
+    profilePhoto: photoRecord || current.profilePhoto || null,
+    publishedAt: published ? current.publishedAt || now() : null,
+    updatedAt: now()
+  };
+  if (published) validatePublishedWorkerProfile(next);
+  return next;
+}
+
 function publicUser(user) {
   if (!user) return null;
   return {
@@ -775,7 +932,7 @@ function publicUser(user) {
     email: user.email,
     role: user.role,
     active: user.active !== false,
-    profile: user.profile || {},
+    profile: publicProfileForUser(user),
     createdAt: user.createdAt,
     invitedBy: user.invitedBy || null
   };
@@ -837,8 +994,13 @@ function publicJobOffer(job) {
   return { ...job };
 }
 
-function publicJobApplication(application) {
-  return { ...application };
+function publicJobApplication(application, db = null, options = {}) {
+  const payload = { ...application };
+  if (options.includeWorkerProfile && db) {
+    const worker = db.users.find((user) => user.id === application.workerId);
+    payload.workerProfile = publicWorkerProfile(worker, { includeUnpublished: false });
+  }
+  return payload;
 }
 
 function audit(db, auth, entityType, entityId, action, detail = {}, req) {
@@ -1075,6 +1237,15 @@ function buildBootstrap(db, auth) {
     : auth.user.role === "worker"
       ? db.jobApplications.filter((application) => application.workerId === auth.user.id)
       : [];
+  const workerProfiles = isManager
+    ? db.users
+        .filter((user) => user.role === "worker")
+        .map((user) => publicWorkerProfile(user, { includeUnpublished: false }))
+        .filter(Boolean)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : auth.user.role === "worker"
+      ? [publicWorkerProfile(auth.user, { includeUnpublished: true })].filter(Boolean)
+      : [];
 
   return {
     user: publicUser(auth.user),
@@ -1088,8 +1259,9 @@ function buildBootstrap(db, auth) {
     validationAlerts: isManager ? buildValidationAlerts(db, auth.company.id) : [],
     jobOffers: jobOffers.map(publicJobOffer).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     jobApplications: jobApplications
-      .map(publicJobApplication)
+      .map((application) => publicJobApplication(application, db, { includeWorkerProfile: isManager }))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    workerProfiles,
     statusLabels: PUBLIC_STATUS_LABELS
   };
 }
@@ -1123,8 +1295,13 @@ function buildPrivateMvpData(db, auth) {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     jobApplications: db.jobApplications
       .filter((application) => application.companyId === companyId)
-      .map(publicJobApplication)
+      .map((application) => publicJobApplication(application, db, { includeWorkerProfile: true }))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    workerProfiles: db.users
+      .filter((user) => user.role === "worker")
+      .map((user) => publicWorkerProfile(user, { includeUnpublished: false }))
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name)),
     statusLabels: PUBLIC_STATUS_LABELS
   };
 }
@@ -1308,13 +1485,42 @@ async function storePhoto(db, auth, body, options) {
   return evidence;
 }
 
+async function storeWorkerProfilePhoto(user, photo) {
+  if (!photo?.dataUrl) return null;
+  const parsed = parsePhotoDataUrl(photo);
+  const uploadedAt = now();
+  const fileHash = crypto.createHash("sha256").update(parsed.buffer).digest("hex");
+  const storedName = `worker-profiles/${user.id}/${Date.now()}-${fileHash.slice(0, 12)}.${parsed.ext}`;
+  await savePrivateUploadFile(storedName, parsed.mimeType, parsed.buffer);
+  return {
+    originalName: parsed.name,
+    mimeType: parsed.mimeType,
+    storedName,
+    fileHash,
+    byteSize: parsed.buffer.length,
+    uploadedAt
+  };
+}
+
 async function saveEvidenceFile(evidence, buffer) {
+  return savePrivateUploadFile(evidence.storedName, evidence.mimeType, buffer);
+}
+
+async function readEvidenceFile(evidence) {
+  return readPrivateUploadFile(evidence.storedName);
+}
+
+async function deleteEvidenceFile(evidence) {
+  return deletePrivateUploadFile(evidence.storedName);
+}
+
+async function savePrivateUploadFile(storedName, mimeType, buffer) {
   if (APP_STORAGE_DRIVER === "supabase") {
-    const objectPath = encodeObjectPath(evidence.storedName);
+    const objectPath = encodeObjectPath(storedName);
     await supabaseStorage(`object/${encodeURIComponent(SUPABASE_EVIDENCE_BUCKET)}/${objectPath}`, {
       method: "POST",
       headers: {
-        "Content-Type": evidence.mimeType,
+        "Content-Type": mimeType,
         "cache-control": "3600",
         "x-upsert": "true"
       },
@@ -1322,28 +1528,28 @@ async function saveEvidenceFile(evidence, buffer) {
     });
     return;
   }
-  const filePath = path.join(UPLOAD_DIR, evidence.storedName);
+  const filePath = path.join(UPLOAD_DIR, storedName);
   await fsp.mkdir(path.dirname(filePath), { recursive: true });
   await fsp.writeFile(filePath, buffer);
 }
 
-async function readEvidenceFile(evidence) {
+async function readPrivateUploadFile(storedName) {
   if (APP_STORAGE_DRIVER === "supabase") {
-    const objectPath = encodeObjectPath(evidence.storedName);
+    const objectPath = encodeObjectPath(storedName);
     return supabaseStorage(`object/authenticated/${encodeURIComponent(SUPABASE_EVIDENCE_BUCKET)}/${objectPath}`);
   }
-  return fsp.readFile(path.join(UPLOAD_DIR, evidence.storedName));
+  return fsp.readFile(path.join(UPLOAD_DIR, storedName));
 }
 
-async function deleteEvidenceFile(evidence) {
+async function deletePrivateUploadFile(storedName) {
   if (APP_STORAGE_DRIVER === "supabase") {
-    const objectPath = encodeObjectPath(evidence.storedName);
+    const objectPath = encodeObjectPath(storedName);
     await supabaseStorage(`object/${encodeURIComponent(SUPABASE_EVIDENCE_BUCKET)}/${objectPath}`, {
       method: "DELETE"
     });
     return;
   }
-  await fsp.rm(path.join(UPLOAD_DIR, evidence.storedName), { force: true });
+  await fsp.rm(path.join(UPLOAD_DIR, storedName), { force: true });
 }
 
 function encodeObjectPath(storedName) {
@@ -1662,10 +1868,21 @@ function completeGoogleAuth(db, googleUser, intent, req) {
       passwordHash: hashPassword(randomToken(48)),
       active: true,
       profile: {
-        headline: "",
-        location: "",
-        skills: "",
-        bio: ""
+        workerCv: {
+          published: false,
+          headline: "",
+          location: "",
+          birthDate: "",
+          phone: "",
+          availability: "",
+          bio: "",
+          skills: [],
+          experience: [],
+          references: [],
+          profilePhoto: null,
+          publishedAt: null,
+          updatedAt: now()
+        }
       },
       createdAt: now()
     };
@@ -1872,10 +2089,21 @@ async function handleApi(req, res, pathname) {
         passwordHash: hashPassword(body.password),
         active: true,
         profile: {
-          headline: cleanString(body.headline, 160),
-          location: cleanString(body.location, 160),
-          skills: cleanString(body.skills, 600),
-          bio: cleanString(body.bio, 1200)
+          workerCv: {
+            published: false,
+            headline: cleanString(body.headline, 160),
+            location: cleanString(body.location, 160),
+            birthDate: "",
+            phone: "",
+            availability: "",
+            bio: cleanString(body.bio, 1600),
+            skills: cleanStringList(body.skills),
+            experience: [],
+            references: [],
+            profilePhoto: null,
+            publishedAt: null,
+            updatedAt: now()
+          }
         },
         createdAt: now()
       };
@@ -2094,6 +2322,79 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  if (req.method === "PATCH" && pathname === "/api/workers/profile") {
+    const body = await readBody(req, MULTI_UPLOAD_BODY_BYTES);
+    const result = await mutateDb(async (db) => {
+      const auth = requireAuth(db, req);
+      requireWorker(auth);
+      const previousCv = existingWorkerCv(auth.user);
+      const workerCv = buildWorkerProfileUpdate(auth.user, body, previousCv.profilePhoto);
+      const photoRecord = body.photo ? await storeWorkerProfilePhoto(auth.user, body.photo) : null;
+      if (photoRecord) {
+        workerCv.profilePhoto = photoRecord;
+        workerCv.updatedAt = now();
+      }
+      auth.user.profile = {
+        ...(auth.user.profile || {}),
+        headline: workerCv.headline,
+        location: workerCv.location,
+        skills: workerCv.skills.join(", "),
+        bio: workerCv.bio,
+        workerCv
+      };
+      if (
+        photoRecord &&
+        previousCv.profilePhoto?.storedName &&
+        previousCv.profilePhoto.storedName !== photoRecord.storedName
+      ) {
+        await deletePrivateUploadFile(previousCv.profilePhoto.storedName).catch(() => {});
+      }
+      audit(db, auth, "worker_profile", auth.user.id, workerCv.published ? "worker_profile.published" : "worker_profile.updated", {
+        published: workerCv.published,
+        experienceCount: workerCv.experience.length,
+        referenceCount: workerCv.references.length,
+        skillCount: workerCv.skills.length,
+        hasPhoto: Boolean(workerCv.profilePhoto?.storedName)
+      }, req);
+      return {
+        profile: publicWorkerProfile(auth.user, { includeUnpublished: true }),
+        bootstrap: buildBootstrap(db, auth)
+      };
+    });
+    sendJson(res, 200, result);
+    return;
+  }
+
+  const workerPhotoMatch = pathname.match(/^\/api\/workers\/([^/]+)\/profile-photo$/);
+  if (req.method === "GET" && workerPhotoMatch) {
+    const workerId = decodeURIComponent(workerPhotoMatch[1]);
+    const { photo } = await withMaintainedAuth(req, (db, auth) => {
+      const worker = db.users.find((user) => user.id === workerId && user.role === "worker");
+      if (!worker) {
+        const error = new Error("Worker profile not found.");
+        error.status = 404;
+        throw error;
+      }
+      const cv = existingWorkerCv(worker);
+      const allowed = worker.id === auth.user.id || (isCompanyAdmin(auth.user) && cv.published);
+      if (!allowed || !cv.profilePhoto?.storedName) {
+        const error = new Error("Worker profile photo not found.");
+        error.status = 404;
+        throw error;
+      }
+      return { photo: cv.profilePhoto };
+    });
+    const buffer = await readPrivateUploadFile(photo.storedName);
+    res.writeHead(200, {
+      "Content-Type": photo.mimeType,
+      "Content-Length": buffer.length,
+      "Cache-Control": "private, max-age=120",
+      "X-Content-Type-Options": "nosniff"
+    });
+    res.end(buffer);
+    return;
+  }
+
   if (req.method === "POST" && pathname === "/api/job-offers") {
     const body = await readBody(req);
     const result = await mutateDb((db) => {
@@ -2181,6 +2482,11 @@ async function handleApi(req, res, pathname) {
       const duplicate = db.jobApplications.find(
         (application) => application.jobOfferId === jobOffer.id && application.workerId === auth.user.id
       );
+      if (!isWorkerProfilePublished(auth.user)) {
+        const error = new Error("Publish your worker CV profile before applying to vacancies.");
+        error.status = 400;
+        throw error;
+      }
       if (duplicate) {
         const error = new Error("You already applied to this vacancy.");
         error.status = 409;
@@ -2203,7 +2509,7 @@ async function handleApi(req, res, pathname) {
       audit(db, auth, "job_application", application.id, "job_application.submitted", {
         jobOfferId: jobOffer.id
       }, req);
-      return { application: publicJobApplication(application), bootstrap: buildBootstrap(db, auth) };
+      return { application: publicJobApplication(application, db), bootstrap: buildBootstrap(db, auth) };
     });
     sendJson(res, 201, result);
     return;
@@ -2228,7 +2534,7 @@ async function handleApi(req, res, pathname) {
       application.decisionReason = cleanString(body.decisionReason, 1000);
       application.updatedAt = now();
       audit(db, auth, "job_application", application.id, "job_application.updated", { status }, req);
-      return { application: publicJobApplication(application), bootstrap: buildBootstrap(db, auth) };
+      return { application: publicJobApplication(application, db, { includeWorkerProfile: true }), bootstrap: buildBootstrap(db, auth) };
     });
     sendJson(res, 200, result);
     return;
@@ -2673,7 +2979,7 @@ async function handleApi(req, res, pathname) {
         jobOffers: db.jobOffers.filter((item) => item.companyId === companyId).map(publicJobOffer),
         jobApplications: db.jobApplications
           .filter((item) => item.companyId === companyId)
-          .map(publicJobApplication)
+          .map((application) => publicJobApplication(application, db, { includeWorkerProfile: true }))
       };
     });
     sendJson(res, 200, payload);

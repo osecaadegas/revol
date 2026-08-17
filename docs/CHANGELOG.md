@@ -6,6 +6,9 @@
 - Added Vercel Cron scheduling for daily evidence cleanup, validation auto-approval and validation reminder generation.
 - Added manager dashboard validation reminder cards for tasks waiting on the 12-hour employer approval window.
 - Added `CRON_SECRET` setup documentation and smoke coverage for cron authorization and reminder alerts.
+- Simplified the public landing page into a cleaner search-first vacancy page with featured jobs, market summary, company/worker calls to action and a refreshed shell cache.
+- Added large dropdown suggestion menus for public cargo/function and location vacancy filters while preserving free-text search.
+- Added worker CV profiles with private profile photos, birth dates, skills, previous experience, references, application gating, company-visible profile cards and Supabase profile indexing.
 
 ## 2026-08-12
 

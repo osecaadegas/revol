@@ -95,8 +95,110 @@
     funchal: { lat: 32.6669, lon: -16.9241, label: "Funchal" }
   };
 
+  const defaultMarketPositions = [
+    "Agricultura",
+    "Trabalhador agricola",
+    "Operador agricola",
+    "Jardineiro",
+    "Poda",
+    "Vindimas",
+    "Apanha de fruta",
+    "Colheita",
+    "Construcao",
+    "Pedreiro",
+    "Servente",
+    "Pintor",
+    "Canalizador",
+    "Eletricista",
+    "Carpinteiro",
+    "Serralheiro",
+    "Soldador",
+    "Mecanico",
+    "Obras",
+    "Remodelacoes",
+    "Montagem",
+    "Mudancas",
+    "Motorista",
+    "Motorista de ligeiros",
+    "Motorista de pesados",
+    "Distribuidor",
+    "Estafeta",
+    "Armazem",
+    "Operador de armazem",
+    "Logistica",
+    "Repositor",
+    "Operador industrial",
+    "Linha de producao",
+    "Limpeza",
+    "Empregado de limpeza",
+    "Manutencao",
+    "Tecnico de manutencao",
+    "Seguranca",
+    "Hotelaria",
+    "Cozinha",
+    "Ajudante de cozinha",
+    "Empregado de mesa",
+    "Rececao",
+    "Lavandaria",
+    "Apoio domiciliario",
+    "Cuidador",
+    "Atendimento",
+    "Comercial",
+    "Servicos gerais"
+  ];
+
+  const defaultMarketLocations = [
+    "Braga",
+    "Porto",
+    "Lisboa",
+    "Guimaraes",
+    "Celorico de Basto",
+    "Fafe",
+    "Vila Real",
+    "Viana do Castelo",
+    "Aveiro",
+    "Coimbra",
+    "Viseu",
+    "Leiria",
+    "Santarem",
+    "Setubal",
+    "Evora",
+    "Beja",
+    "Faro",
+    "Castelo Branco",
+    "Guarda",
+    "Ponta Delgada",
+    "Funchal",
+    "Barcelos",
+    "Esposende",
+    "Maia",
+    "Matosinhos",
+    "Vila Nova de Gaia",
+    "Gondomar",
+    "Penafiel",
+    "Amarante",
+    "Braganca",
+    "Chaves",
+    "Lamego",
+    "Covilha",
+    "Figueira da Foz",
+    "Caldas da Rainha",
+    "Torres Vedras",
+    "Sintra",
+    "Oeiras",
+    "Cascais",
+    "Loures",
+    "Almada",
+    "Seixal",
+    "Palmela",
+    "Portimao",
+    "Albufeira",
+    "Lagos",
+    "Tavira"
+  ];
+
   const publicNavItems = [
-    ["Vagas", "/"],
+    ["Procurar", "/"],
     ["Area do Cliente", "/cliente"]
   ];
 
@@ -224,26 +326,29 @@
     return String(value || "").trim();
   }
 
-  function renderQuickFilterGroup(title, filter, values) {
-    if (!values.length) return "";
+  function uniqueSortedValues(values) {
+    const unique = new Map();
+    values.forEach((value) => {
+      const cleaned = cleanDisplayValue(value);
+      if (!cleaned) return;
+      const key = normalizeSearch(cleaned);
+      if (!unique.has(key)) unique.set(key, cleaned);
+    });
+    return Array.from(unique.values()).sort((a, b) =>
+      a.localeCompare(b, "pt-PT", { sensitivity: "base" })
+    );
+  }
+
+  function marketOptionValues(key, fallback = []) {
+    const liveValues = (state.publicJobs || []).map((job) => cleanDisplayValue(job[key]));
+    return uniqueSortedValues([...liveValues, ...fallback]);
+  }
+
+  function renderDatalist(id, values) {
     return `
-      <section class="jobs-sidebar-block">
-        <h2>${escapeHtml(title)}</h2>
-        <div class="quick-filter-row">
-          ${values
-            .map(
-              (value) => `
-                <button
-                  class="${state.marketFilters[filter] === value ? "active" : ""}"
-                  type="button"
-                  data-market-preset="${escapeHtml(filter)}"
-                  data-market-value="${escapeHtml(value)}"
-                >${escapeHtml(value)}</button>
-              `
-            )
-            .join("")}
-        </div>
-      </section>
+      <datalist id="${escapeHtml(id)}">
+        ${values.map((value) => `<option value="${escapeHtml(value)}"></option>`).join("")}
+      </datalist>
     `;
   }
 
@@ -252,6 +357,10 @@
     const helperText = activeCount
       ? `${shownJobs} de ${totalJobs} vagas encontradas`
       : `${totalJobs} vagas abertas no mercado`;
+    const positionOptions = marketOptionValues("position", defaultMarketPositions);
+    const locationOptions = marketOptionValues("location", defaultMarketLocations);
+    const positionListId = `market-position-options-${context}`;
+    const locationListId = `market-location-options-${context}`;
     return `
       <form class="market-filter-bar" data-market-filter-form="${context}">
         <div class="market-filter-main">
@@ -261,11 +370,11 @@
           </div>
           <div class="field compact">
             <label>Cargo / funcao</label>
-            <input data-market-filter="position" value="${escapeHtml(state.marketFilters.position)}" placeholder="Ex: trabalhador agricola">
+            <input data-market-filter="position" list="${escapeHtml(positionListId)}" value="${escapeHtml(state.marketFilters.position)}" placeholder="Ex: trabalhador agricola">
           </div>
           <div class="field compact">
             <label>Localizacao</label>
-            <input data-market-filter="location" value="${escapeHtml(state.marketFilters.location)}" placeholder="Ex: Braga, Porto, Lisboa">
+            <input data-market-filter="location" list="${escapeHtml(locationListId)}" value="${escapeHtml(state.marketFilters.location)}" placeholder="Ex: Braga, Porto, Lisboa">
           </div>
           <div class="field compact">
             <label>Raio</label>
@@ -287,6 +396,8 @@
           <button class="btn primary" type="submit">Filtrar vagas</button>
           ${activeCount ? `<button class="btn ghost" type="button" data-action="clear-market-filters" data-market-context="${context}">Limpar filtros</button>` : ""}
         </div>
+        ${renderDatalist(positionListId, positionOptions)}
+        ${renderDatalist(locationListId, locationOptions)}
       </form>
     `;
   }
@@ -417,6 +528,47 @@
     return state.data?.user || null;
   }
 
+  function splitProfileList(value) {
+    return String(value || "")
+      .split(/[\n,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function workerCvProfile() {
+    const user = currentUser();
+    const profile = user?.profile || {};
+    const cv = profile.workerCv || {};
+    return {
+      published: cv.published === true,
+      headline: cv.headline || profile.headline || "",
+      location: cv.location || profile.location || "",
+      birthDate: cv.birthDate || "",
+      phone: cv.phone || "",
+      availability: cv.availability || "",
+      bio: cv.bio || profile.bio || "",
+      skills: Array.isArray(cv.skills) ? cv.skills : splitProfileList(profile.skills),
+      experience: Array.isArray(cv.experience) ? cv.experience : [],
+      references: Array.isArray(cv.references) ? cv.references : [],
+      profilePhotoUrl: cv.profilePhotoUrl || "",
+      publishedAt: cv.publishedAt || null,
+      updatedAt: cv.updatedAt || null
+    };
+  }
+
+  function workerProfilePublished() {
+    return isWorker() && workerCvProfile().published === true;
+  }
+
+  function initials(value) {
+    return cleanDisplayValue(value)
+      .split(/\s+/)
+      .map((part) => part.slice(0, 1))
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "W";
+  }
+
   function isManager() {
     return ["manager", "company"].includes(currentUser()?.role);
   }
@@ -503,17 +655,10 @@
         <a class="public-brand" href="/">
           <span class="brand-mark">LT</span>
           <div>
-            <strong>LuisTrata Jobs</strong>
-            <span>Vagas e trabalho</span>
+            <strong>LuisTrata</strong>
+            <span>Vagas e equipas</span>
           </div>
         </a>
-        ${activeRoute === "home" ? `
-          <form class="public-top-search" data-market-filter-form="topbar">
-            <input data-market-filter="query" value="${escapeHtml(state.marketFilters.query)}" placeholder="Pesquisar vagas">
-            <input data-market-filter="location" value="${escapeHtml(state.marketFilters.location)}" placeholder="Localizacao">
-            <button type="submit">Pesquisar</button>
-          </form>
-        ` : ""}
         <button class="public-menu-button" type="button" data-action="toggle-public-menu" aria-expanded="${state.publicMenuOpen ? "true" : "false"}" aria-label="Abrir navegacao">
           <span></span><span></span><span></span>
         </button>
@@ -526,7 +671,7 @@
             .join("")}
           ${activeRoute === "home" ? `
             <a href="#acesso" data-auth-preset="login">Entrar</a>
-            <button class="public-nav-button" type="button" data-auth-preset="company">Publicar vaga</button>
+            <button class="public-nav-button" type="button" data-auth-preset="company">Publicar</button>
           ` : ""}
         </nav>
       </header>
@@ -552,8 +697,8 @@
     return `
       <footer class="public-footer">
         <div>
-          <strong>LuisTrata Jobs</strong>
-          <span>Vagas abertas para consulta publica</span>
+          <strong>LuisTrata</strong>
+          <span>Vagas, candidaturas e operacoes com evidencia</span>
         </div>
         <a href="/">Vagas</a>
         <a href="/cliente">Area do cliente</a>
@@ -605,92 +750,94 @@
     const companies = new Set(allJobs.map((job) => job.companyName).filter(Boolean)).size;
     const locations = topMarketValues(allJobs, "location", ["Braga", "Porto", "Lisboa", "Vila Real"]);
     const positions = topMarketValues(allJobs, "position", ["Agricultura", "Construcao", "Servicos", "Logistica"]);
+    const locationOptions = marketOptionValues("location", defaultMarketLocations);
+    const positionOptions = marketOptionValues("position", defaultMarketPositions);
     const hasFilters = activeMarketFilterCount() > 0;
+    const featuredJobs = jobs.slice(0, 6);
+    const resultTitle = jobs.length
+      ? `${jobs.length} ${jobs.length === 1 ? "vaga encontrada" : "vagas encontradas"}`
+      : "Sem vagas encontradas";
 
     renderPublicShell(`
       ${noticeHtml()}
       ${state.publicJobsWarning ? `<div class="public-warning notice error">${escapeHtml(state.publicJobsWarning)}</div>` : ""}
-      <section class="jobs-home">
-        <section class="network-landing">
-          <aside class="network-profile-card" aria-label="Entrada para candidatos">
-            <div class="network-cover"></div>
-            <div class="network-avatar">W</div>
-            <h2>Perfil candidato</h2>
-            <p>Crie uma conta worker para guardar candidaturas e responder a ofertas abertas.</p>
-            <button class="btn accent full" type="button" data-auth-preset="worker">Criar perfil</button>
-          </aside>
-
-          <section class="network-search-card">
-            <p class="eyebrow">Mercado de trabalho</p>
-            <h1>Encontre trabalho, candidate-se e acompanhe oportunidades.</h1>
-            <form class="landing-search-card" data-market-filter-form="landing">
-              <div class="field compact">
-                <label>Cargo, empresa ou palavra-chave</label>
-                <input data-market-filter="query" value="${escapeHtml(state.marketFilters.query)}" placeholder="Ex: operador agricola, pintor, logistica">
-              </div>
-              <div class="field compact">
-                <label>Localizacao</label>
-                <input data-market-filter="location" value="${escapeHtml(state.marketFilters.location)}" placeholder="Braga, Porto, Lisboa">
-              </div>
-              <button class="btn primary" type="submit">Pesquisar vagas</button>
-            </form>
-            <div class="landing-suggestions" aria-label="Pesquisas rapidas">
-              ${positions.slice(0, 4).map((value) => `<button type="button" data-market-preset="position" data-market-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`).join("")}
+      <section class="market-home">
+        <section class="market-hero">
+          <div class="market-hero-copy">
+            <p class="eyebrow">Vagas e trabalho operacional</p>
+            <h1>Encontre trabalho ou publique vagas sem complicar.</h1>
+            <p>Uma entrada publica simples para candidatos e empresas, com contas separadas para candidaturas, vagas e operacoes com evidencia.</p>
+          </div>
+          <form class="market-search-panel" data-market-filter-form="landing" aria-label="Pesquisar vagas">
+            <div class="field compact">
+              <label>O que procura?</label>
+              <input data-market-filter="query" list="market-hero-position-options" value="${escapeHtml(state.marketFilters.query)}" placeholder="Cargo, empresa ou palavra-chave">
             </div>
-            <div class="network-metrics-row" aria-label="Resumo do mercado">
-              <div><strong>${openJobs}</strong><span>vagas abertas</span></div>
-              <div><strong>${companies}</strong><span>empresas ativas</span></div>
-              <div><strong>${locations.length}</strong><span>zonas em destaque</span></div>
+            <div class="field compact">
+              <label>Onde?</label>
+              <input data-market-filter="location" list="market-hero-location-options" value="${escapeHtml(state.marketFilters.location)}" placeholder="Braga, Porto, Lisboa">
             </div>
-          </section>
-
-          <aside class="network-action-card" aria-label="Entrada para empresas">
-            <h2>Contrate talento</h2>
-            <p>Publique vagas, receba candidaturas e faça a triagem dentro da conta empresa.</p>
-            <div class="network-action-list">
-              <span>Vagas publicas sempre visiveis</span>
-              <span>Candidaturas com conta worker</span>
-              <span>Publicacao com conta empresa</span>
-            </div>
-            <button class="btn primary full" type="button" data-auth-preset="company">Publicar vaga</button>
-            <a class="btn ghost full" href="/cliente">Area do cliente</a>
-          </aside>
+            <button class="btn primary" type="submit">Procurar vaga</button>
+            ${renderDatalist("market-hero-position-options", positionOptions)}
+            ${renderDatalist("market-hero-location-options", locationOptions)}
+          </form>
+          <div class="market-hero-actions">
+            <a class="btn ghost" href="#vagas">Ver vagas</a>
+            <button class="btn accent" type="button" data-auth-preset="company">Publicar vaga</button>
+          </div>
         </section>
 
-        <section class="jobs-layout" id="vagas">
-          <aside class="jobs-sidebar" aria-label="Filtros rapidos">
-            <section class="jobs-sidebar-block jobs-stats">
-              <h2>Mercado</h2>
-              <div class="jobs-stat-grid">
-                <div><strong>${openJobs}</strong><span>vagas abertas</span></div>
-                <div><strong>${companies}</strong><span>empresas</span></div>
-              </div>
-            </section>
-            ${renderQuickFilterGroup("Localizacoes", "location", locations)}
-            ${renderQuickFilterGroup("Funcoes", "position", positions)}
-          </aside>
+        <section class="market-trust-strip" aria-label="Resumo do mercado">
+          <div><strong>${openJobs}</strong><span>vagas abertas</span></div>
+          <div><strong>${companies}</strong><span>empresas</span></div>
+          <div><strong>${locations.length || 0}</strong><span>zonas em destaque</span></div>
+        </section>
 
-          <main class="jobs-results">
+        <section class="market-section" id="vagas">
+          <div class="market-section-heading">
+            <div>
+              <p class="eyebrow">Vagas em destaque</p>
+              <h2>${hasFilters ? resultTitle : "Oportunidades abertas"}</h2>
+              <p>${hasFilters ? "Resultados filtrados pelas escolhas atuais." : "As oportunidades mais recentes publicadas pelas empresas."}</p>
+            </div>
+          </div>
+          <div class="market-filter-row">
             ${renderMarketFilters("public", allJobs.length, jobs.length)}
-            <div class="jobs-feed-header">
-              <div>
-                <p class="eyebrow">Resultados</p>
-                <h2>${jobs.length ? `${jobs.length} vagas ${hasFilters ? "encontradas" : "em destaque"}` : "Sem vagas encontradas"}</h2>
-              </div>
-              ${hasFilters ? `<button class="btn ghost" type="button" data-action="clear-market-filters" data-market-context="public">Limpar filtros</button>` : ""}
-            </div>
-            <div class="list jobs-feed">
-              ${jobs.length ? jobs.map((job) => renderJobCard(job, { publicMode: true })).join("") : empty(activeMarketFilterCount() ? "Nenhuma vaga corresponde aos filtros escolhidos." : "Ainda nao existem vagas publicadas.")}
-            </div>
-          </main>
+          </div>
+          <div class="list jobs-feed market-job-list">
+            ${featuredJobs.length ? featuredJobs.map((job) => renderJobCard(job, { publicMode: true })).join("") : empty(activeMarketFilterCount() ? "Nenhuma vaga corresponde aos filtros escolhidos." : "Ainda nao existem vagas publicadas.")}
+          </div>
+          ${jobs.length > featuredJobs.length ? `<p class="muted market-result-note">Mostramos as primeiras ${featuredJobs.length} vagas. Refine a pesquisa para encontrar uma oportunidade especifica.</p>` : ""}
+        </section>
 
-          <aside class="jobs-account-panel" id="acesso">
-            <div class="jobs-sidebar-block">
-              <h2>Acesso</h2>
-              <p>Workers candidatam-se. Empresas publicam vagas. Cliente e developer entram pela area reservada.</p>
+        <section class="market-split-section">
+          <article class="market-plain-panel">
+            <p class="eyebrow">Candidatos</p>
+            <h2>Candidatar-se e simples.</h2>
+            <p>Crie uma conta worker, responda a vagas abertas e acompanhe as candidaturas num unico lugar.</p>
+            <button class="btn accent" type="button" data-auth-preset="worker">Criar perfil worker</button>
+          </article>
+          <article class="market-plain-panel">
+            <p class="eyebrow">Empresas</p>
+            <h2>Publique vagas e organize respostas.</h2>
+            <p>A conta empresa permite publicar oportunidades, rever candidaturas e avançar para a gestao operacional.</p>
+            <button class="btn primary" type="button" data-auth-preset="company">Registar empresa</button>
+          </article>
+        </section>
+
+        <section class="market-access-section" id="acesso">
+          <div class="market-access-copy">
+            <p class="eyebrow">Acesso</p>
+            <h2>Entrar ou criar conta</h2>
+            <p>Workers entram para candidaturas. Empresas entram para publicar vagas e gerir operacoes. Cliente e developer entram pela area reservada.</p>
+            <div class="quick-filter-row" aria-label="Filtros rapidos">
+              ${locations.slice(0, 4).map((value) => `<button type="button" data-market-preset="location" data-market-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`).join("")}
+              ${positions.slice(0, 4).map((value) => `<button type="button" data-market-preset="position" data-market-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`).join("")}
             </div>
+          </div>
+          <div class="market-auth-panel">
             ${renderAuthSwitcher()}
-          </aside>
+          </div>
         </section>
       </section>
     `, "home");
@@ -1245,8 +1392,14 @@
           </div>
         </div>
         <div>
-          ${isManager() ? renderJobOfferForm() : isWorker() ? renderWorkerApplications(applications) : renderMarketplaceReadOnlyPanel()}
-          ${isManager() ? renderCompanyApplications(applications) : ""}
+          ${isManager() ? `
+            ${renderJobOfferForm()}
+            ${renderPublishedWorkerProfiles(state.data.workerProfiles || [])}
+            ${renderCompanyApplications(applications)}
+          ` : isWorker() ? `
+            ${renderWorkerProfilePanel()}
+            ${renderWorkerApplications(applications)}
+          ` : renderMarketplaceReadOnlyPanel()}
         </div>
       </section>
     `;
@@ -1282,6 +1435,102 @@
     `;
   }
 
+  function renderProfilePhoto(profile, name) {
+    return `
+      <div class="worker-photo">
+        ${profile?.profilePhotoUrl ? `<img src="${escapeHtml(profile.profilePhotoUrl)}" alt="">` : `<span>${escapeHtml(initials(name))}</span>`}
+      </div>
+    `;
+  }
+
+  function profileRows(items, minimumRows, limit) {
+    const rows = Array.isArray(items) ? [...items] : [];
+    while (rows.length < minimumRows) rows.push({});
+    return rows.slice(0, limit);
+  }
+
+  function renderExperienceInputs(profile) {
+    return profileRows(profile.experience, 3, 6)
+      .map((item, index) => `
+        <div class="profile-entry">
+          <div class="split-fields">
+            <div class="field"><label>Cargo ${index + 1}</label><input name="experienceTitle${index}" value="${escapeHtml(item.title || "")}" placeholder="Ex: Pedreiro"></div>
+            <div class="field"><label>Empresa</label><input name="experienceCompany${index}" value="${escapeHtml(item.company || "")}" placeholder="Ex: Empresa anterior"></div>
+          </div>
+          <div class="split-fields">
+            <div class="field"><label>Local</label><input name="experienceLocation${index}" value="${escapeHtml(item.location || "")}" placeholder="Cidade ou regiao"></div>
+            <div class="field"><label>Inicio</label><input name="experienceStartDate${index}" type="date" value="${escapeHtml(item.startDate || "")}"></div>
+          </div>
+          <div class="split-fields">
+            <div class="field"><label>Fim</label><input name="experienceEndDate${index}" type="date" value="${escapeHtml(item.endDate || "")}"></div>
+            <div class="field"><label>Resumo</label><input name="experienceDescription${index}" value="${escapeHtml(item.description || "")}" placeholder="Funcoes, ferramentas, resultados"></div>
+          </div>
+        </div>
+      `)
+      .join("");
+  }
+
+  function renderReferenceInputs(profile) {
+    return profileRows(profile.references, 3, 6)
+      .map((item, index) => `
+        <div class="profile-entry">
+          <div class="split-fields">
+            <div class="field"><label>Referencia ${index + 1}</label><input name="referenceName${index}" value="${escapeHtml(item.name || "")}" placeholder="Nome do antigo responsavel"></div>
+            <div class="field"><label>Empresa</label><input name="referenceCompany${index}" value="${escapeHtml(item.company || "")}" placeholder="Empresa"></div>
+          </div>
+          <div class="split-fields">
+            <div class="field"><label>Cargo</label><input name="referenceRole${index}" value="${escapeHtml(item.role || "")}" placeholder="Ex: Encarregado"></div>
+            <div class="field"><label>Relacao</label><input name="referenceRelationship${index}" value="${escapeHtml(item.relationship || "")}" placeholder="Ex: antigo chefe"></div>
+          </div>
+          <div class="split-fields">
+            <div class="field"><label>Telefone</label><input name="referencePhone${index}" value="${escapeHtml(item.phone || "")}" inputmode="tel"></div>
+            <div class="field"><label>Email</label><input name="referenceEmail${index}" value="${escapeHtml(item.email || "")}" type="email"></div>
+          </div>
+        </div>
+      `)
+      .join("");
+  }
+
+  function renderWorkerProfilePanel() {
+    const user = currentUser();
+    const profile = workerCvProfile();
+    return `
+      <form class="panel form-grid worker-profile-form" data-form="worker-profile">
+        <div class="panel-header">
+          <h2>CV worker</h2>
+          <span class="chip ${profile.published ? "approved" : "planned"}">${profile.published ? "Publicado" : "Por publicar"}</span>
+        </div>
+        <div class="worker-profile-top">
+          ${renderProfilePhoto(profile, user?.name || "Worker")}
+          <div class="field">
+            <label>Foto de perfil</label>
+            <input name="photo" type="file" accept="image/png,image/jpeg,image/webp">
+          </div>
+        </div>
+        <div class="split-fields">
+          <div class="field"><label>Titulo profissional</label><input name="headline" required value="${escapeHtml(profile.headline)}" placeholder="Ex: Trabalhador agricola"></div>
+          <div class="field"><label>Data de nascimento</label><input name="birthDate" required type="date" value="${escapeHtml(profile.birthDate)}"></div>
+        </div>
+        <div class="split-fields">
+          <div class="field"><label>Localizacao</label><input name="location" required value="${escapeHtml(profile.location)}" placeholder="Concelho ou regiao"></div>
+          <div class="field"><label>Telefone</label><input name="phone" value="${escapeHtml(profile.phone)}" inputmode="tel"></div>
+        </div>
+        <div class="field"><label>Disponibilidade</label><input name="availability" value="${escapeHtml(profile.availability)}" placeholder="Ex: imediata, fins de semana, sazonal"></div>
+        <div class="field"><label>Competencias</label><textarea name="skills" required placeholder="Uma por linha ou separadas por virgula">${escapeHtml(profile.skills.join("\n"))}</textarea></div>
+        <div class="field"><label>Resumo profissional</label><textarea name="bio" placeholder="Experiencia, ferramentas, carta, certificacoes">${escapeHtml(profile.bio)}</textarea></div>
+        <div class="profile-group">
+          <h3>Experiencia anterior</h3>
+          ${renderExperienceInputs(profile)}
+        </div>
+        <div class="profile-group">
+          <h3>Referencias</h3>
+          ${renderReferenceInputs(profile)}
+        </div>
+        <button class="btn accent full" type="submit">Guardar e publicar CV</button>
+      </form>
+    `;
+  }
+
   function renderWorkerApplications(applications) {
     return `
       <div class="panel">
@@ -1299,6 +1548,84 @@
         <div class="panel-header"><h2>Candidaturas recebidas</h2></div>
         <div class="list">
           ${applications.length ? applications.map(renderApplicationCard).join("") : empty("Sem candidaturas recebidas.")}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderProfileSkillChips(profile) {
+    const skills = Array.isArray(profile?.skills) ? profile.skills : [];
+    if (!skills.length) return "";
+    return `<div class="profile-chip-row">${skills.slice(0, 12).map((skill) => `<span class="chip">${escapeHtml(skill)}</span>`).join("")}</div>`;
+  }
+
+  function renderProfileTimeline(items, emptyText) {
+    const rows = Array.isArray(items) ? items.filter(Boolean) : [];
+    if (!rows.length) return `<p class="muted">${escapeHtml(emptyText)}</p>`;
+    return `
+      <div class="profile-timeline">
+        ${rows.slice(0, 4).map((item) => `
+          <div>
+            <strong>${escapeHtml(item.title || item.name || "Registo")}</strong>
+            <span>${escapeHtml([item.company, item.location || item.role].filter(Boolean).join(" - "))}</span>
+            ${item.startDate || item.endDate ? `<small>${escapeHtml([item.startDate, item.endDate || "Atual"].filter(Boolean).join(" / "))}</small>` : ""}
+            ${item.description || item.relationship ? `<p>${escapeHtml(item.description || item.relationship)}</p>` : ""}
+            ${item.phone || item.email ? `<small>${escapeHtml([item.phone, item.email].filter(Boolean).join(" | "))}</small>` : ""}
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  function renderWorkerProfileCard(profile, options = {}) {
+    if (!profile) {
+      return `<div class="notice error">CV worker ainda nao publicado.</div>`;
+    }
+    return `
+      <article class="worker-profile-card ${options.compact ? "compact" : ""}">
+        <header>
+          ${renderProfilePhoto(profile, profile.name || "Worker")}
+          <div>
+            <h3>${escapeHtml(profile.name || "Worker")}</h3>
+            <div class="meta-row">
+              ${profile.headline ? `<span>${escapeHtml(profile.headline)}</span>` : ""}
+              ${profile.location ? `<span>${escapeHtml(profile.location)}</span>` : ""}
+              ${profile.birthDate ? `<span>${formatDate(profile.birthDate)}</span>` : ""}
+            </div>
+          </div>
+        </header>
+        ${profile.bio ? `<p class="muted">${escapeHtml(profile.bio)}</p>` : ""}
+        ${renderProfileSkillChips(profile)}
+        ${profile.phone || profile.email || profile.availability ? `
+          <div class="profile-contact-row">
+            ${profile.phone ? `<span>${escapeHtml(profile.phone)}</span>` : ""}
+            ${profile.email ? `<span>${escapeHtml(profile.email)}</span>` : ""}
+            ${profile.availability ? `<span>${escapeHtml(profile.availability)}</span>` : ""}
+          </div>
+        ` : ""}
+        <div class="profile-columns">
+          <div>
+            <strong>Experiencia</strong>
+            ${renderProfileTimeline(profile.experience, "Sem experiencia publicada.")}
+          </div>
+          <div>
+            <strong>Referencias</strong>
+            ${renderProfileTimeline(profile.references, "Sem referencias publicadas.")}
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderPublishedWorkerProfiles(profiles) {
+    return `
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Workers publicados</h2>
+          <span class="chip">${profiles.length}</span>
+        </div>
+        <div class="list">
+          ${profiles.length ? profiles.map((profile) => renderWorkerProfileCard(profile, { compact: true })).join("") : empty("Ainda nao existem CVs publicados por workers.")}
         </div>
       </div>
     `;
@@ -1341,13 +1668,15 @@
           </div>
         ` : isWorker() ? `
           ${existingApplication ? `<div class="notice success">Candidatura enviada: ${escapeHtml(applicationStatusLabel(existingApplication.status))}</div>` : `
-            <form class="form-grid" data-form="apply-job" data-job-id="${escapeHtml(job.id)}">
-              <div class="field">
-                <label>Mensagem para a empresa</label>
-                <textarea name="message" placeholder="Explique experiencia, disponibilidade e contacto preferido"></textarea>
-              </div>
-              <button class="btn accent" type="submit">Candidatar-me</button>
-            </form>
+            ${workerProfilePublished() ? `
+              <form class="form-grid" data-form="apply-job" data-job-id="${escapeHtml(job.id)}">
+                <div class="field">
+                  <label>Mensagem para a empresa</label>
+                  <textarea name="message" placeholder="Explique experiencia, disponibilidade e contacto preferido"></textarea>
+                </div>
+                <button class="btn accent" type="submit">Candidatar-me</button>
+              </form>
+            ` : `<div class="notice error">Publique o CV worker antes de se candidatar.</div>`}
           `}
         ` : isManager() ? `
           <div class="card-actions">
@@ -1365,6 +1694,7 @@
         <strong>${escapeHtml(job?.title || "Vaga")} - ${escapeHtml(applicationStatusLabel(application.status))}</strong>
         <p>${escapeHtml(application.workerName || "Worker")} - ${formatDate(application.createdAt)}</p>
         ${application.message ? `<p>${escapeHtml(application.message)}</p>` : ""}
+        ${isManager() ? renderWorkerProfileCard(application.workerProfile, { compact: true }) : ""}
         ${application.decisionReason ? `<p>Decisao: ${escapeHtml(application.decisionReason)}</p>` : ""}
         ${isManager() ? `
           <form class="form-grid" data-form="update-application" data-application-id="${escapeHtml(application.id)}">
@@ -2141,6 +2471,7 @@
           if (type === "create-user") await createUser(form);
           if (type === "create-invite") await createInvite(form);
           if (type === "create-job") await createJob(form);
+          if (type === "worker-profile") await updateWorkerProfile(form);
           if (type === "apply-job") await applyToJob(form);
           if (type === "update-application") await updateApplication(form);
           if (type === "evidence") await submitEvidence(form);
@@ -2199,7 +2530,59 @@
     setNotice("Vaga publicada.");
   }
 
+  function collectProfileRecords(formData, prefix, count, fields) {
+    return Array.from({ length: count }, (_, index) => {
+      const record = {};
+      fields.forEach((field) => {
+        record[field] = String(formData.get(`${prefix}${field[0].toUpperCase()}${field.slice(1)}${index}`) || "").trim();
+      });
+      return record;
+    }).filter((record) => Object.values(record).some(Boolean));
+  }
+
+  async function updateWorkerProfile(form) {
+    const formData = new FormData(form);
+    const input = form.querySelector("input[name='photo']");
+    const photos = await filesToPhotos(input.files, 1);
+    const payload = await api("/api/workers/profile", {
+      method: "PATCH",
+      body: {
+        published: true,
+        headline: formData.get("headline"),
+        birthDate: formData.get("birthDate"),
+        location: formData.get("location"),
+        phone: formData.get("phone"),
+        availability: formData.get("availability"),
+        skills: splitProfileList(formData.get("skills")),
+        bio: formData.get("bio"),
+        experience: collectProfileRecords(formData, "experience", 6, [
+          "title",
+          "company",
+          "location",
+          "startDate",
+          "endDate",
+          "description"
+        ]),
+        references: collectProfileRecords(formData, "reference", 6, [
+          "name",
+          "company",
+          "role",
+          "relationship",
+          "phone",
+          "email"
+        ]),
+        photo: photos[0] || null
+      }
+    });
+    state.data = payload.bootstrap;
+    state.view = "marketplace";
+    setNotice("CV worker publicado para empresas.");
+  }
+
   async function applyToJob(form) {
+    if (!workerProfilePublished()) {
+      throw new Error("Publique o CV worker antes de se candidatar.");
+    }
     const data = Object.fromEntries(new FormData(form).entries());
     const payload = await api(`/api/job-offers/${form.dataset.jobId}/apply`, {
       method: "POST",

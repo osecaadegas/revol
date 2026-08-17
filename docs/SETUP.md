@@ -28,14 +28,16 @@ http://localhost:4173
 
 ## First Run
 
-When the app opens, visitors see the public vacancy marketplace first. It should feel like a job network: compact search in the header, wide desktop filters, candidate/company entry cards, search-first landing, visible animated network background, quick filters, visible job cards and clear worker/company account actions. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access through `/cliente`.
+When the app opens, visitors see the public vacancy marketplace first. It uses a simple search-first landing, compact market summary, featured vacancy list, candidate/company calls to action and a clear account access section. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access through `/cliente`.
 
-Use the vacancy filters in the marketplace section to search by company/keyword/contract, cargo or function, location, and radius around known Portuguese cities.
+Use the vacancy filters in the marketplace section to search by company/keyword/contract, cargo or function, location, and radius around known Portuguese cities. Cargo/function and location fields include dropdown suggestions from common operational options, known Portuguese locations and live vacancy data while still accepting free text.
 
 To use the marketplace:
 
 - Workers create a worker account to apply to vacancies.
+- Workers publish a CV profile with photo, birth date, skills, previous experience and references before submitting applications.
 - Companies create a company account to publish vacancies and review applications.
+- Companies can see published worker CV profiles and CV details attached to received applications.
 
 After company registration, use the company account to:
 
@@ -117,8 +119,9 @@ For a dirty Supabase project that already contains old prototype tables, run the
 5. Run `supabase/migrations/20260810020000_job_offer_position.sql`.
 6. Run `supabase/migrations/20260811000000_project_viewer_roles.sql`.
 7. Run `supabase/migrations/20260812000000_evidence_validation_retention.sql`.
-8. Confirm the private storage bucket `meo-evidence` exists.
-9. Set these environment variables on the host:
+8. Run `supabase/migrations/20260817000000_worker_cv_profiles.sql`.
+9. Confirm the private storage bucket `meo-evidence` exists.
+10. Set these environment variables on the host:
 
 ```text
 APP_STORAGE_DRIVER=supabase
@@ -127,7 +130,7 @@ SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 SUPABASE_EVIDENCE_BUCKET=meo-evidence
 ```
 
-10. Start or redeploy the Node app.
+11. Start or redeploy the Node app.
 
 The app still uses its own Phase 1 email/password/session system. Supabase Auth is not used in this phase, because the existing server already enforces roles, task visibility, and private evidence access.
 
@@ -146,9 +149,9 @@ data/uploads/
 
 Back up both together. The JSON database references files in `uploads/`.
 
-Do not expose `data/uploads/` through a static web server. Images must be served through `/api/evidence/:id/file`, which checks authentication and task access.
+Do not expose `data/uploads/` through a static web server. Images must be served through authenticated API routes such as `/api/evidence/:id/file` and `/api/workers/:id/profile-photo`, which check access before returning private files.
 
-In `APP_STORAGE_DRIVER=supabase`, operational records are stored in Supabase tables prefixed with `meo_`, and photos are stored in the private Supabase bucket. Evidence photos are retained for seven days from upload, then deleted by the app during authenticated maintenance passes or the protected scheduled maintenance endpoint. Backups should be configured in Supabase.
+In `APP_STORAGE_DRIVER=supabase`, operational records are stored in Supabase tables prefixed with `meo_`, and photos are stored in the private Supabase bucket. Evidence photos are retained for seven days from upload, then deleted by the app during authenticated maintenance passes or the protected scheduled maintenance endpoint. Worker CV profile photos remain private profile assets and are not part of the seven-day evidence retention cleanup. Backups should be configured in Supabase.
 
 ## Production Notes
 
@@ -204,6 +207,6 @@ npm run smoke
 
 `npm run check` validates JavaScript syntax.
 
-`npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, application submission, application review, user creation, work order creation, task assignment, GPS-required multi-photo evidence upload, three-photo validation enforcement, task submission, manager approval, scheduled maintenance authorization, employer validation reminders, authenticated image access, and watermarked evidence download.
+`npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, worker registration, worker CV publishing, application submission, application review, user creation, work order creation, task assignment, GPS-required multi-photo evidence upload, three-photo validation enforcement, task submission, manager approval, scheduled maintenance authorization, employer validation reminders, authenticated image access, and watermarked evidence download.
 
 Manual UI verification should include `/` as the public vacancy feed, `/cliente` as the reserved project login, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` and `MVP` workspace tabs for client/developer users, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes for company/manager/employee/contractor users.
