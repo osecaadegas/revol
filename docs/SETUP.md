@@ -28,7 +28,7 @@ http://localhost:4173
 
 ## First Run
 
-When the app opens, visitors see the public vacancy marketplace first. It uses a simple search-first landing, compact market summary, featured vacancy list, candidate/company calls to action and a clear account access section. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access through `/cliente`.
+When the app opens, visitors see the public vacancy marketplace first. It uses a simple search-first landing, compact market summary, featured vacancy list, candidate/company calls to action and modal-based account access from the topbar and page buttons. Project status, roadmap, scope, modules, documentation structure, changelog, requirements, feedback and deliverables are private workspace information for authenticated client/developer access through `/cliente`.
 
 Use the vacancy filters in the marketplace section to search by company/keyword/contract, cargo or function, location, and radius around known Portuguese cities. Cargo/function and location fields include dropdown suggestions from common operational options, known Portuguese locations and live vacancy data while still accepting free text.
 

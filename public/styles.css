@@ -134,13 +134,12 @@ a {
   content: none;
 }
 
-.public-nav-button {
+.public-nav-button,
+.public-nav-login {
   min-height: 34px;
   border: 0;
   border-radius: 7px;
   padding: 8px 11px;
-  color: #fff;
-  background: var(--accent);
   font-weight: 850;
   white-space: nowrap;
 }
@@ -178,18 +177,22 @@ a {
   gap: 4px;
 }
 
-.public-nav a {
+.public-nav a,
+.public-nav-login {
   min-height: 38px;
   border-radius: 7px;
   padding: 10px 11px;
   color: var(--muted);
+  border: 0;
+  background: transparent;
   font-size: 0.88rem;
   font-weight: 800;
   text-decoration: none;
 }
 
 .public-nav a:hover,
-.public-nav a.active {
+.public-nav a.active,
+.public-nav-login:hover {
   color: var(--accent);
   background: #edf4fc;
 }
@@ -846,7 +849,7 @@ td span:not(.status-badge) {
 .market-hero-copy h1,
 .market-section-heading h2,
 .market-plain-panel h2,
-.market-access-copy h2 {
+.market-account-strip h2 {
   margin: 0;
   letter-spacing: 0;
 }
@@ -858,8 +861,7 @@ td span:not(.status-badge) {
 
 .market-hero-copy p:not(.eyebrow),
 .market-section-heading p,
-.market-plain-panel p,
-.market-access-copy p {
+.market-plain-panel p {
   max-width: 720px;
   color: var(--muted);
   line-height: 1.58;
@@ -920,7 +922,7 @@ td span:not(.status-badge) {
 
 .market-section,
 .market-split-section,
-.market-access-section {
+.market-account-strip {
   margin-top: clamp(26px, 5vw, 54px);
 }
 
@@ -934,7 +936,7 @@ td span:not(.status-badge) {
 
 .market-section-heading h2,
 .market-plain-panel h2,
-.market-access-copy h2 {
+.market-account-strip h2 {
   font-size: clamp(1.7rem, 3vw, 2.65rem);
   line-height: 1.06;
 }
@@ -981,22 +983,24 @@ td span:not(.status-badge) {
   justify-self: start;
 }
 
-.market-access-section {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
-  gap: clamp(18px, 4vw, 44px);
-  align-items: start;
+.market-account-strip {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
   border-top: 1px solid var(--line);
   padding-top: clamp(24px, 5vw, 48px);
 }
 
-.market-access-copy {
-  display: grid;
-  gap: 12px;
+.market-account-strip h2 {
+  margin: 0;
 }
 
-.market-auth-panel .panel {
-  box-shadow: var(--shadow-soft);
+.market-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .client-login-copy h1 {
@@ -1142,6 +1146,64 @@ td span:not(.status-badge) {
   color: #fff;
   background: var(--accent);
   box-shadow: 0 8px 18px rgba(10, 102, 194, 0.22);
+}
+
+.auth-switcher {
+  display: grid;
+  gap: 0;
+}
+
+.auth-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: start center;
+  overflow-y: auto;
+  padding: clamp(18px, 5vw, 52px);
+  background: rgba(17, 24, 39, 0.48);
+  backdrop-filter: blur(6px);
+}
+
+.auth-modal {
+  width: min(100%, 520px);
+  max-height: calc(100vh - clamp(36px, 10vw, 104px));
+  overflow: auto;
+  border: 1px solid rgba(220, 227, 234, 0.9);
+  border-radius: var(--radius);
+  padding: clamp(16px, 3vw, 24px);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.auth-modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.auth-modal-header h2 {
+  margin: 0;
+  font-size: 1.24rem;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--muted);
+  background: #fff;
+  font-weight: 900;
+}
+
+.icon-button:hover {
+  color: var(--ink);
+  background: var(--soft);
 }
 
 .auth-hero {
@@ -2179,7 +2241,6 @@ td span:not(.status-badge) {
   .client-login-page,
   .market-search-panel,
   .market-split-section,
-  .market-access-section,
   .profile-columns,
   .manifesto-hero,
   .status-dashboard,
@@ -2219,8 +2280,22 @@ td span:not(.status-badge) {
     width: 100%;
   }
 
+  .public-nav-login,
   .public-nav-button {
     width: 100%;
+  }
+
+  .market-account-strip {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .market-account-actions {
+    justify-content: stretch;
+  }
+
+  .market-account-actions .btn {
+    flex: 1 1 150px;
   }
 
   .manifesto-hero,

@@ -9,6 +9,7 @@
 - Simplified the public landing page into a cleaner search-first vacancy page with featured jobs, market summary, company/worker calls to action and a refreshed shell cache.
 - Added large dropdown suggestion menus for public cargo/function and location vacancy filters while preserving free-text search.
 - Added worker CV profiles with private profile photos, birth dates, skills, previous experience, references, application gating, company-visible profile cards and Supabase profile indexing.
+- Simplified public login/register by moving worker, company and login forms into a topbar-triggered modal and removing the large inline auth panel.
 
 ## 2026-08-12
 

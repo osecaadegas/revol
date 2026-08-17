@@ -229,6 +229,14 @@ Status: complete.
 - Exposed published worker CV profiles to company/manager accounts and attached CV details to received applications.
 - Stored worker CV data in `meo_users.profile.workerCv` and protected profile photos through authenticated private local/Supabase storage.
 
+### M23 - Public Login Modal
+
+Status: complete.
+
+- Simplified the public topbar brand text and moved public login/register forms into a modal opened from the topbar and page CTAs.
+- Removed the large inline homepage auth panel while preserving worker registration, company registration, login and Google OAuth behavior.
+- Kept `/cliente` as the reserved client/developer page and left public job discovery visible without authentication.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.

@@ -13,6 +13,7 @@
     publicJobs: [],
     publicJobsWarning: "",
     publicMenuOpen: false,
+    publicAuthModalOpen: false,
     notice: null,
     selectedTaskId: null,
     filters: {
@@ -656,7 +657,6 @@
           <span class="brand-mark">LT</span>
           <div>
             <strong>LuisTrata</strong>
-            <span>Vagas e equipas</span>
           </div>
         </a>
         <button class="public-menu-button" type="button" data-action="toggle-public-menu" aria-expanded="${state.publicMenuOpen ? "true" : "false"}" aria-label="Abrir navegacao">
@@ -670,11 +670,35 @@
             })
             .join("")}
           ${activeRoute === "home" ? `
-            <a href="#acesso" data-auth-preset="login">Entrar</a>
+            <button class="public-nav-login" type="button" data-auth-preset="login">Entrar</button>
             <button class="public-nav-button" type="button" data-auth-preset="company">Publicar</button>
           ` : ""}
         </nav>
       </header>
+    `;
+  }
+
+  function renderPublicAuthModal() {
+    if (!state.publicAuthModalOpen) return "";
+    const title = state.authMode === "worker"
+      ? "Criar perfil worker"
+      : state.authMode === "company"
+        ? "Registar empresa"
+        : "Entrar";
+    return `
+      <div class="auth-modal-backdrop" role="presentation" data-action="close-auth-modal">
+        <section class="auth-modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+          <div class="auth-modal-header">
+            <div>
+              <p class="eyebrow">Acesso</p>
+              <h2>${escapeHtml(title)}</h2>
+            </div>
+            <button class="icon-button" type="button" data-action="close-auth-modal" aria-label="Fechar">x</button>
+          </div>
+          ${noticeHtml()}
+          ${renderAuthSwitcher({ bare: true })}
+        </section>
+      </div>
     `;
   }
 
@@ -687,6 +711,7 @@
         ${renderPublicTopNav(route)}
         ${content}
         ${renderPublicFooter()}
+        ${route === "home" ? renderPublicAuthModal() : ""}
       </main>
     `;
     bindPublicEvents();
@@ -759,7 +784,7 @@
       : "Sem vagas encontradas";
 
     renderPublicShell(`
-      ${noticeHtml()}
+      ${state.publicAuthModalOpen ? "" : noticeHtml()}
       ${state.publicJobsWarning ? `<div class="public-warning notice error">${escapeHtml(state.publicJobsWarning)}</div>` : ""}
       <section class="market-home">
         <section class="market-hero">
@@ -825,18 +850,16 @@
           </article>
         </section>
 
-        <section class="market-access-section" id="acesso">
-          <div class="market-access-copy">
-            <p class="eyebrow">Acesso</p>
-            <h2>Entrar ou criar conta</h2>
-            <p>Workers entram para candidaturas. Empresas entram para publicar vagas e gerir operacoes. Cliente e developer entram pela area reservada.</p>
-            <div class="quick-filter-row" aria-label="Filtros rapidos">
-              ${locations.slice(0, 4).map((value) => `<button type="button" data-market-preset="location" data-market-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`).join("")}
-              ${positions.slice(0, 4).map((value) => `<button type="button" data-market-preset="position" data-market-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`).join("")}
-            </div>
+        <section class="market-account-strip" id="acesso">
+          <div>
+            <p class="eyebrow">Conta</p>
+            <h2>Entrar, candidatar-se ou publicar.</h2>
           </div>
-          <div class="market-auth-panel">
-            ${renderAuthSwitcher()}
+          <div class="market-account-actions">
+            <button class="btn primary" type="button" data-auth-preset="login">Entrar</button>
+            <button class="btn accent" type="button" data-auth-preset="worker">Criar worker</button>
+            <button class="btn ghost" type="button" data-auth-preset="company">Registar empresa</button>
+            <a class="btn ghost" href="/cliente">Area do cliente</a>
           </div>
         </section>
       </section>
@@ -911,10 +934,10 @@
     `;
   }
 
-  function renderAuthSwitcher() {
+  function renderAuthSwitcher(options = {}) {
     const mode = state.authMode;
     return `
-      <div class="panel">
+      <div class="${options.bare ? "auth-switcher" : "panel auth-switcher"}">
         <div class="segmented">
           <button class="${mode === "login" ? "active" : ""}" data-auth-mode="login">Entrar</button>
           <button class="${mode === "worker" ? "active" : ""}" data-auth-mode="worker">Worker</button>
@@ -1183,7 +1206,17 @@
     document.querySelectorAll("[data-auth-mode]").forEach((button) => {
       button.addEventListener("click", () => {
         state.authMode = button.dataset.authMode;
+        state.publicAuthModalOpen = true;
         state.publicMenuOpen = false;
+        clearNotice();
+        renderPublicBoard();
+      });
+    });
+
+    document.querySelectorAll("[data-action='close-auth-modal']").forEach((element) => {
+      element.addEventListener("click", (event) => {
+        if (element.classList.contains("auth-modal-backdrop") && event.target !== element) return;
+        state.publicAuthModalOpen = false;
         clearNotice();
         renderPublicBoard();
       });
@@ -1192,6 +1225,8 @@
     document.querySelectorAll("[data-public-apply]").forEach((button) => {
       button.addEventListener("click", () => {
         state.authMode = "worker";
+        state.publicAuthModalOpen = true;
+        state.publicMenuOpen = false;
         setNotice("Registe-se como worker para se candidatar a esta vaga.");
         renderPublicBoard();
       });
@@ -1200,6 +1235,8 @@
     document.querySelectorAll("[data-public-create-job]").forEach((button) => {
       button.addEventListener("click", () => {
         state.authMode = "company";
+        state.publicAuthModalOpen = true;
+        state.publicMenuOpen = false;
         setNotice("Registe-se como empresa para publicar vagas.");
         renderPublicBoard();
       });
@@ -1209,11 +1246,10 @@
       button.addEventListener("click", (event) => {
         event.preventDefault();
         state.authMode = button.dataset.authPreset || "login";
+        state.publicAuthModalOpen = true;
+        state.publicMenuOpen = false;
         clearNotice();
         renderPublicBoard();
-        requestAnimationFrame(() => {
-          document.getElementById("acesso")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
       });
     });
 
