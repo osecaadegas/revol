@@ -12,6 +12,7 @@
 - Simplified public login/register by moving trabalhador, company and login forms into a topbar-triggered modal and removing the large inline auth panel.
 - Made the public topbar account entry explicit as `Login / Registar` and restyled it so visitors can immediately find the login/register modal.
 - Renamed public-facing `worker` labels to `Trabalhador` while keeping the internal role, API paths and Supabase schema stable.
+- Added SEO core routes with dynamic canonical metadata, `robots.txt`, `sitemap.xml`, server-rendered public vacancy detail pages and JobPosting structured data.
 
 ## 2026-08-12
 

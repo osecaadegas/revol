@@ -253,6 +253,16 @@ Status: complete.
 - Kept `worker` as the internal role/API/storage identifier to avoid a database migration or breaking existing sessions, rows and Supabase indexes.
 - Bumped the public shell cache and asset query string so browsers fetch the updated copy.
 
+### M26 - SEO Core
+
+Status: complete.
+
+- Added dynamic public SEO metadata for `/`, `/cliente` and noindex restricted shell routes.
+- Added `/robots.txt` and `/sitemap.xml`, with sitemap entries generated from the current open public vacancies.
+- Added server-rendered `/vagas/:id` pages for open vacancies with canonical tags, visible vacancy content, Open Graph/Twitter metadata and JobPosting JSON-LD.
+- Added `PUBLIC_SITE_URL` as the production canonical-origin override while keeping request-origin fallback for local and preview environments.
+- Added smoke coverage for robots, sitemap, homepage metadata, job detail structured data and missing-job noindex behavior.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.
@@ -266,9 +276,10 @@ Status: complete.
 9. Run `supabase/migrations/20260817000000_worker_cv_profiles.sql` in production.
 10. Verify `/api/cron/operational-maintenance` runs from the configured scheduler.
 11. Verify trabalhador/company registration, trabalhador CV publishing, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
-12. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
-13. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-14. Add browser-driven regression coverage for public routes, public filtering and trabalhador application.
+12. Set `PUBLIC_SITE_URL` in production to the final public origin and submit `/sitemap.xml` in Google Search Console after the first production deployment.
+13. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+14. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+15. Add browser-driven regression coverage for public routes, public filtering and trabalhador application.
 
 ## Agent Update Protocol
 

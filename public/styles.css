@@ -802,6 +802,102 @@ td span:not(.status-badge) {
   position: static;
 }
 
+.seo-job-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(30px, 5vw, 72px) clamp(18px, 4vw, 56px) 72px;
+}
+
+.seo-back-link {
+  display: inline-flex;
+  margin-bottom: 18px;
+  color: var(--accent);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.seo-job-hero {
+  display: grid;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: clamp(24px, 4vw, 44px);
+}
+
+.seo-job-hero h1 {
+  max-width: 880px;
+  margin: 0;
+  font-size: clamp(2.2rem, 5vw, 4.9rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+.seo-job-hero p:not(.eyebrow) {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.08rem;
+  line-height: 1.55;
+}
+
+.seo-job-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+  align-items: start;
+  padding-top: 28px;
+}
+
+.seo-job-main,
+.seo-job-side {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.seo-job-main {
+  padding: clamp(20px, 3vw, 32px);
+}
+
+.seo-job-main h2,
+.seo-job-side h2 {
+  margin: 0 0 12px;
+}
+
+.seo-job-main p {
+  color: var(--muted);
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.seo-job-side {
+  position: sticky;
+  top: 84px;
+  padding: 20px;
+}
+
+.seo-job-side dl,
+.seo-job-side dd {
+  margin: 0;
+}
+
+.seo-job-side dl {
+  display: grid;
+  gap: 14px;
+}
+
+.seo-job-side dt {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.seo-job-side dd {
+  margin-top: 3px;
+  font-weight: 800;
+}
+
 .public-layout .auth-hero {
   min-height: 58vh;
 }
@@ -2308,6 +2404,14 @@ td span:not(.status-badge) {
 
   .market-account-actions .btn {
     flex: 1 1 150px;
+  }
+
+  .seo-job-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .seo-job-side {
+    position: static;
   }
 
   .manifesto-hero,

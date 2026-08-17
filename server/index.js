@@ -31,6 +31,8 @@ const CRON_SECRET = String(process.env.CRON_SECRET || "");
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
+const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
+const PUBLIC_ASSET_VERSION = "20260817-seo-core";
 const GOOGLE_AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo";
@@ -1061,6 +1063,28 @@ function sendRedirect(res, location, headers = {}) {
   res.end();
 }
 
+function sendHtml(res, status, body, headers = {}) {
+  res.writeHead(status, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Content-Length": Buffer.byteLength(body),
+    "Cache-Control": status === 200 ? "public, max-age=300" : "no-store",
+    "X-Content-Type-Options": "nosniff",
+    ...headers
+  });
+  res.end(body);
+}
+
+function sendText(res, status, body, contentType, headers = {}) {
+  res.writeHead(status, {
+    "Content-Type": contentType,
+    "Content-Length": Buffer.byteLength(body),
+    "Cache-Control": "public, max-age=900",
+    "X-Content-Type-Options": "nosniff",
+    ...headers
+  });
+  res.end(body);
+}
+
 function sendError(res, error) {
   const status = error.status || 500;
   const message = status >= 500 ? "Internal server error." : error.message;
@@ -1912,10 +1936,7 @@ function completeGoogleAuth(db, googleUser, intent, req) {
 
 function publicJobsPayload(db) {
   return {
-    jobs: db.jobOffers
-      .filter((job) => job.status === "open")
-      .map(publicJobOffer)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    jobs: publicOpenJobs(db)
   };
 }
 
@@ -1926,6 +1947,392 @@ function publicJobsSetupFallback(error) {
     warning:
       "Database setup is incomplete. Run the Supabase reset/current schema SQL and verify the server environment variables."
   };
+}
+
+function publicOpenJobs(db) {
+  return (db.jobOffers || [])
+    .filter((job) => job.status === "open")
+    .map(publicJobOffer)
+    .sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""));
+}
+
+function originFromRequest(req) {
+  if (PUBLIC_SITE_URL) {
+    try {
+      return new URL(PUBLIC_SITE_URL).origin;
+    } catch {
+      // Fall through to the request-derived origin below.
+    }
+  }
+  const forwardedHost = String(req.headers["x-forwarded-host"] || "").split(",")[0].trim();
+  const host = forwardedHost || String(req.headers.host || "localhost:4173").split(",")[0].trim();
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const proto = forwardedProto || (req.socket?.encrypted ? "https" : "http");
+  return `${proto}://${host}`;
+}
+
+function absolutePublicUrl(req, pathname = "/") {
+  return new URL(pathname, `${originFromRequest(req)}/`).toString();
+}
+
+function publicJobPath(job) {
+  return `/vagas/${encodeURIComponent(job.id)}`;
+}
+
+function htmlEscape(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function xmlEscape(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function plainText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function truncateText(value, max = 155) {
+  const text = plainText(value);
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).trim()}...`;
+}
+
+function safeDate(value) {
+  const date = new Date(value || "");
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+function safeHttpUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return ["http:", "https:"].includes(url.protocol) ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function formatPublicDate(value) {
+  const date = new Date(value || "");
+  if (Number.isNaN(date.getTime())) return "Sem data";
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(date);
+}
+
+function jsonLdScript(data) {
+  return JSON.stringify(data, null, 2).replace(/<\//g, "<\\/");
+}
+
+function siteStructuredData(req) {
+  const origin = originFromRequest(req);
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${origin}/#organization`,
+        name: "LuisTrata",
+        url: `${origin}/`,
+        logo: absolutePublicUrl(req, "/icon.svg")
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${origin}/#website`,
+        name: "LuisTrata Jobs",
+        alternateName: "LuisTrata",
+        url: `${origin}/`,
+        inLanguage: "pt-PT",
+        publisher: { "@id": `${origin}/#organization` }
+      }
+    ]
+  };
+}
+
+function isRemoteJob(job) {
+  return /remoto|remote|teletrabalho/i.test(`${job.location || ""} ${job.description || ""}`);
+}
+
+function employmentTypeFromContract(value) {
+  const text = plainText(value).toLowerCase();
+  if (!text) return "";
+  if (text.includes("part") || text.includes("parcial")) return "PART_TIME";
+  if (text.includes("full") || text.includes("inteiro") || text.includes("efetivo")) return "FULL_TIME";
+  if (text.includes("tempor") || text.includes("sazonal")) return "TEMPORARY";
+  if (text.includes("estag")) return "INTERN";
+  if (text.includes("contrat") || text.includes("projeto") || text.includes("prestacao")) return "CONTRACTOR";
+  return "OTHER";
+}
+
+function jobDescriptionForStructuredData(job) {
+  return [
+    `<p>${htmlEscape(job.description)}</p>`,
+    job.requirements ? `<p><strong>Requisitos:</strong> ${htmlEscape(job.requirements)}</p>` : "",
+    job.schedule ? `<p><strong>Horario:</strong> ${htmlEscape(job.schedule)}</p>` : "",
+    job.salary ? `<p><strong>Remuneracao:</strong> ${htmlEscape(job.salary)}</p>` : ""
+  ].filter(Boolean).join("");
+}
+
+function jobStructuredData(job, company, req) {
+  const title = plainText(job.position || job.title);
+  const companyWebsite = safeHttpUrl(company?.website);
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title,
+    description: jobDescriptionForStructuredData(job),
+    identifier: {
+      "@type": "PropertyValue",
+      name: job.companyName || company?.name || "LuisTrata",
+      value: job.id
+    },
+    datePosted: safeDate(job.createdAt) || now(),
+    employmentType: employmentTypeFromContract(job.contractType) || undefined,
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.companyName || company?.name || "Empresa"
+    },
+    url: absolutePublicUrl(req, publicJobPath(job)),
+    industry: company?.sector || undefined
+  };
+  if (companyWebsite) data.hiringOrganization.sameAs = companyWebsite;
+  if (isRemoteJob(job)) {
+    data.jobLocationType = "TELECOMMUTE";
+    data.applicantLocationRequirements = {
+      "@type": "Country",
+      name: "Portugal"
+    };
+  } else {
+    data.jobLocation = {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: job.location,
+        addressCountry: "PT"
+      }
+    };
+  }
+  return JSON.parse(JSON.stringify(data));
+}
+
+function seoForPublicPath(pathname, req) {
+  if (pathname === "/cliente" || pathname === "/dashboard") {
+    return {
+      title: "Area do Cliente - LuisTrata",
+      description: "Acesso reservado para cliente e equipa de desenvolvimento acompanharem projeto, MVP e documentacao privada.",
+      canonical: absolutePublicUrl(req, "/cliente"),
+      robots: "index,follow",
+      type: "website"
+    };
+  }
+  if (pathname === "/changelog") {
+    return {
+      title: "Acesso reservado - LuisTrata",
+      description: "Area reservada para acompanhamento privado do projeto LuisTrata.",
+      canonical: absolutePublicUrl(req, "/cliente"),
+      robots: "noindex,follow",
+      type: "website"
+    };
+  }
+  return {
+    title: "LuisTrata Jobs - Vagas abertas",
+    description: "Vagas publicas em Portugal para trabalhadores e empresas, com pesquisa por cargo, empresa, localizacao e raio.",
+    canonical: absolutePublicUrl(req, "/"),
+    robots: "index,follow",
+    type: "website"
+  };
+}
+
+function replaceHeadTag(html, pattern, replacement) {
+  if (pattern.test(html)) return html.replace(pattern, replacement);
+  return html.replace("</head>", `    ${replacement}\n  </head>`);
+}
+
+function renderPublicIndexHtml(template, req, pathname) {
+  const seo = seoForPublicPath(pathname, req);
+  let html = template
+    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${htmlEscape(seo.title)}</title>`);
+  html = replaceHeadTag(
+    html,
+    /<meta name="description" content="[^"]*">/i,
+    `<meta name="description" content="${htmlEscape(seo.description)}">`
+  );
+  html = replaceHeadTag(html, /<meta name="robots" content="[^"]*">/i, `<meta name="robots" content="${seo.robots}">`);
+  html = replaceHeadTag(html, /<meta property="og:title" content="[^"]*">/i, `<meta property="og:title" content="${htmlEscape(seo.title)}">`);
+  html = replaceHeadTag(html, /<meta property="og:description" content="[^"]*">/i, `<meta property="og:description" content="${htmlEscape(seo.description)}">`);
+  html = replaceHeadTag(html, /<meta property="og:type" content="[^"]*">/i, `<meta property="og:type" content="${seo.type}">`);
+  html = replaceHeadTag(html, /<meta property="og:url" content="[^"]*">/i, `<meta property="og:url" content="${htmlEscape(seo.canonical)}">`);
+  html = replaceHeadTag(html, /<meta property="og:site_name" content="[^"]*">/i, `<meta property="og:site_name" content="LuisTrata">`);
+  html = replaceHeadTag(html, /<meta name="twitter:card" content="[^"]*">/i, `<meta name="twitter:card" content="summary">`);
+  html = replaceHeadTag(html, /<meta name="twitter:title" content="[^"]*">/i, `<meta name="twitter:title" content="${htmlEscape(seo.title)}">`);
+  html = replaceHeadTag(html, /<meta name="twitter:description" content="[^"]*">/i, `<meta name="twitter:description" content="${htmlEscape(seo.description)}">`);
+  html = replaceHeadTag(html, /<link rel="canonical" href="[^"]*">/i, `<link rel="canonical" href="${htmlEscape(seo.canonical)}">`);
+  html = replaceHeadTag(
+    html,
+    /<script type="application\/ld\+json" id="site-structured-data">[\s\S]*?<\/script>/i,
+    `<script type="application/ld+json" id="site-structured-data">${jsonLdScript(siteStructuredData(req))}</script>`
+  );
+  return html;
+}
+
+function renderPublicTopbarStatic(activePath = "/") {
+  return `
+      <header class="public-topbar">
+        <a class="public-brand" href="/">
+          <span class="brand-mark">LT</span>
+          <div><strong>LuisTrata</strong></div>
+        </a>
+        <nav class="public-nav" aria-label="Navegacao principal">
+          <a href="/" class="${activePath === "/" ? "active" : ""}">Procurar</a>
+          <a href="/cliente" class="${activePath === "/cliente" ? "active" : ""}">Area do Cliente</a>
+          <a class="public-nav-login" href="/#acesso">Login / Registar</a>
+          <a class="public-nav-button" href="/#acesso">Publicar vaga</a>
+        </nav>
+      </header>`;
+}
+
+function renderSeoJobPage(job, company, req) {
+  const title = `${plainText(job.position || job.title)} em ${plainText(job.location)} | ${plainText(job.companyName || "Empresa")} | LuisTrata`;
+  const description = truncateText(`${job.position || job.title} em ${job.location} na ${job.companyName || "empresa"}. ${job.description}`, 156);
+  const canonical = absolutePublicUrl(req, publicJobPath(job));
+  return `<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${htmlEscape(title)}</title>
+    <meta name="description" content="${htmlEscape(description)}">
+    <meta name="robots" content="index,follow">
+    <meta name="theme-color" content="#0a66c2">
+    <meta property="og:title" content="${htmlEscape(title)}">
+    <meta property="og:description" content="${htmlEscape(description)}">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="${htmlEscape(canonical)}">
+    <meta property="og:site_name" content="LuisTrata">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="${htmlEscape(title)}">
+    <meta name="twitter:description" content="${htmlEscape(description)}">
+    <link rel="canonical" href="${htmlEscape(canonical)}">
+    <link rel="stylesheet" href="/styles.css?v=${PUBLIC_ASSET_VERSION}">
+    <script type="application/ld+json" id="job-structured-data">${jsonLdScript(jobStructuredData(job, company, req))}</script>
+    <script type="application/ld+json" id="site-structured-data">${jsonLdScript(siteStructuredData(req))}</script>
+  </head>
+  <body>
+    <main class="manifesto-shell seo-shell">
+      ${renderPublicTopbarStatic("/")}
+      <section class="seo-job-page">
+        <a class="seo-back-link" href="/">Voltar as vagas</a>
+        <article class="seo-job-hero">
+          <p class="eyebrow">Vaga aberta</p>
+          <h1>${htmlEscape(job.position || job.title)}</h1>
+          <p>${htmlEscape(job.title)}</p>
+          <div class="meta-row">
+            <span>${htmlEscape(job.companyName || "Empresa")}</span>
+            <span>${htmlEscape(job.location)}</span>
+            <span>${htmlEscape(job.contractType || "A combinar")}</span>
+            <span>Publicada ${htmlEscape(formatPublicDate(job.createdAt))}</span>
+          </div>
+          <div class="card-actions">
+            <a class="btn accent" href="/#acesso">Candidatar-me</a>
+            <a class="btn ghost" href="/">Ver outras vagas</a>
+          </div>
+        </article>
+        <section class="seo-job-layout">
+          <article class="seo-job-main">
+            <h2>Descricao da vaga</h2>
+            <p>${htmlEscape(job.description)}</p>
+            ${job.requirements ? `<h2>Requisitos</h2><p>${htmlEscape(job.requirements)}</p>` : ""}
+          </article>
+          <aside class="seo-job-side">
+            <h2>Resumo</h2>
+            <dl>
+              <div><dt>Empresa</dt><dd>${htmlEscape(job.companyName || "Empresa")}</dd></div>
+              <div><dt>Localizacao</dt><dd>${htmlEscape(job.location)}</dd></div>
+              <div><dt>Contrato</dt><dd>${htmlEscape(job.contractType || "A combinar")}</dd></div>
+              ${job.salary ? `<div><dt>Remuneracao</dt><dd>${htmlEscape(job.salary)}</dd></div>` : ""}
+              ${job.schedule ? `<div><dt>Horario</dt><dd>${htmlEscape(job.schedule)}</dd></div>` : ""}
+            </dl>
+          </aside>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>`;
+}
+
+function renderSeoNotFoundPage(req) {
+  const canonical = absolutePublicUrl(req, "/");
+  return `<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vaga nao encontrada | LuisTrata</title>
+    <meta name="description" content="A vaga ja nao esta aberta ou nao existe. Consulte as vagas abertas no LuisTrata.">
+    <meta name="robots" content="noindex,follow">
+    <link rel="canonical" href="${htmlEscape(canonical)}">
+    <link rel="stylesheet" href="/styles.css?v=${PUBLIC_ASSET_VERSION}">
+  </head>
+  <body>
+    <main class="manifesto-shell seo-shell">
+      ${renderPublicTopbarStatic("/")}
+      <section class="seo-job-page">
+        <article class="seo-job-hero">
+          <p class="eyebrow">Vaga indisponivel</p>
+          <h1>Esta vaga ja nao esta aberta.</h1>
+          <p>Consulte a lista publica para encontrar vagas ativas.</p>
+          <a class="btn primary" href="/">Ver vagas abertas</a>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>`;
+}
+
+function renderRobotsTxt(req) {
+  return [
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /api/",
+    "Disallow: /data/",
+    "Disallow: /tmp/",
+    `Sitemap: ${absolutePublicUrl(req, "/sitemap.xml")}`,
+    ""
+  ].join("\n");
+}
+
+function renderSitemapXml(req, db) {
+  const jobs = publicOpenJobs(db);
+  const latest = jobs[0]?.updatedAt || jobs[0]?.createdAt || db.meta?.createdAt || now();
+  const entries = [
+    { path: "/", lastmod: latest, priority: "1.0" },
+    { path: "/cliente", lastmod: latest, priority: "0.4" },
+    ...jobs.map((job) => ({
+      path: publicJobPath(job),
+      lastmod: job.updatedAt || job.createdAt || latest,
+      priority: "0.8"
+    }))
+  ];
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries.map((entry) => `  <url>
+    <loc>${xmlEscape(absolutePublicUrl(req, entry.path))}</loc>
+    <lastmod>${xmlEscape(safeDate(entry.lastmod) || now())}</lastmod>
+    <priority>${entry.priority}</priority>
+  </url>`).join("\n")}
+</urlset>
+`;
 }
 
 function createMarketplaceSessionResponse(db, user, company) {
@@ -3009,17 +3416,20 @@ async function serveStatic(req, res, pathname) {
   const ext = path.extname(filePath).toLowerCase();
   const body = await fsp.readFile(filePath);
   const fileName = path.basename(filePath);
+  const responseBody = fileName === "index.html"
+    ? Buffer.from(renderPublicIndexHtml(body.toString("utf8"), req, pathname))
+    : body;
   const cacheControl =
     [".html", ".js", ".css", ".webmanifest"].includes(ext) || fileName === "service-worker.js"
       ? "no-store"
       : "public, max-age=3600";
   res.writeHead(200, {
     "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
-    "Content-Length": body.length,
+    "Content-Length": responseBody.length,
     "Cache-Control": cacheControl,
     "X-Content-Type-Options": "nosniff"
   });
-  res.end(body);
+  res.end(responseBody);
 }
 
 async function requestHandler(req, res) {
@@ -3027,6 +3437,43 @@ async function requestHandler(req, res) {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
     if (url.pathname.startsWith("/api/")) {
       await handleApi(req, res, url.pathname);
+      return;
+    }
+    if (req.method === "GET" && url.pathname === "/robots.txt") {
+      sendText(res, 200, renderRobotsTxt(req), "text/plain; charset=utf-8");
+      return;
+    }
+    if (req.method === "GET" && url.pathname === "/sitemap.xml") {
+      try {
+        const db = await readDb();
+        sendText(res, 200, renderSitemapXml(req, db), "application/xml; charset=utf-8");
+      } catch (error) {
+        if (APP_STORAGE_DRIVER !== "supabase") throw error;
+        console.error(`Sitemap jobs unavailable: ${error.message}`);
+        sendText(res, 200, renderSitemapXml(req, createEmptyDb()), "application/xml; charset=utf-8");
+      }
+      return;
+    }
+    const jobPageMatch = url.pathname.match(/^\/vagas\/([^/]+)$/);
+    if (req.method === "GET" && jobPageMatch) {
+      const jobOfferId = decodeURIComponent(jobPageMatch[1]);
+      try {
+        const db = await readDb();
+        const job = publicOpenJobs(db).find((item) => item.id === jobOfferId);
+        if (!job) {
+          sendHtml(res, 404, renderSeoNotFoundPage(req), { "X-Robots-Tag": "noindex, follow" });
+          return;
+        }
+        const company = db.companies.find((item) => item.id === job.companyId);
+        sendHtml(res, 200, renderSeoJobPage(job, company, req));
+      } catch (error) {
+        if (APP_STORAGE_DRIVER !== "supabase") throw error;
+        console.error(`Job SEO page unavailable: ${error.message}`);
+        sendHtml(res, 503, renderSeoNotFoundPage(req), {
+          "Retry-After": "300",
+          "X-Robots-Tag": "noindex, follow"
+        });
+      }
       return;
     }
     await serveStatic(req, res, url.pathname);

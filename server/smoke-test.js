@@ -59,6 +59,15 @@ async function requestRaw(baseUrl, method, pathName, body, token, extraHeaders =
   return { status: response.status, payload };
 }
 
+async function requestText(baseUrl, pathName) {
+  const response = await fetch(`${baseUrl}${pathName}`);
+  const payload = await response.text();
+  if (!response.ok) {
+    throw new Error(`GET ${pathName} failed: ${response.status} ${payload.slice(0, 160)}`);
+  }
+  return payload;
+}
+
 async function run() {
   const server = createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -69,6 +78,16 @@ async function run() {
     const beforeJobs = await request(baseUrl, "GET", "/api/jobs/public");
     if (!Array.isArray(beforeJobs.jobs) || beforeJobs.jobs.length !== 0) {
       throw new Error("Public jobs should start empty in smoke test.");
+    }
+
+    const robots = await requestText(baseUrl, "/robots.txt");
+    if (!robots.includes("Disallow: /api/") || !robots.includes(`${baseUrl}/sitemap.xml`)) {
+      throw new Error("robots.txt should disallow API crawling and expose the sitemap URL.");
+    }
+
+    const homeHtml = await requestText(baseUrl, "/");
+    if (!homeHtml.includes(`<link rel="canonical" href="${baseUrl}/">`) || !homeHtml.includes("site-structured-data")) {
+      throw new Error("Home page should expose canonical metadata and structured data.");
     }
 
     const companyRegistration = await request(baseUrl, "POST", "/api/register/company", {
@@ -100,6 +119,26 @@ async function run() {
     const publicJobs = await request(baseUrl, "GET", "/api/jobs/public");
     if (publicJobs.jobs.length !== 1 || publicJobs.jobs[0].id !== jobResult.jobOffer.id) {
       throw new Error("Public job board did not expose the company vacancy.");
+    }
+
+    const sitemap = await requestText(baseUrl, "/sitemap.xml");
+    if (!sitemap.includes(`${baseUrl}/vagas/${jobResult.jobOffer.id}`) || !sitemap.includes("<urlset")) {
+      throw new Error("Sitemap should include open public vacancy detail pages.");
+    }
+
+    const jobPage = await requestText(baseUrl, `/vagas/${jobResult.jobOffer.id}`);
+    if (
+      !jobPage.includes("JobPosting") ||
+      !jobPage.includes("Operador operacional") ||
+      !jobPage.includes(`<link rel="canonical" href="${baseUrl}/vagas/${jobResult.jobOffer.id}">`)
+    ) {
+      throw new Error("Public vacancy detail page should expose crawlable job content and JobPosting structured data.");
+    }
+
+    const missingJobPage = await fetch(`${baseUrl}/vagas/not-found`);
+    const missingJobHtml = await missingJobPage.text();
+    if (missingJobPage.status !== 404 || !missingJobHtml.includes("noindex,follow")) {
+      throw new Error("Missing or closed vacancy detail pages should return 404 with noindex metadata.");
     }
 
     const workerRegistration = await request(baseUrl, "POST", "/api/register/worker", {

@@ -43,6 +43,18 @@ Handles the Google authorization-code callback, creates the normal app session c
 
 Returns open vacancies visible without authentication. The frontend applies keyword, cargo/function, location, and radius filters client-side.
 
+`GET /robots.txt`
+
+Returns crawler directives for the public site and points to the generated sitemap. This route is public and not part of the JSON API namespace.
+
+`GET /sitemap.xml`
+
+Returns an XML sitemap containing `/`, `/cliente`, and open public vacancy detail pages. URLs use `PUBLIC_SITE_URL` when configured, otherwise the request origin.
+
+`GET /vagas/:id`
+
+Returns a server-rendered public detail page for an open vacancy with canonical metadata and JobPosting structured data. Closed or missing vacancies return `404` with noindex metadata.
+
 `POST /api/register/worker`
 
 Creates a trabalhador account and session with an unpublished CV draft. Trabalhadores must publish the CV before applying to vacancies.

@@ -1700,6 +1700,7 @@
         ${publicMode ? `
           <div class="card-actions">
             <button class="btn accent" data-public-apply="${escapeHtml(job.id)}">Candidatar-me</button>
+            <a class="btn ghost" href="/vagas/${encodeURIComponent(job.id)}">Ver detalhes</a>
             <button class="btn ghost" data-auth-preset="login">Entrar</button>
           </div>
         ` : isWorker() ? `

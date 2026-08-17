@@ -67,6 +67,7 @@ CRON_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=
+PUBLIC_SITE_URL=
 ```
 
 `PORT` controls the server port.
@@ -88,6 +89,24 @@ GOOGLE_REDIRECT_URI=
 `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable Google OAuth login.
 
 `GOOGLE_REDIRECT_URI` is optional. If empty, the server derives `/api/auth/google/callback` from the active request origin. In production, set it explicitly if your hosting/proxy origin is not stable.
+
+`PUBLIC_SITE_URL` is optional but recommended in production. Set it to the final public origin, for example `https://your-production-domain`, so canonical URLs, `robots.txt`, `sitemap.xml`, and server-rendered public vacancy detail pages use one stable domain. If empty, the server derives the origin from the request headers.
+
+## SEO Setup
+
+The public marketplace has server-generated SEO basics:
+
+- `/` and `/cliente` receive canonical, Open Graph, Twitter and WebSite/Organization structured metadata.
+- `/robots.txt` allows the public site, blocks `/api/`, and points crawlers to `/sitemap.xml`.
+- `/sitemap.xml` lists `/`, `/cliente`, and every currently open public vacancy as `/vagas/:id`.
+- `/vagas/:id` renders an open vacancy as HTML with visible job content and JobPosting JSON-LD.
+- Closed or missing vacancy pages return `404` with `noindex,follow`.
+
+For production, set `PUBLIC_SITE_URL`, deploy, then submit the sitemap URL in Google Search Console:
+
+```text
+https://your-production-domain/sitemap.xml
+```
 
 ## Google Login Setup
 
@@ -183,6 +202,8 @@ Output directory: empty
 
 Set the Supabase environment variables before deploying. If Google login is enabled, also set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and optionally `GOOGLE_REDIRECT_URI`. Do not use local filesystem persistence on Vercel.
 
+Set `PUBLIC_SITE_URL` to the final production URL before deploying if the project uses preview URLs or custom domains. This keeps canonical URLs and sitemap links stable.
+
 Set `CRON_SECRET` before deploying. `vercel.json` schedules `/api/cron/operational-maintenance` daily at 07:00 UTC, which is compatible with broad Vercel plan limits. The endpoint can also be called more frequently by an external scheduler or a Vercel Pro cron if stricter reminder timing is required. The request must send:
 
 ```text
@@ -210,3 +231,5 @@ npm run smoke
 `npm run smoke` creates a temporary local database, exercises public vacancy visibility, company registration, vacancy creation, trabalhador registration, trabalhador CV publishing, application submission, application review, user creation, work order creation, task assignment, GPS-required multi-photo evidence upload, three-photo validation enforcement, task submission, manager approval, scheduled maintenance authorization, employer validation reminders, authenticated image access, and watermarked evidence download.
 
 Manual UI verification should include `/` as the public vacancy feed, `/cliente` as the reserved project login, `/changelog`, public navigation, mobile menu, vacancy filters, login/register forms, the private `Projeto` and `MVP` workspace tabs for client/developer users, `/api/project/private` and `/api/mvp/private` authorization behavior, and authenticated operational workspace routes for company/manager/employee/contractor users.
+
+Manual SEO verification should include `/robots.txt`, `/sitemap.xml`, one open `/vagas/:id` URL, and one missing `/vagas/:id` URL.
