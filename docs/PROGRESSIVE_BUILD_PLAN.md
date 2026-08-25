@@ -290,7 +290,7 @@ Status: complete.
 - Marked the reserved `/cliente` access gate as `noindex,follow` and removed it from `/sitemap.xml`.
 - Added a branded 1200x630 `social-card.svg` preview asset and wired Open Graph/Twitter image metadata into the public shell and server-rendered vacancy pages.
 - Changed unknown static-like paths to return noindex 404 pages instead of falling back to the homepage.
-- Added baseline security/privacy headers for HTML, JSON, static assets and private media responses.
+- Added baseline security/privacy headers for HTML, JSON, static assets and private media responses, with matching Vercel static-header configuration.
 - Bumped the public shell cache and smoke coverage for the hardened SEO and header behavior.
 
 ## Next Recommended Work

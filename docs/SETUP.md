@@ -188,7 +188,7 @@ For production:
 - Restrict server filesystem access.
 - Use strong passwords and remove inactive users quickly.
 - Review privacy/labor notices before using real trabalhador data.
-- Review the baseline security headers before adding third-party scripts or embedded content. The app currently sets CSP, frame-denial, referrer, permissions and content-type protection headers from the Node server.
+- Review the baseline security headers before adding third-party scripts or embedded content. The app currently sets CSP, frame-denial, referrer, permissions and content-type protection headers from the Node server and mirrors them in `vercel.json` for Vercel-served static assets.
 
 Local filesystem persistence is not suitable for serverless platforms that discard file writes between requests. For Vercel/serverless, set `APP_STORAGE_DRIVER=supabase`.
 

@@ -5,7 +5,7 @@
 - Marked `/cliente` as a reserved noindex access gate and removed it from the generated sitemap.
 - Added a branded `social-card.svg` preview image with Open Graph and Twitter large-image metadata on the public shell and vacancy detail pages.
 - Changed unknown static-like paths such as `/data/*` to return noindex 404 pages instead of the homepage.
-- Added baseline security/privacy headers across app, API, static and private media responses.
+- Added baseline security/privacy headers across app, API, static and private media responses, including Vercel static-asset header configuration.
 - Bumped the public shell cache and smoke coverage for SEO hardening behavior.
 
 ## 2026-08-17
