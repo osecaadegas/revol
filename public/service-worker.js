@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v2";
+const CACHE_NAME = "tratapro-shell-v3";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
@@ -6,7 +6,8 @@ const SHELL_ASSETS = [
   "/app.js",
   "/manifest.webmanifest",
   "/icon.svg",
-  "/logo.svg"
+  "/logo.svg",
+  "/social-card.svg"
 ];
 
 self.addEventListener("install", (event) => {

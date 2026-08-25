@@ -85,9 +85,30 @@ async function run() {
       throw new Error("robots.txt should disallow API crawling and expose the sitemap URL.");
     }
 
-    const homeHtml = await requestText(baseUrl, "/");
+    const homeResponse = await fetch(`${baseUrl}/`);
+    const homeHtml = await homeResponse.text();
+    if (!homeResponse.ok) {
+      throw new Error(`GET / failed: ${homeResponse.status} ${homeHtml.slice(0, 160)}`);
+    }
     if (!homeHtml.includes(`<link rel="canonical" href="${baseUrl}/">`) || !homeHtml.includes("site-structured-data")) {
       throw new Error("Home page should expose canonical metadata and structured data.");
+    }
+    if (!homeHtml.includes("summary_large_image") || !homeHtml.includes(`${baseUrl}/social-card.svg`)) {
+      throw new Error("Home page should expose a large branded social preview image.");
+    }
+    if (!homeResponse.headers.get("content-security-policy") || homeResponse.headers.get("x-frame-options") !== "DENY") {
+      throw new Error("Home page should expose baseline security headers.");
+    }
+
+    const clientHtml = await requestText(baseUrl, "/cliente");
+    if (!clientHtml.includes('content="noindex,follow"') || !clientHtml.includes(`${baseUrl}/social-card.svg`)) {
+      throw new Error("Reserved client gate should be noindex and still expose branded preview metadata.");
+    }
+
+    const blockedStatic = await fetch(`${baseUrl}/data/test`);
+    const blockedStaticHtml = await blockedStatic.text();
+    if (blockedStatic.status !== 404 || !blockedStaticHtml.includes("noindex,follow")) {
+      throw new Error("Reserved static-like paths should return a noindex 404 instead of the public homepage.");
     }
 
     const companyRegistration = await request(baseUrl, "POST", "/api/register/company", {
@@ -125,12 +146,16 @@ async function run() {
     if (!sitemap.includes(`${baseUrl}/vagas/${jobResult.jobOffer.id}`) || !sitemap.includes("<urlset")) {
       throw new Error("Sitemap should include open public vacancy detail pages.");
     }
+    if (sitemap.includes(`${baseUrl}/cliente`)) {
+      throw new Error("Sitemap should not include the reserved client gate.");
+    }
 
     const jobPage = await requestText(baseUrl, `/vagas/${jobResult.jobOffer.id}`);
     if (
       !jobPage.includes("JobPosting") ||
       !jobPage.includes("Operador operacional") ||
-      !jobPage.includes(`<link rel="canonical" href="${baseUrl}/vagas/${jobResult.jobOffer.id}">`)
+      !jobPage.includes(`<link rel="canonical" href="${baseUrl}/vagas/${jobResult.jobOffer.id}">`) ||
+      !jobPage.includes(`${baseUrl}/social-card.svg`)
     ) {
       throw new Error("Public vacancy detail page should expose crawlable job content and JobPosting structured data.");
     }

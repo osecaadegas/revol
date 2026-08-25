@@ -32,10 +32,11 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20260817-tratapro-logo";
+const PUBLIC_ASSET_VERSION = "20260825-seo-hardening";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
+const PUBLIC_SOCIAL_IMAGE_PATH = "/social-card.svg";
 const GOOGLE_AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo";
@@ -80,6 +81,30 @@ const MIME_TYPES = {
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
   ".ico": "image/x-icon"
+};
+
+const PUBLIC_SHELL_PATHS = new Set(["/", "/index.html", "/cliente", "/dashboard", "/changelog"]);
+const SECURITY_HEADERS = {
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "img-src 'self' data: blob: https:",
+    "connect-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "manifest-src 'self'",
+    "worker-src 'self'"
+  ].join("; "),
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(self), geolocation=(self), microphone=(), payment=(), usb=()",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Resource-Policy": "same-origin",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY"
 };
 
 let writeQueue = Promise.resolve();
@@ -1044,47 +1069,47 @@ function auditSystem(db, companyId, entityType, entityId, action, detail = {}, r
   return entry;
 }
 
+function responseHeaders(headers = {}) {
+  return { ...SECURITY_HEADERS, ...headers };
+}
+
 function sendJson(res, status, payload, headers = {}) {
   const body = JSON.stringify(payload);
-  res.writeHead(status, {
+  res.writeHead(status, responseHeaders({
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
     "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff",
     ...headers
-  });
+  }));
   res.end(body);
 }
 
 function sendRedirect(res, location, headers = {}) {
-  res.writeHead(302, {
+  res.writeHead(302, responseHeaders({
     Location: location,
     "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff",
     ...headers
-  });
+  }));
   res.end();
 }
 
 function sendHtml(res, status, body, headers = {}) {
-  res.writeHead(status, {
+  res.writeHead(status, responseHeaders({
     "Content-Type": "text/html; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
     "Cache-Control": status === 200 ? "public, max-age=300" : "no-store",
-    "X-Content-Type-Options": "nosniff",
     ...headers
-  });
+  }));
   res.end(body);
 }
 
 function sendText(res, status, body, contentType, headers = {}) {
-  res.writeHead(status, {
+  res.writeHead(status, responseHeaders({
     "Content-Type": contentType,
     "Content-Length": Buffer.byteLength(body),
-    "Cache-Control": "public, max-age=900",
-    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": status === 200 ? "public, max-age=900" : "no-store",
     ...headers
-  });
+  }));
   res.end(body);
 }
 
@@ -1978,6 +2003,10 @@ function absolutePublicUrl(req, pathname = "/") {
   return new URL(pathname, `${originFromRequest(req)}/`).toString();
 }
 
+function publicSocialImageUrl(req) {
+  return absolutePublicUrl(req, PUBLIC_SOCIAL_IMAGE_PATH);
+}
+
 function publicJobPath(job) {
   return `/vagas/${encodeURIComponent(job.id)}`;
 }
@@ -2048,7 +2077,8 @@ function siteStructuredData(req) {
         "@id": `${origin}/#organization`,
         name: PUBLIC_BRAND_NAME,
         url: `${origin}/`,
-        logo: absolutePublicUrl(req, "/logo.svg")
+        logo: absolutePublicUrl(req, "/logo.svg"),
+        image: publicSocialImageUrl(req)
       },
       {
         "@type": "WebSite",
@@ -2135,7 +2165,7 @@ function seoForPublicPath(pathname, req) {
       title: `Area do Cliente - ${PUBLIC_BRAND_NAME}`,
       description: "Acesso reservado para cliente e equipa de desenvolvimento acompanharem projeto, MVP e documentacao privada.",
       canonical: absolutePublicUrl(req, "/cliente"),
-      robots: "index,follow",
+      robots: "noindex,follow",
       type: "website"
     };
   }
@@ -2164,6 +2194,8 @@ function replaceHeadTag(html, pattern, replacement) {
 
 function renderPublicIndexHtml(template, req, pathname) {
   const seo = seoForPublicPath(pathname, req);
+  const socialImage = publicSocialImageUrl(req);
+  const socialImageAlt = `${PUBLIC_BRAND_NAME} - ${PUBLIC_BRAND_SLOGAN}`;
   let html = template
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${htmlEscape(seo.title)}</title>`);
   html = replaceHeadTag(
@@ -2177,9 +2209,17 @@ function renderPublicIndexHtml(template, req, pathname) {
   html = replaceHeadTag(html, /<meta property="og:type" content="[^"]*">/i, `<meta property="og:type" content="${seo.type}">`);
   html = replaceHeadTag(html, /<meta property="og:url" content="[^"]*">/i, `<meta property="og:url" content="${htmlEscape(seo.canonical)}">`);
   html = replaceHeadTag(html, /<meta property="og:site_name" content="[^"]*">/i, `<meta property="og:site_name" content="${PUBLIC_BRAND_NAME}">`);
-  html = replaceHeadTag(html, /<meta name="twitter:card" content="[^"]*">/i, `<meta name="twitter:card" content="summary">`);
+  html = replaceHeadTag(html, /<meta property="og:image" content="[^"]*">/i, `<meta property="og:image" content="${htmlEscape(socialImage)}">`);
+  html = replaceHeadTag(html, /<meta property="og:image:secure_url" content="[^"]*">/i, `<meta property="og:image:secure_url" content="${htmlEscape(socialImage)}">`);
+  html = replaceHeadTag(html, /<meta property="og:image:type" content="[^"]*">/i, `<meta property="og:image:type" content="image/svg+xml">`);
+  html = replaceHeadTag(html, /<meta property="og:image:width" content="[^"]*">/i, `<meta property="og:image:width" content="1200">`);
+  html = replaceHeadTag(html, /<meta property="og:image:height" content="[^"]*">/i, `<meta property="og:image:height" content="630">`);
+  html = replaceHeadTag(html, /<meta property="og:image:alt" content="[^"]*">/i, `<meta property="og:image:alt" content="${htmlEscape(socialImageAlt)}">`);
+  html = replaceHeadTag(html, /<meta name="twitter:card" content="[^"]*">/i, `<meta name="twitter:card" content="summary_large_image">`);
   html = replaceHeadTag(html, /<meta name="twitter:title" content="[^"]*">/i, `<meta name="twitter:title" content="${htmlEscape(seo.title)}">`);
   html = replaceHeadTag(html, /<meta name="twitter:description" content="[^"]*">/i, `<meta name="twitter:description" content="${htmlEscape(seo.description)}">`);
+  html = replaceHeadTag(html, /<meta name="twitter:image" content="[^"]*">/i, `<meta name="twitter:image" content="${htmlEscape(socialImage)}">`);
+  html = replaceHeadTag(html, /<meta name="twitter:image:alt" content="[^"]*">/i, `<meta name="twitter:image:alt" content="${htmlEscape(socialImageAlt)}">`);
   html = replaceHeadTag(html, /<link rel="canonical" href="[^"]*">/i, `<link rel="canonical" href="${htmlEscape(seo.canonical)}">`);
   html = replaceHeadTag(
     html,
@@ -2208,6 +2248,8 @@ function renderSeoJobPage(job, company, req) {
   const title = `${plainText(job.position || job.title)} em ${plainText(job.location)} | ${plainText(job.companyName || "Empresa")} | ${PUBLIC_BRAND_NAME}`;
   const description = truncateText(`${job.position || job.title} em ${job.location} na ${job.companyName || "empresa"}. ${job.description}`, 156);
   const canonical = absolutePublicUrl(req, publicJobPath(job));
+  const socialImage = publicSocialImageUrl(req);
+  const socialImageAlt = `${PUBLIC_BRAND_NAME} - ${PUBLIC_BRAND_SLOGAN}`;
   return `<!doctype html>
 <html lang="pt-PT">
   <head>
@@ -2222,9 +2264,17 @@ function renderSeoJobPage(job, company, req) {
     <meta property="og:type" content="article">
     <meta property="og:url" content="${htmlEscape(canonical)}">
     <meta property="og:site_name" content="${PUBLIC_BRAND_NAME}">
-    <meta name="twitter:card" content="summary">
+    <meta property="og:image" content="${htmlEscape(socialImage)}">
+    <meta property="og:image:secure_url" content="${htmlEscape(socialImage)}">
+    <meta property="og:image:type" content="image/svg+xml">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="${htmlEscape(socialImageAlt)}">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${htmlEscape(title)}">
     <meta name="twitter:description" content="${htmlEscape(description)}">
+    <meta name="twitter:image" content="${htmlEscape(socialImage)}">
+    <meta name="twitter:image:alt" content="${htmlEscape(socialImageAlt)}">
     <link rel="canonical" href="${htmlEscape(canonical)}">
     <link rel="stylesheet" href="/styles.css?v=${PUBLIC_ASSET_VERSION}">
     <script type="application/ld+json" id="job-structured-data">${jsonLdScript(jobStructuredData(job, company, req))}</script>
@@ -2319,7 +2369,6 @@ function renderSitemapXml(req, db) {
   const latest = jobs[0]?.updatedAt || jobs[0]?.createdAt || db.meta?.createdAt || now();
   const entries = [
     { path: "/", lastmod: latest, priority: "1.0" },
-    { path: "/cliente", lastmod: latest, priority: "0.4" },
     ...jobs.map((job) => ({
       path: publicJobPath(job),
       lastmod: job.updatedAt || job.createdAt || latest,
@@ -2794,12 +2843,11 @@ async function handleApi(req, res, pathname) {
       return { photo: cv.profilePhoto };
     });
     const buffer = await readPrivateUploadFile(photo.storedName);
-    res.writeHead(200, {
+    res.writeHead(200, responseHeaders({
       "Content-Type": photo.mimeType,
       "Content-Length": buffer.length,
-      "Cache-Control": "private, max-age=120",
-      "X-Content-Type-Options": "nosniff"
-    });
+      "Cache-Control": "private, max-age=120"
+    }));
     res.end(buffer);
     return;
   }
@@ -3327,12 +3375,11 @@ async function handleApi(req, res, pathname) {
       return { evidence };
     });
     const buffer = await readEvidenceFile(evidence);
-    res.writeHead(200, {
+    res.writeHead(200, responseHeaders({
       "Content-Type": evidence.mimeType,
       "Content-Length": buffer.length,
-      "Cache-Control": "private, max-age=120",
-      "X-Content-Type-Options": "nosniff"
-    });
+      "Cache-Control": "private, max-age=120"
+    }));
     res.end(buffer);
     return;
   }
@@ -3362,13 +3409,12 @@ async function handleApi(req, res, pathname) {
     const source = await readEvidenceFile(context.evidence);
     const watermarked = buildWatermarkedEvidenceSvg(context.evidence, context.task, context.order, source);
     const filename = `${safeFileName(context.evidence.id)}-watermarked.svg`;
-    res.writeHead(200, {
+    res.writeHead(200, responseHeaders({
       "Content-Type": "image/svg+xml; charset=utf-8",
       "Content-Length": watermarked.length,
       "Content-Disposition": `attachment; filename="${filename}"`,
-      "Cache-Control": "private, no-store",
-      "X-Content-Type-Options": "nosniff"
-    });
+      "Cache-Control": "private, no-store"
+    }));
     res.end(watermarked);
     return;
   }
@@ -3406,13 +3452,17 @@ async function serveStatic(req, res, pathname) {
     staticPath = "/index.html";
   }
   const normalized = path.normalize(staticPath).replace(/^([/\\])+/, "");
-  let filePath = path.join(PUBLIC_DIR, normalized);
-  if (!filePath.startsWith(PUBLIC_DIR)) {
-    res.writeHead(403);
-    res.end("Forbidden");
+  let filePath = path.resolve(PUBLIC_DIR, normalized);
+  const publicRoot = path.resolve(PUBLIC_DIR);
+  if (filePath !== publicRoot && !filePath.startsWith(`${publicRoot}${path.sep}`)) {
+    sendText(res, 403, "Forbidden", "text/plain; charset=utf-8", { "X-Robots-Tag": "noindex, nofollow" });
     return;
   }
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+    if (!PUBLIC_SHELL_PATHS.has(pathname)) {
+      sendHtml(res, 404, renderSeoNotFoundPage(req), { "X-Robots-Tag": "noindex, follow" });
+      return;
+    }
     filePath = path.join(PUBLIC_DIR, "index.html");
   }
   const ext = path.extname(filePath).toLowerCase();
@@ -3425,12 +3475,11 @@ async function serveStatic(req, res, pathname) {
     [".html", ".js", ".css", ".webmanifest"].includes(ext) || fileName === "service-worker.js"
       ? "no-store"
       : "public, max-age=3600";
-  res.writeHead(200, {
+  res.writeHead(200, responseHeaders({
     "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
     "Content-Length": responseBody.length,
-    "Cache-Control": cacheControl,
-    "X-Content-Type-Options": "nosniff"
-  });
+    "Cache-Control": cacheControl
+  }));
   res.end(responseBody);
 }
 

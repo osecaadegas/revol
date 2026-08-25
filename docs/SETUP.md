@@ -96,11 +96,15 @@ PUBLIC_SITE_URL=
 
 The public marketplace has server-generated SEO basics:
 
-- `/` and `/cliente` receive canonical, Open Graph, Twitter and WebSite/Organization structured metadata.
+- `/` receives canonical, Open Graph, Twitter, branded large social preview and WebSite/Organization structured metadata.
+- `/cliente` remains reachable as the reserved access gate, but it is marked `noindex,follow` and is not listed in the sitemap.
 - `/robots.txt` allows the public site, blocks `/api/`, and points crawlers to `/sitemap.xml`.
-- `/sitemap.xml` lists `/`, `/cliente`, and every currently open public vacancy as `/vagas/:id`.
-- `/vagas/:id` renders an open vacancy as HTML with visible job content and JobPosting JSON-LD.
+- `/sitemap.xml` lists `/` and every currently open public vacancy as `/vagas/:id`.
+- `/vagas/:id` renders an open vacancy as HTML with visible job content, branded social preview metadata and JobPosting JSON-LD.
 - Closed or missing vacancy pages return `404` with `noindex,follow`.
+- Unknown static-like paths such as `/data/*` and `/tmp/*` return a noindex 404 instead of the public homepage.
+
+The public social preview asset is `public/social-card.svg` and is referenced through the configured public origin.
 
 For production, set `PUBLIC_SITE_URL`, deploy, then submit the sitemap URL in Google Search Console:
 
@@ -184,6 +188,7 @@ For production:
 - Restrict server filesystem access.
 - Use strong passwords and remove inactive users quickly.
 - Review privacy/labor notices before using real trabalhador data.
+- Review the baseline security headers before adding third-party scripts or embedded content. The app currently sets CSP, frame-denial, referrer, permissions and content-type protection headers from the Node server.
 
 Local filesystem persistence is not suitable for serverless platforms that discard file writes between requests. For Vercel/serverless, set `APP_STORAGE_DRIVER=supabase`.
 

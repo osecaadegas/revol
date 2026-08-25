@@ -44,13 +44,13 @@ The app must first behave like a public labor-market board:
 | Trabalhador CV profile required for applications | Sectioned trabalhador marketplace CV form in `public/app.js`, `PATCH /api/workers/profile`, and server-side application gate before `/api/job-offers/:id/apply` |
 | Published trabalhador CVs visible to companies | Company marketplace receives `workerProfiles`, application cards include published trabalhador CV details, and profile photos are served by authenticated `/api/workers/:id/profile-photo` |
 | Supabase-ready marketplace persistence | `meo_job_offers`, `meo_job_applications`, `profile` and company metadata migrations |
-| SEO-ready public vacancy discovery | `/robots.txt`, `/sitemap.xml`, dynamic homepage metadata, and server-rendered `/vagas/:id` detail pages with JobPosting JSON-LD for open vacancies |
+| SEO-ready public vacancy discovery | `/robots.txt`, `/sitemap.xml`, dynamic homepage metadata, branded social preview metadata, noindex reserved routes, noindex static 404s, and server-rendered `/vagas/:id` detail pages with JobPosting JSON-LD for open vacancies |
 
 ## Implemented MANIFESTO Portal Requirements
 
 | Requirement | Implementation |
 | --- | --- |
-| Public client access only | `/cliente` exposes reserved login controls without project details or trabalhador/company registration tabs |
+| Public client access only | `/cliente` exposes reserved login controls without project details or trabalhador/company registration tabs, is marked `noindex,follow`, and is excluded from `/sitemap.xml` |
 | Private project dashboard | Authenticated `Projeto` workspace tab for `client` and `developer` users; content is served by `/api/project/private` |
 | Private data not in public bundle | Detailed project copy is generated server-side in `server/private-project.js`, not embedded in `public/app.js` |
 | Main public navigation | Unauthenticated visitors see `Vagas` and `Area do Cliente`; project, MVP, roadmap and documentation links stay private |
@@ -76,7 +76,7 @@ The app must first behave like a public labor-market board:
 | --- | --- |
 | Mobile-first webapp accessible from phone, tablet, and computer | `public/index.html`, `public/styles.css`, responsive app shell |
 | Frontend separated from backend/API | Static frontend in `public/`, REST API in `server/index.js` |
-| Public SEO shell | Server-generated canonical metadata, robots, sitemap and public vacancy detail pages in `server/index.js`; SPA remains in `public/app.js` |
+| Public SEO shell | Server-generated canonical/social metadata, robots, sitemap, noindex reserved-route handling and public vacancy detail pages in `server/index.js`; SPA remains in `public/app.js` |
 | Authentication | `/api/setup`, `/api/auth/login`, `/api/auth/google/start`, `/api/auth/google/callback`, `/api/session`, bearer sessions and same-origin session cookie |
 | Role separation | Public `Trabalhador` accounts use internal role `worker` to apply to jobs; `company/manager` manage marketplace and operations; `employee/contractor` execute tasks; `client/developer` view private project/MVP information |
 | Three profiles: manager, employee, contractor | Server roles `manager`, `employee`, `contractor`; role UI and API checks |
