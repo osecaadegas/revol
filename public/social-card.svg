@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="TrataPro - Trabalho certo. Prova feita.">
+  <rect width="1200" height="630" fill="#f5f7fa"/>
+  <path d="M0 0h1200v630H0z" fill="#f5f7fa"/>
+  <path d="M96 88h1008v454H96z" fill="#ffffff" stroke="#dce3ea" stroke-width="2"/>
+  <path d="M96 88h1008v92H96z" fill="#0a66c2"/>
+  <rect x="144" y="122" width="56" height="56" rx="14" fill="#ffffff"/>
+  <path d="M157 164 187 134h9v38h-12v-19l-22 22h-5Z" fill="#0a66c2"/>
+  <path d="M184 166 193 175 207 153" fill="none" stroke="#18a085" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="165" cy="141" r="5" fill="#0a66c2"/>
+  <text x="224" y="159" fill="#ffffff" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="42" font-weight="900">TrataPro</text>
+  <text x="144" y="276" fill="#111827" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="72" font-weight="900">Trabalho certo.</text>
+  <text x="144" y="356" fill="#111827" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="72" font-weight="900">Prova feita.</text>
+  <text x="148" y="426" fill="#4b5563" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="600">Vagas em Portugal para trabalhadores e empresas.</text>
+  <g transform="translate(800 250)">
+    <rect x="0" y="0" width="248" height="150" rx="12" fill="#f3f6f8" stroke="#dce3ea" stroke-width="2"/>
+    <rect x="24" y="26" width="72" height="12" rx="6" fill="#0a66c2"/>
+    <rect x="24" y="58" width="190" height="12" rx="6" fill="#c7d4e1"/>
+    <rect x="24" y="88" width="154" height="12" rx="6" fill="#c7d4e1"/>
+    <circle cx="204" cy="112" r="22" fill="#18a085"/>
+    <path d="m193 111 8 8 16-23" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g fill="#dce3ea">
+    <circle cx="864" cy="470" r="6"/>
+    <circle cx="930" cy="470" r="6"/>
+    <circle cx="996" cy="470" r="6"/>
+    <path d="M870 470h54M936 470h54" stroke="#dce3ea" stroke-width="4"/>
+  </g>
+</svg>
