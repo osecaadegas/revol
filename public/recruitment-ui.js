@@ -1,6 +1,7 @@
 (function () {
   window.createRecruitmentUI = function (h) {
     const e = h.escapeHtml;
+    const icon = window.TrataDesign.icon;
     let tab = "jobs", adminData = null, candidateQuery = "", candidateResults = null, candidateFilters = {}, candidatePage = 1, candidateTotal = 0;
     const r = () => h.state.data?.recruitment || {};
     const stages = { submitted: "Candidatura enviada", viewed: "Vista pela empresa", reviewed: "Em analise", contacted: "Contactado", interview: "Entrevista", offer: "Oferta", accepted: "Contratado", hired: "Contratado", rejected: "Nao selecionado" };
@@ -15,7 +16,8 @@
       const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["saved", "Guardadas"], ["messages", "Mensagens"], ["settings", "Privacidade"]]
         : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Mensagens"]];
       if (r().platformAdmin) items.push(["admin", "Administracao"]);
-      return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ${tab === id ? "primary" : "ghost"}" data-recruitment="tab" data-id="${id}" aria-current="${tab === id ? "page" : "false"}">${name}</button>`).join("")}</nav>`;
+      const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",saved:"bookmark",messages:"message-square",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
+      return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ghost" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span></button>`).join("")}</nav>`;
     }
     function preferences() {
       const p = h.state.data.user.profile.workerCv?.preferences || {};
@@ -101,7 +103,7 @@
       if (tab === "company") return company();
       if (tab === "messages") return messages();
       if (tab === "candidates") return candidates();
-      if (tab === "admin") return adminView();
+      if (tab === "admin") return `<section class="admin-workspace">${adminView()}</section>`;
       if (tab === "create") return h.renderJobOfferForm();
       if (tab === "applications") return `<section class="applications-workspace"><h2>Candidaturas</h2>${!h.isWorker() ? `<p>${r().metrics?.applications || 0} candidaturas · ${r().metrics?.applicationToInterview == null ? "Sem dados de conversao" : `${r().metrics.applicationToInterview}% avancaram para entrevista`} · ${r().metrics?.hires || 0} contratacoes</p>` : ""}${(h.state.data.jobApplications || []).map(h.renderApplicationCard).join("") || `<p class="empty">${h.isWorker() ? "Ainda nao te candidataste a nenhuma vaga." : "Ainda nao recebeste candidaturas."}</p>`}</section>`;
       return "";
@@ -134,9 +136,11 @@
           const action = el.dataset.recruitment, id = el.dataset.id;
           if (action === "tab") {
             h.state.data = await h.api("/api/bootstrap");
+            h.state.view = "marketplace";
             tab = id; if (id === "create") h.state.editJobId = null;
             if (id === "applications" && !h.isWorker()) for (const application of h.state.data.jobApplications.filter(a => !a.recruitment?.viewedAt)) await send("application-view", "POST", { id: application.id });
           }
+          if (action === "new-job") { h.state.view = "marketplace"; h.state.editJobId = null; tab = "create"; }
           if (action === "edit-job") { h.state.editJobId = id; tab = "create"; }
           if (action === "candidate-page") { candidatePage = Number(id); const result = await h.api(`/api/recruitment/candidates?${new URLSearchParams({ ...candidateFilters, page: candidatePage })}`); candidateResults = result.profiles; candidateTotal = result.total; }
           if (action === "save-job") await send("saved-jobs", "POST", { jobId: id });

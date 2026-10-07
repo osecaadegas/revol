@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-10-07 - Consistent Dark Frontend
+
+- Applied a shared dark/blue design system to public discovery, worker/company
+  recruitment, authentication, moderation, operations and private client views.
+- Added local Inter/Lucide assets, compact salary-first vacancy cards, desktop
+  filter columns, a keyboard-accessible mobile filter drawer, single responsive
+  recruitment navigation and a sticky mobile vacancy application action.
+- Preserved existing API behavior and forms. No migration or environment change.
+- Added extended responsive/contrast/browser verification and documented the
+  implementation and review limitations in `docs/FRONTEND_DESIGN.md`.
+
 ## 2026-10-07
 
 - Added recruitment workspaces, structured preferences, private CV documents,

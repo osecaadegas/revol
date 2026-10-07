@@ -1,10 +1,13 @@
-const CACHE_NAME = "tratapro-shell-v4";
+const CACHE_NAME = "tratapro-shell-v5-dark";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
   "/styles.css",
   "/app.js",
   "/recruitment-ui.js",
+  "/design-system.js",
+  "/vendor/lucide.svg",
+  "/fonts/InterVariable.woff2",
   "/manifest.webmanifest",
   "/icon.svg",
   "/logo.svg",

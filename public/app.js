@@ -1,6 +1,7 @@
 (function () {
   const app = document.getElementById("app");
   const tokenKey = "meo_session_token";
+  const icon = window.TrataDesign.icon;
   const recruitmentUI = window.createRecruitmentUI({ get state() { return state; }, escapeHtml, isWorker, api, setNotice, renderApp,
     renderWorkerProfilePanel, renderJobCard, renderApplicationCard, renderJobOfferForm, resolveKnownLocation });
 
@@ -201,8 +202,8 @@
   ];
 
   const publicNavItems = [
-    ["Procurar", "/"],
-    ["Area do Cliente", "/cliente"]
+    ["Vagas", "/"],
+    ["Como funciona", "/#como-funciona"]
   ];
 
   function escapeHtml(value) {
@@ -422,6 +423,14 @@
         ${renderDatalist(locationListId, locationOptions)}
       </form>
     `;
+  }
+
+  function renderSearchResults(context, total, shown, cards) {
+    return `<div class="search-results">
+      <button class="btn ghost filter-toggle" type="button" data-filter-open>${icon("sliders-horizontal")}Filtrar vagas${activeMarketFilterCount() ? ` (${activeMarketFilterCount()})` : ""}</button>
+      <aside class="filter-panel" aria-label="Filtros de vagas"><h3>${icon("sliders-horizontal")}Filtrar vagas</h3>${renderMarketFilters(context, total, shown)}</aside>
+      <div class="list jobs-feed market-job-list">${cards}</div>
+    </div>`;
   }
 
   function statusLabel(status) {
@@ -678,7 +687,7 @@
 
   function noticeHtml() {
     if (!state.notice) return "";
-    return `<div class="notice ${state.notice.type}">${escapeHtml(state.notice.message)}</div>`;
+    return `<div class="notice ${state.notice.type}" role="${state.notice.type === "error" ? "alert" : "status"}">${escapeHtml(state.notice.message)}</div>`;
   }
 
   function publicRoute() {
@@ -728,7 +737,7 @@
               <p class="eyebrow">Acesso</p>
               <h2>${escapeHtml(title)}</h2>
             </div>
-            <button class="icon-button" type="button" data-action="close-auth-modal" aria-label="Fechar">x</button>
+            <button class="icon-button" type="button" data-action="close-auth-modal" aria-label="Fechar" title="Fechar">${icon("x")}</button>
           </div>
           ${noticeHtml()}
           ${renderAuthSwitcher({ bare: true })}
@@ -742,7 +751,8 @@
         ? "Area do Cliente - TrataPro"
         : "TrataPro - Vagas abertas";
     app.innerHTML = `
-      <main class="manifesto-shell">
+      <a class="skip-link" href="#main-content">Saltar para o conteudo</a>
+      <main class="manifesto-shell" id="main-content" tabindex="-1">
         ${renderPublicTopNav(route)}
         ${content}
         ${renderPublicFooter()}
@@ -751,6 +761,7 @@
     `;
     bindPublicEvents();
     bindAuthForms();
+    window.TrataDesign.enhance();
   }
 
   function renderPublicFooter() {
@@ -828,25 +839,25 @@
         <section class="market-hero">
           <div class="market-hero-copy">
             <p class="eyebrow">TrataPro · Emprego em Portugal</p>
-            <h1>Encontra trabalho sem complicacoes.</h1>
-            <p>Consulta vagas, conhece as empresas e candidata-te ao teu proximo trabalho.</p>
+            <h1>Emprego em Portugal.</h1>
+            <p>Encontra trabalho sem complicacoes. O teu proximo passo comeca aqui.</p>
           </div>
           <form class="market-search-panel" data-market-filter-form="landing" aria-label="Pesquisar vagas">
             <div class="field compact">
-              <label>O que procura?</label>
+              <label>Cargo ou palavra-chave</label>
               <input data-market-filter="query" list="market-hero-position-options" value="${escapeHtml(state.marketFilters.query)}" placeholder="Cargo, empresa ou palavra-chave">
             </div>
             <div class="field compact">
-              <label>Onde?</label>
+              <label>Localizacao</label>
               <input data-market-filter="location" list="market-hero-location-options" value="${escapeHtml(state.marketFilters.location)}" placeholder="Braga, Porto, Lisboa">
             </div>
-            <button class="btn primary" type="submit">Procurar vagas</button>
+            <button class="btn primary" type="submit">${icon("search")}Procurar vagas</button>
             ${renderDatalist("market-hero-position-options", positionOptions)}
             ${renderDatalist("market-hero-location-options", locationOptions)}
           </form>
           <div class="market-hero-actions">
-            <a class="btn ghost" href="#vagas">Estou a procura de trabalho</a>
-            <button class="btn accent" type="button" data-auth-preset="company">Quero contratar</button>
+            <a class="btn ghost" href="#vagas">Ver oportunidades ${icon("arrow-right")}</a>
+            <button class="btn ghost" type="button" data-auth-preset="company">Quero contratar</button>
           </div>
         </section>
 
@@ -864,16 +875,11 @@
               <p>${hasFilters ? "Resultados filtrados pelas escolhas atuais." : "As oportunidades mais recentes publicadas pelas empresas."}</p>
             </div>
           </div>
-          <div class="market-filter-row">
-            ${renderMarketFilters("public", allJobs.length, jobs.length)}
-          </div>
-          <div class="list jobs-feed market-job-list">
-            ${featuredJobs.length ? featuredJobs.map((job) => renderJobCard(job, { publicMode: true })).join("") : empty(activeMarketFilterCount() ? "Nenhuma vaga corresponde aos filtros escolhidos." : "Ainda nao existem vagas publicadas.")}
-          </div>
+          ${renderSearchResults("public", allJobs.length, jobs.length, featuredJobs.length ? featuredJobs.map((job) => renderJobCard(job, { publicMode: true })).join("") : empty(activeMarketFilterCount() ? "Nenhuma vaga corresponde aos filtros escolhidos." : "Ainda nao existem vagas publicadas."))}
           ${jobs.length > featuredJobs.length ? `<button class="btn ghost" data-more-jobs>Ver mais vagas</button>` : ""}
         </section>
 
-        <section class="market-split-section">
+        <section class="market-split-section" id="como-funciona">
           <article class="market-plain-panel">
             <p class="eyebrow">Candidatos</p>
             <h2>Como funciona para trabalhadores</h2>
@@ -893,11 +899,11 @@
         <section class="market-account-strip" id="acesso">
           <div>
             <p class="eyebrow">Conta</p>
-            <h2>Entrar, candidatar-se ou publicar.</h2>
+            <h2>O teu proximo passo.</h2>
           </div>
           <div class="market-account-actions">
             <button class="btn primary" type="button" data-auth-preset="login">Entrar</button>
-            <button class="btn accent" type="button" data-auth-preset="worker">Criar trabalhador</button>
+            <button class="btn ghost" type="button" data-auth-preset="worker">Criar perfil</button>
             <button class="btn ghost" type="button" data-auth-preset="company">Registar empresa</button>
             <a class="btn ghost" href="/cliente">Area do cliente</a>
           </div>
@@ -1178,6 +1184,7 @@
   }
 
   function bindAuthForms() {
+    window.TrataDesign.labelFields();
     const form = document.querySelector("[data-form]");
     if (!form) return;
     form.addEventListener("submit", async (event) => {
@@ -1343,6 +1350,7 @@
       return;
     }
     app.innerHTML = `
+      <a class="skip-link" href="#main-content">Saltar para o conteudo</a>
       <div class="main-layout">
         <aside class="sidebar">
           <div class="side-brand">
@@ -1352,6 +1360,7 @@
               <span>${escapeHtml(state.data.company.name)}</span>
             </div>
           </div>
+          <div data-recruitment-navigation>${isWorker() || isManager() ? recruitmentUI.tabs() : ""}</div>
           ${renderNav("nav")}
           <div class="session-card">
             <strong>${escapeHtml(user.name)}</strong>
@@ -1359,7 +1368,7 @@
             <button class="btn ghost full" style="margin-top: 12px" data-action="logout">Sair</button>
           </div>
         </aside>
-        <main class="content">
+        <main class="content" id="main-content" tabindex="-1">
           <div class="topbar">
             <div class="side-brand" style="color: var(--ink)">
               <img class="brand-logo-mark" src="/icon.svg" alt="">
@@ -1370,6 +1379,7 @@
             </div>
             <button class="btn ghost" data-action="logout">Sair</button>
           </div>
+          <div data-mobile-recruitment-navigation></div>
           ${noticeHtml()}
           ${renderView()}
         </main>
@@ -1378,6 +1388,7 @@
       ${renderTaskDrawer()}
     `;
     bindAppEvents();
+    window.TrataDesign.enhance();
   }
 
   function renderNav(className) {
@@ -1385,6 +1396,7 @@
       <nav class="${className}">
         ${navItems
           .filter(([view]) => {
+            if (view === "marketplace" && (isWorker() || isManager())) return false;
             if (view === "project") return canViewPrivateProject();
             if (view === "mvp") return canViewPrivateProject();
             if (view === "team") return isManager();
@@ -1394,7 +1406,7 @@
           .map(
             ([view, label]) => `
               <button type="button" data-view="${view}" class="${state.view === view ? "active" : ""}">
-                <span>${label}</span><span>${view === "tasks" ? state.data.tasks.length : ""}</span>
+                ${icon(({project:"folder",mvp:"layout-dashboard",dashboard:"layout-dashboard",orders:"folder",tasks:"clipboard-list",team:"users",history:"history"})[view] || "briefcase-business")}<span>${label}</span><span>${view === "tasks" ? state.data.tasks.length : ""}</span>
               </button>
             `
           )
@@ -1406,6 +1418,8 @@
   function renderMobileNav() {
     if (isWorker()) return "";
     return `
+      <details class="mobile-workspace-menu">
+      <summary>${icon("layout-dashboard")} ${canViewPrivateProject() ? "Workspace" : "Operacoes"}</summary>
       <nav class="mobile-nav">
         ${navItems
           .filter(([view]) => {
@@ -1422,6 +1436,7 @@
           )
           .join("")}
       </nav>
+      </details>
     `;
   }
 
@@ -1454,7 +1469,7 @@
     const applications = state.data.jobApplications || [];
     if (isWorker() || isManager()) {
       const panel = recruitmentUI.content();
-      return `<section class="marketplace-workspace">${renderMarketplaceHero(role, allJobs, jobs, applications)}${recruitmentUI.tabs()}${recruitmentUI.notifications()}${panel || `${renderMarketFilters("app", allJobs.length, jobs.length)}<div class="market-job-list">${jobs.length ? jobs.map(job => renderJobCard(job)).join("") : renderMarketplaceEmptyState(role)}</div>`}</section>`;
+      return `<section class="marketplace-workspace">${renderMarketplaceHero(role, allJobs, jobs, applications)}${recruitmentUI.notifications()}${panel || renderSearchResults("app", allJobs.length, jobs.length, jobs.length ? jobs.map(job => renderJobCard(job)).join("") : renderMarketplaceEmptyState(role))}</section>`;
     }
     return `
       <section class="marketplace-workspace">
@@ -1486,9 +1501,13 @@
   }
 
   function renderMarketplaceHero(role, allJobs, jobs, applications) {
+    if ((isWorker() || isManager()) && recruitmentUI.current() !== "jobs") {
+      const headings = {profile:"O teu perfil profissional", applications:"As tuas candidaturas", saved:"Oportunidades guardadas", messages:"Mensagens", settings:"Privacidade e dados", company:"A tua empresa", candidates:"Encontrar candidatos", create:state.editJobId ? "Editar vaga" : "Publicar uma vaga", admin:"Administracao"};
+      return `<header class="workspace-page-heading"><p class="eyebrow">${isWorker() ? "Area do trabalhador" : "Area da empresa"}</p><h1>${escapeHtml(headings[recruitmentUI.current()] || "Recrutamento")}</h1></header>`;
+    }
     const profile = isWorker() ? workerCvProfile() : null;
     const title = isWorker()
-      ? "Vagas e candidaturas"
+      ? `Ola, ${currentUser().name.split(" ")[0]}`
       : isManager()
         ? "Mercado da empresa"
         : "Mercado de vagas";
@@ -1518,10 +1537,13 @@
           ];
     return `
       <section class="marketplace-hero-panel">
-        <div>
+        <div class="marketplace-heading">
+          <div>
           <p class="eyebrow">Mercado</p>
           <h1>${escapeHtml(title)}</h1>
           <p>${escapeHtml(description)}</p>
+          </div>
+          ${isManager() ? `<button class="btn primary" data-recruitment="new-job">${icon("plus")}Criar vaga</button>` : ""}
         </div>
         <div class="marketplace-stats" aria-label="Resumo do mercado">
           ${stats.map(([value, label]) => `
@@ -1826,7 +1848,6 @@
     const applications = state.data?.jobApplications || [];
     const existingApplication = applications.find((application) => application.jobOfferId === job.id);
     const publicMode = options.publicMode;
-    const positionLabel = job.position || job.title;
     const companyInitial = cleanDisplayValue(job.companyName || "Empresa").slice(0, 1).toUpperCase() || "E";
     return `
       <article class="job-card" id="job-${escapeHtml(job.id)}">
@@ -1834,27 +1855,25 @@
           <div class="job-title-row">
             <span class="company-avatar">${escapeHtml(companyInitial)}</span>
             <div>
-              <h3>${escapeHtml(job.title)}</h3>
-              <div class="meta-row">
-                ${positionLabel ? `<span class="chip job-position">${escapeHtml(positionLabel)}</span>` : ""}
-                <span>${escapeHtml(job.companyName || "Empresa")}${job.verified ? ' <span class="chip approved">Verificada</span>' : ""}</span>
-                <span>${escapeHtml(job.location)}</span>
-                <span>${formatDate(job.createdAt)}</span>
-              </div>
+              <h3><a href="${escapeHtml(job.publicPath || `/vagas/${encodeURIComponent(job.id)}`)}">${escapeHtml(job.title)}</a></h3>
+              <p class="job-company">${escapeHtml(job.companyName || "Empresa")}${job.verified ? `<span class="verified-badge" title="Empresa verificada pela TrataPro" aria-label="Empresa verificada pela TrataPro">${icon("shield-check")}</span>` : ""}</p>
             </div>
           </div>
-          <span class="chip ${job.status === "open" ? "approved" : "rejected"}">${job.status === "open" ? "Aberta" : "Fechada"}</span>
+          ${job.status !== "open" ? '<span class="chip rejected">Fechada</span>' : ""}
         </header>
+        ${job.salary ? `<p class="job-salary">${escapeHtml(job.salary)}</p>` : ""}
+        <div class="meta-row"><span>${icon("map-pin")}${escapeHtml(job.location)}</span></div>
         <div class="meta-row">
-          ${job.contractType ? `<span>${escapeHtml(job.contractType)}</span>` : ""}
-          ${job.salary ? `<span>${escapeHtml(job.salary)}</span>` : ""}
-          ${job.schedule ? `<span>${escapeHtml(job.schedule)}</span>` : ""}
+          ${job.contractType ? `<span class="chip">${escapeHtml(job.contractType)}</span>` : ""}
+          ${job.schedule ? `<span class="chip">${escapeHtml(job.schedule)}</span>` : ""}
+          ${job.recruitment?.workMode ? `<span class="chip">${escapeHtml(({onsite:"Presencial",remote:"Remoto",hybrid:"Hibrido"})[job.recruitment.workMode] || job.recruitment.workMode)}</span>` : ""}
         </div>
         <p class="muted">${escapeHtml(job.description.slice(0, 240))}${job.description.length > 240 ? "..." : ""}</p>
-        <a href="${escapeHtml(job.publicPath || `/vagas/${encodeURIComponent(job.id)}`)}">Ver detalhes da vaga</a>
+        <p class="job-date">Publicada ${formatDate(job.createdAt)}</p>
         ${publicMode ? `
           <div class="card-actions">
             <button class="btn accent" data-public-apply="${escapeHtml(job.id)}">Candidatar-me</button>
+            <a href="${escapeHtml(job.publicPath || `/vagas/${encodeURIComponent(job.id)}`)}">Ver detalhes ${icon("arrow-right")}</a>
           </div>
         ` : isWorker() ? `
           ${recruitmentUI.button("save-job", state.data.recruitment?.savedJobs.includes(job.id) ? "Remover das guardadas" : "Guardar vaga", job.id)}
@@ -2536,7 +2555,7 @@
   }
 
   function empty(message) {
-    return `<div class="empty"><span>${escapeHtml(message)}</span></div>`;
+    return `<div class="empty">${icon("briefcase-business")}<span>${escapeHtml(message)}</span></div>`;
   }
 
   function bindAppEvents() {
@@ -2549,10 +2568,6 @@
       const target = document.getElementById(`job-${pendingJob}`);
       if (target) { requestAnimationFrame(() => target.scrollIntoView({ block: "start" })); sessionStorage.removeItem("tratapro_apply"); }
     }
-    document.querySelectorAll("label:not([for])").forEach((label, i) => {
-      const control = label.parentElement.querySelector("input,textarea,select");
-      if (control && !label.contains(control)) { control.id ||= `form-field-${i}`; label.htmlFor = control.id; }
-    });
     bindMarketFilters(renderApp);
 
     document.querySelectorAll("[data-view]").forEach((button) => {

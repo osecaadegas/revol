@@ -7,12 +7,14 @@ const files = [
   "server/index.js",
   "server/recruitment.js",
   "server/recruitment-test.js",
+  "server/design-test.js",
   "server/public-marketplace.js",
   "server/private-mvp.js",
   "server/private-project.js",
   "server/check.js",
   "server/smoke-test.js",
   "public/app.js",
+  "public/design-system.js",
   "public/recruitment-ui.js",
   "public/service-worker.js"
 ];

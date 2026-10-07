@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Vagas publicas em Portugal para trabalhadores e empresas, com pesquisa por cargo, empresa, localizacao e raio.">
     <meta name="robots" content="index,follow">
-    <meta name="theme-color" content="#0a66c2">
+    <meta name="theme-color" content="#080d17">
     <meta property="og:title" content="TrataPro - Vagas abertas">
     <meta property="og:description" content="Vagas publicas em Portugal para trabalhadores e empresas, com pesquisa por cargo, empresa, localizacao e raio.">
     <meta property="og:type" content="website">
@@ -25,16 +25,19 @@
     <title>TrataPro - Vagas abertas</title>
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="stylesheet" href="/styles.css?v=20261007-recruitment">
+    <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/styles.css?v=20261007-dark">
   </head>
   <body>
     <div id="app" class="app-shell">
-      <div class="boot-card">
-        <span class="loader"></span>
-        <p>A preparar vagas...</p>
+      <div class="boot-card" role="status" aria-label="A carregar vagas" aria-busy="true">
+        <div class="skeleton skeleton-heading"></div>
+        <div class="skeleton-card"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div>
+        <div class="skeleton-card"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div>
       </div>
     </div>
-    <script src="/recruitment-ui.js?v=20261007-recruitment" defer></script>
-    <script src="/app.js?v=20261007-recruitment" defer></script>
+    <script src="/design-system.js?v=20261007-dark" defer></script>
+    <script src="/recruitment-ui.js?v=20261007-dark" defer></script>
+    <script src="/app.js?v=20261007-dark" defer></script>
   </body>
 </html>

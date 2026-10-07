@@ -34,7 +34,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20261007-recruitment";
+const PUBLIC_ASSET_VERSION = "20261007-dark";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -78,6 +78,7 @@ const MIME_TYPES = {
   ".json": "application/json; charset=utf-8",
   ".webmanifest": "application/manifest+json; charset=utf-8",
   ".svg": "image/svg+xml",
+  ".woff2": "font/woff2",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -2294,15 +2295,15 @@ function renderPublicIndexHtml(template, req, pathname) {
 
 function renderPublicTopbarStatic(activePath = "/") {
   return `
-      <header class="public-topbar">
+      <header class="public-topbar static-topbar">
         <a class="public-brand" href="/" aria-label="${PUBLIC_BRAND_NAME} - ${PUBLIC_BRAND_SLOGAN}">
           <img class="brand-logo-wordmark" src="/logo.svg" alt="${PUBLIC_BRAND_NAME}">
         </a>
         <nav class="public-nav" aria-label="Navegacao principal">
-          <a href="/" class="${activePath === "/" ? "active" : ""}">Procurar</a>
-          <a href="/cliente" class="${activePath === "/cliente" ? "active" : ""}">Area do Cliente</a>
-          <a class="public-nav-login" href="/#acesso">Login / Registar</a>
-          <a class="public-nav-button" href="/#acesso">Publicar vaga</a>
+          <a href="/" class="${activePath === "/" ? "active" : ""}">Vagas</a>
+          <a href="/#como-funciona">Como funciona</a>
+          <a class="public-nav-login" href="/?auth=login#acesso">Entrar</a>
+          <a class="public-nav-button" href="/?auth=company#acesso">Publicar vaga</a>
         </nav>
       </header>`;
 }
@@ -2323,7 +2324,7 @@ function renderSeoJobPage(job, company, req, related = []) {
     <title>${htmlEscape(title)}</title>
     <meta name="description" content="${htmlEscape(description)}">
     <meta name="robots" content="${available ? "index,follow" : "noindex,follow"}">
-    <meta name="theme-color" content="#0a66c2">
+    <meta name="theme-color" content="#080d17">
     <meta property="og:title" content="${htmlEscape(title)}">
     <meta property="og:description" content="${htmlEscape(description)}">
     <meta property="og:type" content="article">
@@ -2353,9 +2354,10 @@ function renderSeoJobPage(job, company, req, related = []) {
         <article class="seo-job-hero">
           <p class="eyebrow">${available ? "Vaga aberta" : "Esta vaga ja nao aceita candidaturas."}</p>
           <h1>${htmlEscape(job.position || job.title)}</h1>
-          <p>${htmlEscape(job.title)}</p>
+          ${job.title !== job.position ? `<p>${htmlEscape(job.title)}</p>` : ""}
+          ${job.salary ? `<p class="job-salary">${htmlEscape(job.salary)}</p>` : ""}
           <div class="meta-row">
-            <span>${htmlEscape(job.companyName || "Empresa")}</span>
+            <span>${htmlEscape(job.companyName || "Empresa")}${company?.recruitment?.verification === "verified" ? ' <span class="verified-badge" title="Empresa verificada pela TrataPro">Empresa verificada</span>' : ""}</span>
             <span>${htmlEscape(job.location)}</span>
             <span>${htmlEscape(job.contractType || "A combinar")}</span>
             <span>Publicada ${htmlEscape(formatPublicDate(job.createdAt))}</span>
@@ -2387,6 +2389,7 @@ function renderSeoJobPage(job, company, req, related = []) {
           </aside>
         </section>
         ${!available && related.length ? `<section class="market-section"><h2>Vagas semelhantes</h2>${publicMarketplace.cards(related)}</section>` : ""}
+        ${available ? `<div class="seo-apply-mobile">${job.salary ? `<span class="job-salary">${htmlEscape(job.salary)}</span>` : ""}<a class="btn primary" href="/?apply=${encodeURIComponent(job.id)}#vagas">Candidatar-me</a></div>` : ""}
       </section>
     </main>
   </body>

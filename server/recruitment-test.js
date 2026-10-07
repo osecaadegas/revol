@@ -92,7 +92,7 @@ async function run() {
       const page = await context.newPage();
       page.on("pageerror", err => errors.push(err.message));
       await page.goto(base);
-      try { await page.getByRole("heading", { name: "Encontra trabalho sem complicacoes." }).waitFor({ timeout: 10000 }); }
+      try { await page.getByRole("heading", { name: "Emprego em Portugal." }).waitFor({ timeout: 10000 }); }
       catch (error) { console.error("Browser errors:", errors, "HTML:", (await page.content()).slice(-4000)); throw error; }
       await page.getByRole("button", { name: "Quero contratar", exact: true }).click();
       await page.locator('[data-form="register-company"]').waitFor();
@@ -130,6 +130,15 @@ async function run() {
       await page.screenshot({ path: path.join(screenshotDir, "company-desktop.png"), fullPage: true });
       assert.deepEqual(errors, [], "Browser runtime errors");
       await context.close(); console.log("browser: worker, company, desktop/mobile, form save and job editing passed");
+      if (process.env.DESIGN_REVIEW) {
+        await request("/api/recruitment/preferences", "PATCH", { visibility: "verified" }, wt);
+        const employee = await request('/api/users', 'POST', {name:'Operador de teste',email:'operator@test.invalid',role:'employee',password:'password123'}, ct, 201);
+        await request('/api/users', 'POST', {name:'Cliente de teste',email:'client@test.invalid',role:'client',password:'password123'}, ct, 201);
+        const client = await request('/api/auth/login', 'POST', {email:'client@test.invalid',password:'password123'});
+        const order = await request('/api/work-orders', 'POST', {title:'Servico de teste',address:'Alpiarca',description:'Verificacao visual local',photos:[]}, ct, 201);
+        await request('/api/tasks', 'POST', {workOrderId:order.workOrder.id,title:'Tarefa de teste',assigneeId:employee.user.id,dueDate:'2099-10-10'}, ct, 201);
+        await require('./design-test').reviewDesign(browser, base, { worker: wt, company: ct, admin: ot, client:client.session.token }, job.publicPath, `/empresas/${company.bootstrap.company.id}-empresa-teste`);
+      }
     }
     await request(`/api/job-offers/${job.id}`, "PATCH", { deadline: "2000-01-01" }, ct);
     assert.equal((await request("/api/jobs/public")).jobs.length, 0);
