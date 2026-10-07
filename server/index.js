@@ -6,6 +6,8 @@ const crypto = require("crypto");
 const { URL } = require("url");
 const { renderPrivateMvpHtml } = require("./private-mvp");
 const { renderPrivateProjectHtml } = require("./private-project");
+const recruitment = require("./recruitment");
+const { createPublicMarketplace } = require("./public-marketplace");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
@@ -32,7 +34,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20260825-seo-hardening";
+const PUBLIC_ASSET_VERSION = "20261007-recruitment";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -108,6 +110,7 @@ const SECURITY_HEADERS = {
 };
 
 let writeQueue = Promise.resolve();
+const authAttempts = new Map();
 
 const TABLES = [
   {
@@ -121,6 +124,7 @@ const TABLES = [
       website: "website",
       sector: "sector",
       description: "description",
+      recruitment: "recruitment",
       createdAt: "created_at"
     }
   },
@@ -297,6 +301,12 @@ const TABLES = [
     }
   }
 ];
+for (const definition of TABLES.filter(t => ["jobOffers", "jobApplications"].includes(t.key))) definition.fields.recruitment = "recruitment";
+TABLES.push(...recruitment.TABLES);
+const recruitmentApi = recruitment.createRecruitment({ readDb, mutateDb, requireAuth, requireWorker, requireCompanyAccount,
+  publicUser, publicCompany, publicJobOffer, audit, buildBootstrap, readBody, sendJson, responseHeaders,
+  readPrivateUploadFile, savePrivateUploadFile, deletePrivateUploadFile, safeHttpUrl, hashPassword, publicJobPath, parsePhotoDataUrl });
+const publicMarketplace = createPublicMarketplace({ htmlEscape, publicJobPath, publicOpenJobs, renderPublicTopbarStatic, safeHttpUrl });
 
 function now() {
   return new Date().toISOString();
@@ -489,7 +499,9 @@ function createEmptyDb() {
     evidences: [],
     auditLogs: [],
     jobOffers: [],
-    jobApplications: []
+    jobApplications: [],
+    recruitmentMessages: [],
+    jobReports: []
   };
 }
 
@@ -510,7 +522,9 @@ function ensureShape(db) {
     "evidences",
     "auditLogs",
     "jobOffers",
-    "jobApplications"
+    "jobApplications",
+    "recruitmentMessages",
+    "jobReports"
   ]) {
     if (!Array.isArray(db[key])) db[key] = [];
   }
@@ -645,7 +659,7 @@ async function supabaseStorage(pathname, options = {}) {
 function toRow(record, fields) {
   const row = {};
   for (const [appKey, column] of Object.entries(fields)) {
-    row[column] = record[appKey] === undefined && appKey === "profile" ? {} : record[appKey] === undefined ? null : record[appKey];
+    row[column] = record[appKey] === undefined && ["profile", "recruitment"].includes(appKey) ? {} : record[appKey] === undefined ? null : record[appKey];
   }
   return row;
 }
@@ -667,29 +681,54 @@ async function readSupabaseDb() {
   }
   if (!db.meta.createdAt) db.meta.createdAt = now();
 
-  for (const definition of TABLES) {
-    const rows = await supabaseRest(`${definition.table}?select=*`);
-    db[definition.key] = (rows || []).map((row) => fromRow(row, definition.fields));
-  }
+  await Promise.all(TABLES.map(async (definition) => {
+    const rows = [];
+    for (let offset = 0; ; offset += 500) {
+      const page = await supabaseRest(`${definition.table}?select=*&order=${definition.fields[definition.idKey]}.asc&limit=500&offset=${offset}`);
+      rows.push(...page);
+      if (page.length < 500) break;
+    }
+    db[definition.key] = rows.map((row) => fromRow(row, definition.fields));
+  }));
 
   return ensureShape(db);
 }
 
+async function readMarketplaceDb() {
+  if (APP_STORAGE_DRIVER !== "supabase") return readDb();
+  const db = createEmptyDb();
+  await Promise.all(TABLES.filter(t => ["companies", "jobOffers"].includes(t.key)).map(async definition => {
+    const records = [];
+    for (let offset = 0; ; offset += 500) {
+      const rows = await supabaseRest(`${definition.table}?select=*&order=id.asc&limit=500&offset=${offset}`);
+      records.push(...rows.map(row => fromRow(row, definition.fields)));
+      if (rows.length < 500) break;
+    }
+    db[definition.key] = records;
+  }));
+  return db;
+}
+
 async function writeSupabaseDb(db, previousDb = createEmptyDb()) {
   await ensureSupabaseStorage();
-
+  const changes = [];
   for (const definition of [...TABLES].reverse()) {
-    await deleteRemovedRows(definition, previousDb[definition.key] || [], db[definition.key] || []);
+    const ids = new Set((db[definition.key] || []).map(r => r[definition.idKey]));
+    for (const record of previousDb[definition.key] || []) if (!ids.has(record[definition.idKey])) changes.push({ table: definition.table, id: record[definition.idKey], before: toRow(record, definition.fields), after: null });
   }
-
-  await supabaseRest("meo_app_meta?on_conflict=key", {
-    method: "POST",
-    body: [{ key: "state_meta", value: db.meta, updated_at: now() }],
-    prefer: "resolution=merge-duplicates,return=minimal"
-  });
-
   for (const definition of TABLES) {
-    await upsertRows(definition, db[definition.key] || []);
+    const previous = new Map((previousDb[definition.key] || []).map(record => [record[definition.idKey], record]));
+    for (const record of db[definition.key] || []) {
+      const before = previous.get(record[definition.idKey]);
+      if (JSON.stringify(before) !== JSON.stringify(record)) changes.push({ table: definition.table, id: record[definition.idKey], before: before ? toRow(before, definition.fields) : null, after: toRow(record, definition.fields) });
+    }
+  }
+  if (!changes.length) return;
+  try {
+    await supabaseRest("rpc/meo_apply_changes", { method: "POST", body: { changes } });
+  } catch (error) {
+    if (error.message.includes("40001") || error.message.includes("23505")) throw Object.assign(new Error("O registo mudou entretanto. Atualize a pagina e tente novamente."), { status: 409 });
+    throw error;
   }
 }
 
@@ -717,9 +756,7 @@ async function deleteRemovedRows(definition, previousRecords, currentRecords) {
 }
 
 function nextId(db, key, prefix) {
-  const current = db.meta.nextIds[key] || 1;
-  db.meta.nextIds[key] = current + 1;
-  return `${prefix}_${String(current).padStart(4, "0")}`;
+  return `${prefix}_${crypto.randomUUID()}`;
 }
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
@@ -870,6 +907,7 @@ function existingWorkerCv(user) {
     skills: cleanStringList(Array.isArray(cv.skills) ? cv.skills : profile.skills),
     experience: cleanWorkerExperience(cv.experience),
     references: cleanWorkerReferences(cv.references),
+    preferences: recruitment.profileSettings({}, cv.preferences),
     profilePhoto: cv.profilePhoto && typeof cv.profilePhoto === "object" ? cv.profilePhoto : null,
     publishedAt: cv.publishedAt || null,
     updatedAt: cv.updatedAt || user?.createdAt || null
@@ -898,6 +936,7 @@ function publicWorkerProfile(user, options = {}) {
     skills: cv.skills,
     experience: cv.experience,
     references: cv.references,
+    preferences: cv.preferences,
     profilePhotoUrl: workerProfilePhotoUrl(user, cv),
     publishedAt: cv.publishedAt,
     updatedAt: cv.updatedAt
@@ -920,10 +959,7 @@ function validatePublishedWorkerProfile(profile) {
   const missing = [];
   if (!profile.headline) missing.push("titulo profissional");
   if (!profile.location) missing.push("localizacao");
-  if (!profile.birthDate) missing.push("data de nascimento");
   if (!profile.skills.length) missing.push("competencias");
-  if (!profile.experience.length) missing.push("experiencia anterior");
-  if (!profile.references.length) missing.push("referencias");
   if (missing.length) {
     const error = new Error(`Complete o CV de trabalhador antes de publicar: ${missing.join(", ")}.`);
     error.status = 400;
@@ -945,6 +981,7 @@ function buildWorkerProfileUpdate(user, body, photoRecord = null) {
     skills: cleanStringList(body.skills),
     experience: cleanWorkerExperience(body.experience),
     references: cleanWorkerReferences(body.references),
+    preferences: current.preferences,
     profilePhoto: photoRecord || current.profilePhoto || null,
     publishedAt: published ? current.publishedAt || now() : null,
     updatedAt: now()
@@ -977,6 +1014,7 @@ function publicCompany(company) {
     website: company.website || "",
     sector: company.sector || "",
     description: company.description || "",
+    recruitment: company.recruitment || {},
     createdAt: company.createdAt
   };
 }
@@ -1021,14 +1059,24 @@ function publicInvite(invite) {
 }
 
 function publicJobOffer(job) {
-  return { ...job };
+  return { ...job, salary: recruitment.salary(job), publicPath: publicJobPath(job), status: recruitment.open(job) ? job.status : "closed" };
 }
 
 function publicJobApplication(application, db = null, options = {}) {
   const payload = { ...application };
   if (options.includeWorkerProfile && db) {
     const worker = db.users.find((user) => user.id === application.workerId);
-    payload.workerProfile = publicWorkerProfile(worker, { includeUnpublished: false });
+    const company = db.companies.find(c => c.id === application.companyId);
+    const permitted = worker && recruitment.canReadProfile(db, worker, { user: { role: "company" }, company });
+    payload.workerProfile = permitted ? publicWorkerProfile(worker, { includeUnpublished: true }) : null;
+    if (!permitted) delete payload.workerEmail;
+    if (payload.workerProfile) {
+      delete payload.workerProfile.birthDate;
+      delete payload.workerProfile.references;
+      delete payload.workerProfile.preferences.coordinates;
+      payload.workerProfile.documents = (worker.profile?.documents || []).map(({ storedName, ...doc }) => doc);
+      payload.match = recruitment.match(db.jobOffers.find(j => j.id === application.jobOfferId) || {}, worker);
+    }
   }
   return payload;
 }
@@ -1119,7 +1167,7 @@ function sendError(res, error) {
   if (status >= 500) {
     console.error(error);
   }
-  sendJson(res, status, { error: message, details: error.details || null });
+  sendJson(res, status, { error: status >= 500 ? "Nao foi possivel concluir o pedido. Tente novamente." : message });
 }
 
 function readBody(req, limit = 16 * 1024 * 1024) {
@@ -1282,7 +1330,7 @@ function buildBootstrap(db, auth) {
 
   const jobOffers = isManager
     ? db.jobOffers.filter((job) => job.companyId === auth.company.id)
-    : db.jobOffers.filter((job) => job.status === "open");
+    : db.jobOffers.filter((job) => recruitment.open(job, db.companies.find(c => c.id === job.companyId)) || db.jobApplications.some(a => a.workerId === auth.user.id && a.jobOfferId === job.id));
 
   const jobApplications = isManager
     ? db.jobApplications.filter((application) => application.companyId === auth.company.id)
@@ -1291,10 +1339,14 @@ function buildBootstrap(db, auth) {
       : [];
   const workerProfiles = isManager
     ? db.users
-        .filter((user) => user.role === "worker")
-        .map((user) => publicWorkerProfile(user, { includeUnpublished: false }))
+        .filter((user) => user.role === "worker" && recruitment.canDiscover(user, auth.company))
+        .map((user) => {
+          const profile = publicWorkerProfile(user);
+          return { id: profile.id, name: profile.name.split(" ")[0], headline: profile.headline, location: profile.location,
+            skills: profile.skills, availability: profile.availability, bio: profile.bio, preferences: { ...profile.preferences, coordinates: undefined } };
+        })
         .filter(Boolean)
-        .sort((a, b) => a.name.localeCompare(b.name))
+        .sort((a, b) => Number(b.preferences.available) - Number(a.preferences.available) || a.name.localeCompare(b.name))
     : auth.user.role === "worker"
       ? [publicWorkerProfile(auth.user, { includeUnpublished: true })].filter(Boolean)
       : [];
@@ -1314,6 +1366,7 @@ function buildBootstrap(db, auth) {
       .map((application) => publicJobApplication(application, db, { includeWorkerProfile: isManager }))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     workerProfiles,
+    recruitment: recruitmentApi.snapshot(db, auth),
     statusLabels: PUBLIC_STATUS_LABELS
   };
 }
@@ -1375,6 +1428,10 @@ function parsePhotoDataUrl(photo) {
     throw error;
   }
   const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+  const validSignature = mimeType === "image/png" ? buffer.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+    : mimeType === "image/jpeg" ? buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255
+      : buffer.subarray(0, 4).toString() === "RIFF" && buffer.subarray(8, 12).toString() === "WEBP";
+  if (!validSignature) throw Object.assign(new Error("O ficheiro nao corresponde a uma imagem valida."), { status: 400 });
   return { buffer, mimeType, ext, name };
 }
 
@@ -1964,7 +2021,8 @@ function completeGoogleAuth(db, googleUser, intent, req) {
 
 function publicJobsPayload(db) {
   return {
-    jobs: publicOpenJobs(db)
+    jobs: publicOpenJobs(db),
+    verifiedCompanies: db.companies.filter(c => c.recruitment?.verification === "verified").map(c => ({ name: c.name, path: publicMarketplace.companyPath(c), logoUrl: c.recruitment?.logo ? `/api/recruitment/company-logo/${encodeURIComponent(c.id)}` : "" })),
   };
 }
 
@@ -1979,8 +2037,8 @@ function publicJobsSetupFallback(error) {
 
 function publicOpenJobs(db) {
   return (db.jobOffers || [])
-    .filter((job) => job.status === "open")
-    .map(publicJobOffer)
+    .filter((job) => recruitment.open(job, db.companies.find(c => c.id === job.companyId)))
+    .map(job => ({ ...publicJobOffer(job), verified: db.companies.find(c => c.id === job.companyId)?.recruitment?.verification === "verified" }))
     .sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""));
 }
 
@@ -2008,7 +2066,8 @@ function publicSocialImageUrl(req) {
 }
 
 function publicJobPath(job) {
-  return `/vagas/${encodeURIComponent(job.id)}`;
+  const slug = `${job.position || job.title}-${job.companyName}-${job.location}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 160);
+  return `/vagas/${encodeURIComponent(job.id)}-${slug}`;
 }
 
 function htmlEscape(value) {
@@ -2094,6 +2153,7 @@ function siteStructuredData(req) {
 }
 
 function isRemoteJob(job) {
+  if (job.recruitment?.workMode) return job.recruitment.workMode === "remote";
   return /remoto|remote|teletrabalho/i.test(`${job.location || ""} ${job.description || ""}`);
 }
 
@@ -2140,6 +2200,9 @@ function jobStructuredData(job, company, req) {
     industry: company?.sector || undefined
   };
   if (companyWebsite) data.hiringOrganization.sameAs = companyWebsite;
+  if (job.recruitment?.deadline) data.validThrough = job.recruitment.deadline;
+  if (job.recruitment?.employmentType) data.employmentType = job.recruitment.employmentType;
+  if (job.recruitment?.salaryMin != null || job.recruitment?.salaryMax != null) data.baseSalary = { "@type": "MonetaryAmount", currency: "EUR", value: { "@type": "QuantitativeValue", minValue: job.recruitment.salaryMin ?? undefined, maxValue: job.recruitment.salaryMax ?? undefined, unitText: job.recruitment.salaryPeriod || "MONTH" } };
   if (isRemoteJob(job)) {
     data.jobLocationType = "TELECOMMUTE";
     data.applicantLocationRequirements = {
@@ -2244,7 +2307,9 @@ function renderPublicTopbarStatic(activePath = "/") {
       </header>`;
 }
 
-function renderSeoJobPage(job, company, req) {
+function renderSeoJobPage(job, company, req, related = []) {
+  job = { ...job, salary: recruitment.salary(job) };
+  const available = recruitment.open(job, company);
   const title = `${plainText(job.position || job.title)} em ${plainText(job.location)} | ${plainText(job.companyName || "Empresa")} | ${PUBLIC_BRAND_NAME}`;
   const description = truncateText(`${job.position || job.title} em ${job.location} na ${job.companyName || "empresa"}. ${job.description}`, 156);
   const canonical = absolutePublicUrl(req, publicJobPath(job));
@@ -2257,7 +2322,7 @@ function renderSeoJobPage(job, company, req) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${htmlEscape(title)}</title>
     <meta name="description" content="${htmlEscape(description)}">
-    <meta name="robots" content="index,follow">
+    <meta name="robots" content="${available ? "index,follow" : "noindex,follow"}">
     <meta name="theme-color" content="#0a66c2">
     <meta property="og:title" content="${htmlEscape(title)}">
     <meta property="og:description" content="${htmlEscape(description)}">
@@ -2277,7 +2342,7 @@ function renderSeoJobPage(job, company, req) {
     <meta name="twitter:image:alt" content="${htmlEscape(socialImageAlt)}">
     <link rel="canonical" href="${htmlEscape(canonical)}">
     <link rel="stylesheet" href="/styles.css?v=${PUBLIC_ASSET_VERSION}">
-    <script type="application/ld+json" id="job-structured-data">${jsonLdScript(jobStructuredData(job, company, req))}</script>
+    ${available ? `<script type="application/ld+json" id="job-structured-data">${jsonLdScript(jobStructuredData(job, company, req))}</script>` : ""}
     <script type="application/ld+json" id="site-structured-data">${jsonLdScript(siteStructuredData(req))}</script>
   </head>
   <body>
@@ -2286,7 +2351,7 @@ function renderSeoJobPage(job, company, req) {
       <section class="seo-job-page">
         <a class="seo-back-link" href="/">Voltar as vagas</a>
         <article class="seo-job-hero">
-          <p class="eyebrow">Vaga aberta</p>
+          <p class="eyebrow">${available ? "Vaga aberta" : "Esta vaga ja nao aceita candidaturas."}</p>
           <h1>${htmlEscape(job.position || job.title)}</h1>
           <p>${htmlEscape(job.title)}</p>
           <div class="meta-row">
@@ -2296,7 +2361,7 @@ function renderSeoJobPage(job, company, req) {
             <span>Publicada ${htmlEscape(formatPublicDate(job.createdAt))}</span>
           </div>
           <div class="card-actions">
-            <a class="btn accent" href="/#acesso">Candidatar-me</a>
+            ${available ? `<a class="btn accent" href="/?apply=${encodeURIComponent(job.id)}#vagas">Candidatar-me</a>` : ""}
             <a class="btn ghost" href="/">Ver outras vagas</a>
           </div>
         </article>
@@ -2305,6 +2370,10 @@ function renderSeoJobPage(job, company, req) {
             <h2>Descricao da vaga</h2>
             <p>${htmlEscape(job.description)}</p>
             ${job.requirements ? `<h2>Requisitos</h2><p>${htmlEscape(job.requirements)}</p>` : ""}
+            ${job.recruitment?.benefits ? `<h2>Beneficios</h2><p>${htmlEscape(job.recruitment.benefits)}</p>` : ""}
+            ${job.recruitment?.deadline ? `<p>Candidaturas ate ${htmlEscape(formatPublicDate(job.recruitment.deadline))}</p>` : ""}
+            ${company ? `<a href="${htmlEscape(publicMarketplace.companyPath(company))}">Conhecer ${htmlEscape(company.name)}</a>` : ""}
+            <p><a href="/?report=${encodeURIComponent(job.id)}#vagas">Denunciar vaga</a></p>
           </article>
           <aside class="seo-job-side">
             <h2>Resumo</h2>
@@ -2317,6 +2386,7 @@ function renderSeoJobPage(job, company, req) {
             </dl>
           </aside>
         </section>
+        ${!available && related.length ? `<section class="market-section"><h2>Vagas semelhantes</h2>${publicMarketplace.cards(related)}</section>` : ""}
       </section>
     </main>
   </body>
@@ -2359,6 +2429,10 @@ function renderRobotsTxt(req) {
     "Disallow: /api/",
     "Disallow: /data/",
     "Disallow: /tmp/",
+    "Disallow: /dashboard",
+    "Disallow: /cliente",
+    "Disallow: /admin",
+    "Disallow: /conta",
     `Sitemap: ${absolutePublicUrl(req, "/sitemap.xml")}`,
     ""
   ].join("\n");
@@ -2369,6 +2443,8 @@ function renderSitemapXml(req, db) {
   const latest = jobs[0]?.updatedAt || jobs[0]?.createdAt || db.meta?.createdAt || now();
   const entries = [
     { path: "/", lastmod: latest, priority: "1.0" },
+    ...db.companies.filter(c => jobs.some(j => j.companyId === c.id)).map(c => ({ path: publicMarketplace.companyPath(c), lastmod: latest, priority: "0.6" })),
+    ...publicMarketplace.landings(db).map(page => ({ path: page.path, lastmod: latest, priority: "0.6" })),
     ...jobs.map((job) => ({
       path: publicJobPath(job),
       lastmod: job.updatedAt || job.createdAt || latest,
@@ -2401,6 +2477,7 @@ function routeNotFound() {
 }
 
 async function handleApi(req, res, pathname) {
+  if (await recruitmentApi.handle(req, res, pathname)) return;
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
 
   if (req.method === "GET" && pathname === "/api/health") {
@@ -2416,9 +2493,11 @@ async function handleApi(req, res, pathname) {
   if ((req.method === "GET" || req.method === "POST") && pathname === "/api/cron/operational-maintenance") {
     requireCronAuth(req);
     const result = await mutateDb(async (db) => maintainOperationalEvidence(db, req));
+    const jobAlerts = await mutateDb(db => recruitmentApi.deliverAlerts(db));
     sendJson(res, 200, {
       ok: true,
       ranAt: now(),
+      jobAlerts,
       ...result
     });
     return;
@@ -2491,11 +2570,12 @@ async function handleApi(req, res, pathname) {
 
   if (req.method === "GET" && pathname === "/api/jobs/public") {
     try {
-      const db = await readDb();
+      const db = await readMarketplaceDb();
       sendJson(res, 200, publicJobsPayload(db));
     } catch (error) {
       if (APP_STORAGE_DRIVER === "supabase") {
-        sendJson(res, 200, publicJobsSetupFallback(error));
+        console.error("Public vacancies unavailable", error.message);
+        sendJson(res, 503, { error: "Nao foi possivel carregar as vagas. Tente novamente dentro de instantes." });
       } else {
         throw error;
       }
@@ -2834,7 +2914,7 @@ async function handleApi(req, res, pathname) {
         throw error;
       }
       const cv = existingWorkerCv(worker);
-      const allowed = worker.id === auth.user.id || (isCompanyAdmin(auth.user) && cv.published);
+      const allowed = recruitment.canReadProfile(db, worker, auth);
       if (!allowed || !cv.profilePhoto?.storedName) {
         const error = new Error("Foto de perfil de trabalhador nao encontrada.");
         error.status = 404;
@@ -2858,6 +2938,7 @@ async function handleApi(req, res, pathname) {
       const auth = requireAuth(db, req);
       requireCompanyAccount(auth);
       const title = cleanString(body.title, 180);
+      if (auth.company.recruitment?.verification === "suspended") throw Object.assign(new Error("Empresa suspensa."), { status: 403 });
       const location = cleanString(body.location, 180);
       const description = cleanString(body.description, 2400);
       if (!title || !location || !description) {
@@ -2877,6 +2958,7 @@ async function handleApi(req, res, pathname) {
         schedule: cleanString(body.schedule, 140),
         description,
         requirements: cleanString(body.requirements, 1600),
+        recruitment: recruitment.jobDetails(body),
         status: "open",
         createdBy: auth.user.id,
         createdAt: now(),
@@ -2900,6 +2982,8 @@ async function handleApi(req, res, pathname) {
       requireCompanyAccount(auth);
       const jobOffer = db.jobOffers.find((job) => job.id === jobOfferId);
       assertSameCompany(auth, jobOffer);
+      if (auth.company.recruitment?.verification === "suspended") throw Object.assign(new Error("Empresa suspensa."), { status: 403 });
+      jobOffer.recruitment = recruitment.jobDetails(body, jobOffer.recruitment);
       if (body.status) {
         const status = cleanString(body.status, 30);
         if (!["open", "closed"].includes(status)) {
@@ -2930,7 +3014,7 @@ async function handleApi(req, res, pathname) {
     const result = await mutateDb((db) => {
       const auth = requireAuth(db, req);
       requireWorker(auth);
-      const jobOffer = db.jobOffers.find((job) => job.id === jobOfferId && job.status === "open");
+      const jobOffer = db.jobOffers.find((job) => job.id === jobOfferId && recruitment.open(job, db.companies.find(c => c.id === job.companyId)));
       if (!jobOffer) {
         const error = new Error("Vacancy not found or already closed.");
         error.status = 404;
@@ -2957,6 +3041,7 @@ async function handleApi(req, res, pathname) {
         workerName: auth.user.name,
         workerEmail: auth.user.email,
         message: cleanString(body.message, 1600),
+        recruitment: { answers: recruitment.answers(jobOffer, body.answers), history: [{ status: "submitted", at: now() }] },
         status: "submitted",
         decisionReason: "",
         createdAt: now(),
@@ -2982,7 +3067,7 @@ async function handleApi(req, res, pathname) {
       const application = db.jobApplications.find((item) => item.id === applicationId);
       assertSameCompany(auth, application);
       const status = cleanString(body.status, 30);
-      if (!["submitted", "reviewed", "accepted", "rejected"].includes(status)) {
+      if (!recruitment.STAGES.includes(status)) {
         const error = new Error("Invalid application status.");
         error.status = 400;
         throw error;
@@ -2990,6 +3075,7 @@ async function handleApi(req, res, pathname) {
       application.status = status;
       application.decisionReason = cleanString(body.decisionReason, 1000);
       application.updatedAt = now();
+      application.recruitment = { ...application.recruitment, history: [...(application.recruitment?.history || []), { status, at: now() }].slice(-100) };
       audit(db, auth, "job_application", application.id, "job_application.updated", { status }, req);
       return { application: publicJobApplication(application, db, { includeWorkerProfile: true }), bootstrap: buildBootstrap(db, auth) };
     });
@@ -3466,8 +3552,12 @@ async function serveStatic(req, res, pathname) {
     filePath = path.join(PUBLIC_DIR, "index.html");
   }
   const ext = path.extname(filePath).toLowerCase();
-  const body = await fsp.readFile(filePath);
+  let body = await fsp.readFile(filePath);
   const fileName = path.basename(filePath);
+  if (fileName === "index.html" && ["/", "/index.html"].includes(pathname)) {
+    const db = await readMarketplaceDb();
+    body = Buffer.from(body.toString("utf8").replace(/<div id="app" class="app-shell">[\s\S]*?<script src=/, `<div id="app" class="app-shell">${publicMarketplace.home(db, req)}</div>\n    <script src=`));
+  }
   const responseBody = fileName === "index.html"
     ? Buffer.from(renderPublicIndexHtml(body.toString("utf8"), req, pathname))
     : body;
@@ -3485,7 +3575,18 @@ async function serveStatic(req, res, pathname) {
 
 async function requestHandler(req, res) {
   try {
+    if (!["GET", "HEAD", "OPTIONS"].includes(req.method) && req.headers.origin && req.headers.origin !== requestOrigin(req)) {
+      sendJson(res, 403, { error: "Origem do pedido nao autorizada." }); return;
+    }
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+    if (req.method === "POST" && ["/api/auth/login", "/api/register/worker", "/api/register/company"].includes(url.pathname)) {
+      const key = `${req.socket.remoteAddress}:${url.pathname}`;
+      const previous = authAttempts.get(key);
+      const entry = previous && previous.until > Date.now() ? previous : { count: 0, until: Date.now() + 60000 };
+      if (++entry.count > 20) { sendJson(res, 429, { error: "Demasiados pedidos. Tente novamente dentro de um minuto." }, { "Retry-After": "60" }); return; }
+      authAttempts.set(key, entry);
+      if (authAttempts.size > 5000) for (const [id, value] of authAttempts) if (value.until <= Date.now()) authAttempts.delete(id);
+    }
     if (url.pathname.startsWith("/api/")) {
       await handleApi(req, res, url.pathname);
       return;
@@ -3496,7 +3597,7 @@ async function requestHandler(req, res) {
     }
     if (req.method === "GET" && url.pathname === "/sitemap.xml") {
       try {
-        const db = await readDb();
+        const db = await readMarketplaceDb();
         sendText(res, 200, renderSitemapXml(req, db), "application/xml; charset=utf-8");
       } catch (error) {
         if (APP_STORAGE_DRIVER !== "supabase") throw error;
@@ -3506,17 +3607,27 @@ async function requestHandler(req, res) {
       return;
     }
     const jobPageMatch = url.pathname.match(/^\/vagas\/([^/]+)$/);
+    if (req.method === "GET" && (url.pathname.startsWith("/empresas/") || url.pathname.startsWith("/empregos/"))) {
+      const db = await readMarketplaceDb();
+      const company = db.companies.find(c => c.id !== "co_workers" && publicMarketplace.companyPath(c) === url.pathname && c.recruitment?.verification !== "suspended");
+      const landing = publicMarketplace.landings(db).find(p => p.path === url.pathname);
+      if (!company && !landing) { sendHtml(res, 404, renderSeoNotFoundPage(req)); return; }
+      const title = company ? `${company.name} | TrataPro` : `Empregos: ${landing.title} | TrataPro`;
+      const content = company ? publicMarketplace.company(db, company) : `${renderPublicTopbarStatic()}<main class="market-home"><h1>${htmlEscape(title)}</h1><div class="market-job-list">${publicMarketplace.cards(landing.jobs)}</div></main>`;
+      sendHtml(res, 200, `<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEscape(title)}</title><meta name="description" content="${htmlEscape(company?.description || `Vagas abertas: ${landing?.title}`)}"><link rel="canonical" href="${htmlEscape(absolutePublicUrl(req, url.pathname))}"><link rel="stylesheet" href="/styles.css?v=${PUBLIC_ASSET_VERSION}"></head><body>${content}</body></html>`); return;
+    }
     if (req.method === "GET" && jobPageMatch) {
       const jobOfferId = decodeURIComponent(jobPageMatch[1]);
       try {
-        const db = await readDb();
-        const job = publicOpenJobs(db).find((item) => item.id === jobOfferId);
+        const db = await readMarketplaceDb();
+        const job = db.jobOffers.find((item) => item.id === jobOfferId || jobOfferId.startsWith(`${item.id}-`));
         if (!job) {
           sendHtml(res, 404, renderSeoNotFoundPage(req), { "X-Robots-Tag": "noindex, follow" });
           return;
         }
         const company = db.companies.find((item) => item.id === job.companyId);
-        sendHtml(res, 200, renderSeoJobPage(job, company, req));
+        const related = publicOpenJobs(db).filter(j => j.id !== job.id && (j.location === job.location || j.position === job.position)).slice(0, 4);
+        sendHtml(res, 200, renderSeoJobPage(job, company, req, related));
       } catch (error) {
         if (APP_STORAGE_DRIVER !== "supabase") throw error;
         console.error(`Job SEO page unavailable: ${error.message}`);

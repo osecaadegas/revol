@@ -13,6 +13,14 @@
 
 ## Current Product Concept
 
+The 2026-10-07 recruitment brief supersedes earlier public marketplace UX and
+profile-sharing requirements. See `docs/RECRUITMENT_UPGRADE.md` for coverage.
+Published worker profiles are no longer automatically visible to every company:
+discovery requires worker opt-in and a verified company, contact/document access
+requires an application relationship, and private visibility revokes that access.
+Birth date, references and work experience are optional, including first-job
+candidates. Admin permissions are independent of company roles.
+
 The public product surface now behaves first like a LinkedIn-style vacancy marketplace. Project status, roadmap, MVP scope, future evolution, requirement traceability, modules, deliverables, feedback, changelog and documentation structure are private workspace information for authenticated client/developer users only.
 
 The existing labor-market and operational evidence workflows remain preserved as MVP modules inside the platform.

@@ -2,6 +2,13 @@
 
 ## Requirements
 
+For the recruitment release, apply
+`supabase/migrations/20261007035242_recruitment_upgrade.sql` after the existing
+migrations before deploying. This migration has already been applied to the
+user-confirmed production project in this session. See
+`docs/RECRUITMENT_UPGRADE.md` for administrator setup, optional Resend email
+configuration, privacy behavior, new tests and verified deployment details.
+
 - Node.js 18 or newer.
 - A browser with camera/photo upload support.
 - HTTPS in production if point-in-time geolocation is needed. Browsers normally block geolocation on non-secure origins except `localhost`.

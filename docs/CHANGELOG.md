@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-07
+
+- Added recruitment workspaces, structured preferences, private CV documents,
+  saved jobs/searches, screening, application history, candidate search/matching,
+  messaging/interviews, company verification, reporting and moderation.
+- Replaced broad published-profile exposure with explicit visibility controls
+  and limited verified-employer discovery. Added account export/deletion.
+- Server-rendered the homepage, company pages and useful search landing pages;
+  added readable vacancy URLs, actual salary/deadline schema and expired pages.
+- Added transactional Supabase writes with stale-edit protection, paginated
+  reads, safe error responses, upload checks and same-origin mutation checks.
+- Fixed service-worker activation navigation and simplified mobile recruitment.
+- Added recruitment API/browser tests. See `docs/RECRUITMENT_UPGRADE.md` for
+  deployment configuration, verification scope and remaining work.
+
 ## 2026-08-25
 
 - Marked `/cliente` as a reserved noindex access gate and removed it from the generated sitemap.

@@ -2,6 +2,12 @@
 
 ## Current Product Boundary
 
+The 2026-10-07 written recruitment upgrade request explicitly expands the
+recruitment scope. See `docs/RECRUITMENT_UPGRADE.md` for delivered functionality,
+verification and remaining work. The original operational evidence workflow is
+preserved. Priority follow-ups are email configuration/live delivery, production
+user acceptance, physical-device/Safari testing and measured analytics.
+
 The repository started with only source PDFs and no existing app. This implementation creates the first app in the repository root.
 
 The corrected first product concept is a public labor-market board: vacancies are visible without login, trabalhador accounts register to apply, and companies register to publish vacancies. The homepage must feel like a practical LinkedIn-style job feed, while client/developer project information remains private. The operational work-order/evidence module remains part of the company workspace and is still backed by the contract annex.

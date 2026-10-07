@@ -9,7 +9,8 @@
     "dev": "node server/index.js",
     "build": "node server/check.js",
     "check": "node server/check.js",
-    "smoke": "node server/smoke-test.js"
+    "smoke": "node server/smoke-test.js",
+    "test:recruitment": "node server/recruitment-test.js"
   },
   "engines": {
     "node": ">=18"

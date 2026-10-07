@@ -154,7 +154,7 @@ async function run() {
     if (
       !jobPage.includes("JobPosting") ||
       !jobPage.includes("Operador operacional") ||
-      !jobPage.includes(`<link rel="canonical" href="${baseUrl}/vagas/${jobResult.jobOffer.id}">`) ||
+      !jobPage.includes(`<link rel="canonical" href="${baseUrl}${jobResult.jobOffer.publicPath}">`) ||
       !jobPage.includes(`${baseUrl}/social-card.svg`)
     ) {
       throw new Error("Public vacancy detail page should expose crawlable job content and JobPosting structured data.");
@@ -221,8 +221,8 @@ async function run() {
     }, workerToken);
 
     const companyCandidateBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, managerToken);
-    if (!companyCandidateBootstrap.workerProfiles?.some((profile) => profile.id === workerProfile.profile.id)) {
-      throw new Error("Company bootstrap should expose published worker CV profiles.");
+    if (companyCandidateBootstrap.workerProfiles?.some((profile) => profile.id === workerProfile.profile.id)) {
+      throw new Error("Unverified companies must not discover worker profiles.");
     }
     const companyApplication = companyCandidateBootstrap.jobApplications.find((item) => item.id === application.application.id);
     if (!companyApplication?.workerProfile?.skills?.includes("Operacao")) {

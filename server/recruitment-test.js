@@ -1,0 +1,150 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), "tratapro-recruitment-"));
+process.env.APP_STORAGE_DRIVER = "local";
+process.env.APP_DATA_DIR = temp;
+process.env.RESEND_API_KEY = "";
+process.env.CRON_SECRET = "test-cron";
+const { createServer } = require("./index");
+const server = createServer();
+let base;
+async function request(route, method = "GET", body, token, expected = 200) {
+  const response = await fetch(base + route, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const payload = response.headers.get("content-type")?.includes("application/json") ? await response.json() : await response.text();
+  assert.equal(response.status, expected, `${method} ${route}: ${JSON.stringify(payload).slice(0, 300)}`);
+  return payload;
+}
+async function run() {
+  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+  base = `http://127.0.0.1:${server.address().port}`;
+  let browser;
+  try {
+    const company = await request("/api/register/company", "POST", { companyName: "Empresa teste", name: "Responsavel", email: "company@test.invalid", password: "password123" }, null, 201);
+    const other = await request("/api/register/company", "POST", { companyName: "Outra empresa", name: "Outro", email: "other@test.invalid", password: "password123" }, null, 201);
+    const worker = await request("/api/register/worker", "POST", { name: "Candidato Teste", email: "worker@test.invalid", password: "password123" }, null, 201);
+    const ct = company.session.token, wt = worker.session.token, ot = other.session.token;
+    const workerId = worker.bootstrap.user.id;
+    process.env.PLATFORM_ADMIN_USER_IDS = other.bootstrap.user.id;
+    await request("/api/recruitment/admin", "GET", null, ct, 403);
+    await request("/api/recruitment/admin", "GET", null, ot);
+    await request("/api/recruitment/company", "PATCH", { nif: "123456789", location: "Alpiarca", description: "Empresa de logistica", requestVerification: true, verification: "verified" }, ct);
+    let bootstrap = await request("/api/bootstrap", "GET", null, ct);
+    assert.equal(bootstrap.company.recruitment.verification, "pending", "Company cannot verify itself");
+    await request("/api/recruitment/admin", "PATCH", { companyId: company.bootstrap.company.id, verification: "verified" }, ot);
+    await request("/api/workers/profile", "PATCH", { published: true, headline: "Operador de armazem", location: "Alpiarca", skills: ["Empilhador"], phone: "900000000", birthDate: "1990-01-01", references: [{ name: "Referencia", phone: "911111111" }] }, wt);
+    const preferences = { visibility: "verified", available: true, radius: 25, coordinates: { latitude: 39.257, longitude: -8.582 }, experienceYears: 4, certifications: ["Empilhador"], languages: ["Portugues"], schedules: ["night"], minimumSalary: 1100 };
+    await request("/api/recruitment/preferences", "PATCH", preferences, wt);
+    bootstrap = await request("/api/bootstrap", "GET", null, ct);
+    assert.equal(bootstrap.workerProfiles.length, 1);
+    const preview = bootstrap.workerProfiles[0];
+    assert.equal(preview.email, undefined); assert.equal(preview.phone, undefined); assert.equal(preview.references, undefined); assert.equal(preview.preferences.coordinates, undefined);
+    assert.equal((await request("/api/bootstrap", "GET", null, ot)).workerProfiles.length, 0);
+    const job = (await request("/api/job-offers", "POST", { title: "Operador de armazem", location: "Alpiarca", description: "Trabalho de logistica", salaryMin: 1100, salaryMax: 1300, salaryPeriod: "MONTH", employmentType: "FULL_TIME", shift: "night", experienceYears: 0, skills: ["Empilhador"], deadline: "2099-12-31", coordinates: { latitude: 39.26, longitude: -8.58 }, screening: [{ id: "q0", question: "Tem certificado?", type: "boolean" }] }, ct, 201)).jobOffer;
+    await request(`/api/job-offers/${job.id}`, "PATCH", { title: "Ataque" }, ot, 404);
+    await request(`/api/job-offers/${job.id}/apply`, "POST", {}, wt, 400);
+    const application = (await request(`/api/job-offers/${job.id}/apply`, "POST", { answers: { q0: "yes" } }, wt, 201)).application;
+    await request(`/api/job-offers/${job.id}/apply`, "POST", { answers: { q0: "yes" } }, wt, 409);
+    await request(`/api/applications/${application.id}`, "PATCH", { status: "interview" }, ot, 404);
+    await request(`/api/applications/${application.id}`, "PATCH", { status: "interview" }, ct);
+    const ownApplications = (await request("/api/bootstrap", "GET", null, wt)).jobApplications;
+    assert.equal(ownApplications[0].recruitment.history.at(-1).status, "interview");
+    await request("/api/recruitment/documents", "POST", { dataUrl: "data:application/pdf;base64," + Buffer.from("not a PDF").toString("base64") }, wt, 400);
+    const pdf = "%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF";
+    let result = await request("/api/recruitment/documents", "POST", { name: "cv.pdf", dataUrl: "data:application/pdf;base64," + Buffer.from(pdf).toString("base64") }, wt);
+    const docId = result.recruitment.documents[0].id;
+    await request(`/api/recruitment/documents/${docId}`, "GET", null, null, 401);
+    await request(`/api/recruitment/documents/${docId}`, "GET", null, ot, 404);
+    await request(`/api/recruitment/documents/${docId}`, "GET", null, ct);
+    await request("/api/recruitment/preferences", "PATCH", { visibility: "private" }, wt);
+    await request(`/api/recruitment/documents/${docId}`, "GET", null, ct, 404);
+    assert.equal((await request("/api/bootstrap", "GET", null, ct)).jobApplications[0].workerProfile, null);
+    await request("/api/recruitment/preferences", "PATCH", { visibility: "applications" }, wt);
+    await request("/api/recruitment/saved-jobs", "POST", { jobId: job.id }, wt);
+    assert.ok((await request("/api/recruitment", "GET", null, wt)).savedJobs.includes(job.id));
+    await request("/api/recruitment/searches", "POST", { query: "armazem", frequency: "daily" }, wt, 400);
+    await request("/api/recruitment/searches", "POST", { query: "armazem", frequency: "off" }, wt);
+    await request("/api/recruitment/messages", "POST", { jobId: job.id, workerId, body: "Gostariamos de marcar uma entrevista", interviewAt: "2099-10-10T14:00:00Z" }, ot, 403);
+    result = await request("/api/recruitment/messages", "POST", { jobId: job.id, workerId, body: "Gostariamos de marcar uma entrevista", interviewAt: "2099-10-10T14:00:00Z" }, ct);
+    const messageId = result.recruitment.messages[0].id;
+    await request("/api/recruitment/messages", "PATCH", { id: messageId, response: "accepted" }, wt);
+    assert.equal((await request("/api/recruitment", "GET", null, ct)).messages[0].response, "accepted");
+    assert.equal((await request("/api/recruitment", "GET", null, ot)).messages.length, 0);
+    await request("/api/recruitment/reports", "POST", { jobId: job.id, reason: "salary", detail: "Verificar salario" }, wt);
+    assert.equal((await request("/api/recruitment/admin", "GET", null, ot)).reports.length, 1);
+    const homepage = await request("/");
+    assert.ok(homepage.includes("Operador de armazem") && !homepage.includes("A preparar vagas"));
+    const detail = await request(job.publicPath);
+    const schema = JSON.parse(detail.match(/id="job-structured-data">([\s\S]*?)<\/script>/)[1]);
+    assert.equal(schema["@type"], "JobPosting"); assert.equal(schema.baseSalary.value.unitText, "MONTH"); assert.ok(schema.validThrough);
+    const sitemap = await request("/sitemap.xml");
+    assert.ok(sitemap.includes("/empresas/") && sitemap.includes("/empregos/alpiarca"));
+    await request("/empregos/alpiarca");
+    await request("/empregos/nonexistent", "GET", null, null, 404);
+    const csrf = await fetch(base + "/api/recruitment/preferences", { method: "PATCH", headers: { Origin: "https://evil.invalid", Authorization: `Bearer ${wt}`, "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(csrf.status, 403);
+    if (process.env.PLAYWRIGHT_MODULE) {
+      const { chromium } = require(process.env.PLAYWRIGHT_MODULE);
+      browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || "msedge" });
+      const errors = [];
+      const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+      const page = await context.newPage();
+      page.on("pageerror", err => errors.push(err.message));
+      await page.goto(base);
+      try { await page.getByRole("heading", { name: "Encontra trabalho sem complicacoes." }).waitFor({ timeout: 10000 }); }
+      catch (error) { console.error("Browser errors:", errors, "HTML:", (await page.content()).slice(-4000)); throw error; }
+      await page.getByRole("button", { name: "Quero contratar", exact: true }).click();
+      await page.locator('[data-form="register-company"]').waitFor();
+      await page.locator('[data-action="close-auth-modal"]').first().click({ position: { x: 3, y: 3 } });
+      await page.evaluate(token => localStorage.setItem("meo_session_token", token), wt);
+      await page.reload();
+      await page.locator('[data-recruitment="tab"][data-id="profile"]').click();
+      await page.locator('[data-recruitment-form="preferences"]').waitFor();
+      await page.locator('[data-recruitment-form="preferences"] input[name="languages"]').fill("Portugues, Ingles");
+      await page.getByRole("button", { name: "Guardar preferencias" }).click();
+      await page.getByText("Alteracoes guardadas.", { exact: true }).waitFor();
+      for (const id of ["applications", "saved", "messages", "settings", "jobs"]) { await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor(); }
+      const screenshotDir = path.join(__dirname, "..", "tmp", "recruitment-qa"); fs.mkdirSync(screenshotDir, { recursive: true });
+      await page.screenshot({ path: path.join(screenshotDir, "worker-desktop.png"), fullPage: true });
+      await page.setViewportSize({ width: 390, height: 844 });
+      for (const id of ["profile", "settings", "saved", "messages", "applications", "jobs"]) {
+        await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click();
+        await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Mobile overflow: ${id}`);
+      }
+      await page.screenshot({ path: path.join(screenshotDir, "worker-mobile.png"), fullPage: true });
+      await page.evaluate(token => localStorage.setItem("meo_session_token", token), ct); await page.reload();
+      for (const id of ["company", "applications", "candidates", "messages", "create", "jobs"]) {
+        await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click();
+        await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Company mobile overflow: ${id}`);
+      }
+      await page.locator('[data-recruitment="edit-job"]').click();
+      assert.equal(await page.locator('[data-form="create-job"] input[name="title"]').inputValue(), job.title);
+      await page.locator('[data-recruitment="preview-job"]').click();
+      await page.locator('[data-job-preview] .job-card').waitFor();
+      await page.getByRole("button", { name: "Guardar vaga", exact: true }).click();
+      await page.getByText("Vaga publicada.", { exact: true }).waitFor();
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.screenshot({ path: path.join(screenshotDir, "company-desktop.png"), fullPage: true });
+      assert.deepEqual(errors, [], "Browser runtime errors");
+      await context.close(); console.log("browser: worker, company, desktop/mobile, form save and job editing passed");
+    }
+    await request(`/api/job-offers/${job.id}`, "PATCH", { deadline: "2000-01-01" }, ct);
+    assert.equal((await request("/api/jobs/public")).jobs.length, 0);
+    const closed = await request(job.publicPath);
+    assert.ok(closed.includes("ja nao aceita candidaturas") && !closed.includes("JobPosting"));
+    await request(`/api/job-offers/${job.id}/apply`, "POST", {}, wt, 404);
+    await request("/api/recruitment/account", "DELETE", { confirm: "ELIMINAR" }, wt);
+    await request("/api/bootstrap", "GET", null, wt, 401);
+    await request(`/api/recruitment/documents/${docId}`, "GET", null, ct, 404);
+    assert.equal((await request("/api/bootstrap", "GET", null, ct)).jobApplications.length, 0);
+    console.log("recruitment: permissions, verification, profiles, documents, screening, pipeline, saved jobs, messages, reports, privacy, deletion and SEO passed");
+  } finally {
+    if (browser) await browser.close();
+    await new Promise(resolve => server.close(resolve));
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
+}
+run().catch(error => { console.error(error); process.exitCode = 1; });
