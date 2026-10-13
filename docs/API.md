@@ -9,6 +9,27 @@ Content-Type: application/json
 
 Login, Google callback, setup, and invite acceptance also set an HttpOnly same-origin `meo_session` cookie. The cookie is required for browser-native requests that cannot attach bearer headers, such as evidence image previews, trabalhador profile photos, watermarked evidence downloads, and opening the basic JSON export in a new tab.
 
+## Digital CV And Employment Endpoints
+
+All routes below require the established authenticated TrataPro session. No
+route exposes evaluation content publicly.
+
+- `GET /api/professional` - role-scoped professional workspace snapshot.
+- `POST /api/professional/cv` - save a draft or published version.
+- `GET /api/professional/cv.pdf` - export the authorized CV without evaluations.
+- `POST /api/professional/documents` - private PDF/DOCX upload.
+- `GET /api/professional/documents/:id/file` - audited authorized download.
+- `DELETE /api/professional/documents/:id` - worker deletion and retention log.
+- `POST /api/professional/employments` - worker/company relationship proposal.
+- `PATCH /api/professional/employments/:id/confirm` - confirm or reject.
+- `POST /api/professional/evaluations` - verified employer report submission.
+- `GET /api/professional/evaluations/:id` - audited worker/originating-company view.
+- `POST /api/professional/disputes` - worker response or data-rights request.
+- `PATCH /api/professional/disputes/:id` - originating-company response.
+- `POST /api/professional/access-requests` - record a purpose/base request;
+  report sharing remains disabled.
+- `PATCH /api/professional/access-requests/:id` - worker rejection only.
+
 ## Public Endpoints
 
 `GET /api/health`

@@ -299,6 +299,25 @@ Status: complete.
 - Added baseline security/privacy headers for HTML, JSON, static assets and private media responses, with matching Vercel static-header configuration.
 - Bumped the public shell cache and smoke coverage for the hardened SEO and header behavior.
 
+### M30 - Digital CV And Verified Employment History
+
+Status: implemented locally; migration and production legal/privacy validation pending.
+
+- Added normalized, versioned CV records while keeping the established
+  `profile.workerCv` application gate compatible.
+- Added private PDF/DOCX CV storage, review-only DOCX extraction suggestions,
+  CV preview and PDF export without confidential evaluations.
+- Added bilateral employment verification and chronological verified-history
+  display for workers and companies.
+- Added verified-employer, author-attributed structured evaluations without
+  personality profiling, aggregate worker scores or automated decisions.
+- Added disputes, correction/context responses, data-rights requests, access
+  history, review expiry, retention redaction and audit events.
+- Added documented cross-company access requests while keeping report
+  visibility disabled pending an independently validated GDPR DPIA.
+- See `docs/DIGITAL_CV_EMPLOYMENT.md` and migration
+  `20261013070041_digital_cv_employment_history.sql`.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.
@@ -311,11 +330,13 @@ Status: complete.
 8. Run `supabase/migrations/20260812000000_evidence_validation_retention.sql` in production if the previous migrations are already applied.
 9. Run `supabase/migrations/20260817000000_worker_cv_profiles.sql` in production.
 10. Verify `/api/cron/operational-maintenance` runs from the configured scheduler.
-11. Verify trabalhador/company registration, trabalhador CV publishing, authenticated marketplace layout, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
-12. Run a proper trademark/domain/legal availability check for `TrataPro` before paid launch, then set `PUBLIC_SITE_URL` in production to the final public origin and submit `/sitemap.xml` in Google Search Console after the first production deployment with published vacancy URLs.
-13. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
-14. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
-15. Add browser-driven regression coverage for public routes, public filtering and trabalhador application.
+11. Verify trabalhador/company registration, Digital CV publishing, authenticated marketplace layout, vacancy publishing, applications, GPS-required three-photo evidence upload, watermarked downloads, validation reminders and seven-day retention against Supabase.
+12. Apply and validate `20261013070041_digital_cv_employment_history.sql` in a non-production Supabase project, run database advisors, and test allow/deny boundaries with production-like identities.
+13. Complete an independently reviewed GDPR DPIA, retention decision, lawful-basis analysis and moderation process before any cross-company evaluation sharing is designed or enabled.
+14. Run a proper trademark/domain/legal availability check for `TrataPro` before paid launch, then set `PUBLIC_SITE_URL` in production to the final public origin and submit `/sitemap.xml` in Google Search Console after the first production deployment with published vacancy URLs.
+15. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
+16. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
+17. Add browser-driven regression coverage for public routes, public filtering and trabalhador application.
 
 ## Agent Update Protocol
 

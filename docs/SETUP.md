@@ -9,6 +9,11 @@ user-confirmed production project in this session. See
 `docs/RECRUITMENT_UPGRADE.md` for administrator setup, optional Resend email
 configuration, privacy behavior, new tests and verified deployment details.
 
+The Digital CV and verified-employment change also requires
+`supabase/migrations/20261013070041_digital_cv_employment_history.sql` after the
+recruitment migration. This new migration has not been claimed as applied to
+production. See `docs/DIGITAL_CV_EMPLOYMENT.md` before enabling the workflows.
+
 - Node.js 18 or newer.
 - A browser with camera/photo upload support.
 - HTTPS in production if point-in-time geolocation is needed. Browsers normally block geolocation on non-secure origins except `localhost`.
@@ -66,10 +71,14 @@ Copy `.env.example` only if you need custom values.
 PORT=4173
 APP_DATA_DIR=./data
 MAX_UPLOAD_MB=6
+MAX_CV_UPLOAD_MB=8
 APP_STORAGE_DRIVER=local
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_EVIDENCE_BUCKET=meo-evidence
+EVALUATION_REVIEW_MONTHS=12
+EMPLOYMENT_DATA_RETENTION_YEARS=6
+ACCESS_REQUEST_DAYS=30
 CRON_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -83,6 +92,8 @@ PUBLIC_SITE_URL=
 
 `MAX_UPLOAD_MB` limits each uploaded image.
 
+`MAX_CV_UPLOAD_MB` limits each private PDF or DOCX CV upload.
+
 `APP_STORAGE_DRIVER` selects persistence. Use `local` for development and `supabase` for deployment.
 
 `SUPABASE_URL` is the Supabase project URL.
@@ -90,6 +101,11 @@ PUBLIC_SITE_URL=
 `SUPABASE_SERVICE_ROLE_KEY` is required only on the server when using Supabase. Do not put it in frontend code.
 
 `SUPABASE_EVIDENCE_BUCKET` defaults to the private bucket created by the migration.
+
+`EVALUATION_REVIEW_MONTHS`, `EMPLOYMENT_DATA_RETENTION_YEARS` and
+`ACCESS_REQUEST_DAYS` configure review expiry, retention redaction and access-
+request expiry. Confirm production values through the DPIA/legal-retention
+process; the example values are technical defaults, not legal advice.
 
 `CRON_SECRET` protects `/api/cron/operational-maintenance`. Set a long random value in production so Vercel Cron or an external scheduler can run evidence cleanup and validation reminders.
 
@@ -150,8 +166,10 @@ For a dirty Supabase project that already contains old prototype tables, run the
 6. Run `supabase/migrations/20260811000000_project_viewer_roles.sql`.
 7. Run `supabase/migrations/20260812000000_evidence_validation_retention.sql`.
 8. Run `supabase/migrations/20260817000000_worker_cv_profiles.sql`.
-9. Confirm the private storage bucket `meo-evidence` exists.
-10. Set these environment variables on the host:
+9. Run `supabase/migrations/20261007035242_recruitment_upgrade.sql`.
+10. Run `supabase/migrations/20261013070041_digital_cv_employment_history.sql`.
+11. Confirm the private storage bucket `meo-evidence` exists and remains private.
+12. Set these environment variables on the host:
 
 ```text
 APP_STORAGE_DRIVER=supabase
@@ -234,6 +252,7 @@ Run:
 npm run build
 npm run check
 npm run smoke
+npm run test:professional
 ```
 
 `npm run build` runs deploy-time syntax validation. The production app uses the root `server.js` serverless entrypoint and does not require a generated static build directory.

@@ -6,6 +6,8 @@ const files = [
   "server.js",
   "server/index.js",
   "server/recruitment.js",
+  "server/professional-profile.js",
+  "server/professional-profile-test.js",
   "server/recruitment-test.js",
   "server/design-test.js",
   "server/public-marketplace.js",
@@ -16,6 +18,7 @@ const files = [
   "public/app.js",
   "public/design-system.js",
   "public/recruitment-ui.js",
+  "public/professional-profile-ui.js",
   "public/service-worker.js"
 ];
 

@@ -37,11 +37,30 @@ meo_evidences
 meo_audit_logs
 meo_job_offers
 meo_job_applications
+meo_recruitment_messages
+meo_job_reports
+meo_cv_profiles
+meo_cv_versions
+meo_cv_documents
+meo_company_verifications
+meo_company_memberships
+meo_employment_relationships
+meo_employer_evaluation_reports
+meo_evaluation_criteria
+meo_company_access_grants
+meo_worker_disputes
+meo_report_access_logs
+meo_data_retention_actions
 ```
 
-Trabalhador CV profiles are stored inside `meo_users.profile.workerCv`, so no separate worker-profile table is expected.
+The normalized Digital CV tables are the current source for CV version history.
+`meo_users.profile.workerCv` remains as a compatibility projection for the
+existing recruitment application and discovery flows.
 
-It creates or updates the private `meo-evidence` storage bucket. Evidence photos and trabalhador profile photos are private storage objects. It does not delete the old `evidencias` bucket or storage objects; remove those manually only after confirming nothing needs to be kept.
+It creates or updates the private `meo-evidence` storage bucket. Evidence photos,
+profile photos and PDF/DOCX CV documents are private storage objects. It does
+not delete the old `evidencias` bucket or storage objects; remove those manually
+only after confirming nothing needs to be kept.
 
 The current user and invite role set is:
 

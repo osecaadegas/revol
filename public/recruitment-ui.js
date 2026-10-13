@@ -2,6 +2,7 @@
   window.createRecruitmentUI = function (h) {
     const e = h.escapeHtml;
     const icon = window.TrataDesign.icon;
+    const professional = window.createProfessionalProfileUI(h);
     let tab = "jobs", adminData = null, candidateQuery = "", candidateResults = null, candidateFilters = {}, candidatePage = 1, candidateTotal = 0;
     const r = () => h.state.data?.recruitment || {};
     const stages = { submitted: "Candidatura enviada", viewed: "Vista pela empresa", reviewed: "Em analise", contacted: "Contactado", interview: "Entrevista", offer: "Oferta", accepted: "Contratado", hired: "Contratado", rejected: "Nao selecionado" };
@@ -13,10 +14,10 @@
     const modes = [["onsite", "Presencial"], ["remote", "Remoto"], ["hybrid", "Hibrido"]];
     const shifts = [["", "A combinar"], ["day", "Diurno"], ["night", "Noturno"], ["rotating", "Rotativo"], ["weekends", "Fins de semana"]];
     function tabs() {
-      const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["saved", "Guardadas"], ["messages", "Mensagens"], ["settings", "Privacidade"]]
-        : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Mensagens"]];
+      const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Historico verificado"], ["saved", "Guardadas"], ["messages", "Mensagens"], ["settings", "Privacidade"]]
+        : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Avaliacoes"], ["access", "Pedidos de acesso"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Mensagens"]];
       if (r().platformAdmin) items.push(["admin", "Administracao"]);
-      const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",saved:"bookmark",messages:"message-square",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
+      const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"message-square",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
       return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ghost" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span></button>`).join("")}</nav>`;
     }
     function preferences() {
@@ -39,7 +40,7 @@
     }
     function settings() {
       const p = h.state.data.user.profile.workerCv?.preferences || {};
-      return `<section class="recruitment-form"><h2>Privacidade do perfil</h2><form class="form-grid" data-recruitment-form="visibility">${select("visibility", "Quem pode consultar o meu perfil", [["private", "Privado"], ["applications", "Apenas empresas a que me candidato"], ["verified", "Empresas verificadas"]], p.visibility || "applications")}<p>Na pesquisa, as empresas verificadas veem apenas um resumo profissional. Os contactos e documentos ficam reservados as empresas a que te candidatas. A data de nascimento e referencias nao aparecem na pesquisa.</p><button class="btn primary">Guardar visibilidade</button></form><p><a class="btn ghost" href="/api/recruitment/export">Descarregar os meus dados</a></p><details><summary>Eliminar conta</summary><form class="form-grid" data-recruitment-form="delete-account"><p>A conta, candidaturas, mensagens e documentos serao eliminados. O historico de auditoria fica anonimizado.</p>${field("confirm", "Escreve ELIMINAR para confirmar", "", "text", 'required pattern="ELIMINAR"')}<button class="btn danger">Eliminar a minha conta</button></form></details></section>`;
+      return `<section class="recruitment-form"><h2>Privacidade do perfil</h2><form class="form-grid" data-recruitment-form="visibility">${select("visibility", "Quem pode consultar o meu perfil", [["private", "Privado"], ["applications", "Apenas empresas a que me candidato"], ["verified", "Empresas verificadas"]], p.visibility || "applications")}<p>Na pesquisa, as empresas verificadas veem apenas um resumo profissional. Os contactos e documentos ficam reservados as empresas a que te candidatas. A data de nascimento e referencias nao aparecem na pesquisa.</p><button class="btn primary">Guardar visibilidade</button></form><p><a class="btn ghost" href="/api/recruitment/export">Descarregar os meus dados</a></p><details><summary>Eliminar conta</summary><form class="form-grid" data-recruitment-form="delete-account"><p>A conta, candidaturas, mensagens e ficheiros privados serao eliminados ou anonimizados. Registos factuais de emprego, avaliacoes e auditoria podem ficar restritos durante o periodo de retencao aplicavel. Pode pedir eliminacao ou restricao especifica em Historico verificado.</p>${field("confirm", "Escreve ELIMINAR para confirmar", "", "text", 'required pattern="ELIMINAR"')}<button class="btn danger">Eliminar a minha conta</button></form></details></section>`;
     }
     function saved() {
       const jobs = (h.state.data.jobOffers || []).filter(j => r().savedJobs?.includes(j.id));
@@ -97,7 +98,10 @@
       return `<h2>Administracao</h2><p>${adminData.metrics.workers} trabalhadores · ${adminData.metrics.companies} empresas · ${adminData.metrics.applications} candidaturas · ${adminData.metrics.hires} contratacoes</p><h3>Verificacao de empresas</h3>${adminData.companies.map(c => `<form class="form-grid moderation-row" data-recruitment-form="admin"><input type="hidden" name="companyId" value="${e(c.id)}"><strong>${e(c.name)}</strong><span>NIF: ${e(c.recruitment?.nif || "Por preencher")}</span>${select("verification", "Verificacao", [["pending", "Pendente"], ["verified", "Verificada"], ["rejected", "Recusada"], ["suspended", "Suspensa"]], c.recruitment?.verification)}<button class="btn primary">Atualizar</button></form>`).join("")}<h3>Denuncias</h3>${adminData.reports.map(report => `<form class="form-grid moderation-row" data-recruitment-form="admin"><input type="hidden" name="reportId" value="${e(report.id)}"><p>${e(report.jobOfferId)} · ${e(report.reason)} · ${e(report.detail)}</p>${select("status", "Decisao", [["reviewed", "Revista"], ["dismissed", "Arquivada"]], report.status)}<button class="btn primary">Guardar</button></form>`).join("") || '<p>Sem denuncias.</p>'}<h3>Vagas</h3>${adminData.jobs.map(j => `<p>${e(j.title)} ${button("suspend-job", j.recruitment?.suspended ? "Reativar" : "Suspender", j.id, `data-value="${!j.recruitment?.suspended}"`)}</p>`).join("")}<h3>Contas</h3>${adminData.users.map(u => `<p>${e(u.name)} · ${e(u.role)} ${u.id === h.state.data.user.id ? "" : button("suspend-user", u.active ? "Suspender" : "Reativar", u.id, `data-value="${!u.active}"`)}</p>`).join("")}<details><summary>Historico de auditoria</summary>${adminData.audit.map(a => `<p>${e(a.createdAt)} · ${e(a.actorName)} · ${e(a.action)}</p>`).join("")}</details>`;
     }
     function content() {
-      if (tab === "profile") return `${h.renderWorkerProfilePanel()}${preferences()}${documents()}`;
+      if (tab === "profile") return professional.cv();
+      if (tab === "employment") return h.isWorker() ? professional.workerEmployment() : professional.companyEmployment();
+      if (tab === "evaluations") return professional.evaluations();
+      if (tab === "access") return professional.accessRequests();
       if (tab === "settings") return settings();
       if (tab === "saved") return saved();
       if (tab === "company") return company();
@@ -205,11 +209,12 @@
           error.textContent = err.message;
         } finally { if (submit) submit.disabled = false; }
       }));
+      professional.bind();
     }
     function report(job) {
       return `<details><summary>Denunciar vaga</summary><form class="form-grid" data-recruitment-form="report"><input type="hidden" name="jobId" value="${e(job.id)}">${select("reason", "Motivo", [["fake", "Empresa falsa"], ["fraud", "Fraude"], ["salary", "Salario enganador"], ["discrimination", "Discriminacao"], ["money", "Pedido de dinheiro"], ["closed", "Vaga indisponivel"], ["spam", "Spam"], ["other", "Outro"]])}${area("detail", "Detalhes")}<button class="btn ghost">Enviar denuncia</button></form></details>`;
     }
-    return { tabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, reset: () => { tab = "jobs"; adminData = null; candidateResults = null; candidateFilters = {}; },
+    return { tabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, reset: () => { tab = "jobs"; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); },
       notifications: () => (r().notifications || []).length ? `<details class="notifications"><summary>${r().notifications.length} notificacoes</summary>${r().notifications.slice(0, 15).map(n => `<p>${e(n.text)}</p>`).join("")}${button("notifications", "Marcar atualizacoes como lidas")}</details>` : "" };
   };
 })();

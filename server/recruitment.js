@@ -374,6 +374,15 @@ function createRecruitment(h) {
         if (body.confirm !== "ELIMINAR") fail("Confirme com ELIMINAR.");
         for (const doc of p.documents || []) await h.deletePrivateUploadFile(doc.storedName);
         if (p.workerCv?.profilePhoto?.storedName) await h.deletePrivateUploadFile(p.workerCv.profilePhoto.storedName);
+        for (const doc of (db.cvDocuments || []).filter(d => d.workerId === auth.user.id && !d.deletedAt)) {
+          await h.deletePrivateUploadFile(doc.storedName).catch(() => {});
+          doc.deletedAt = stamp(); doc.extractedData = {};
+        }
+        const cvProfile = (db.cvProfiles || []).find(profile => profile.workerId === auth.user.id);
+        if (cvProfile) Object.assign(cvProfile, { status:"archived", headline:"", summary:"", personalDetails:{}, skills:[], qualifications:[], certifications:[], education:[], workHistory:[], languages:[], licences:[], preferences:{}, availability:{}, updatedAt:stamp() });
+        for (const version of (db.cvVersions || []).filter(version => version.workerId === auth.user.id)) version.snapshot = {};
+        for (const grant of (db.companyAccessGrants || []).filter(grant => grant.workerId === auth.user.id && grant.status === "pending_dpia")) { grant.status = "rejected"; grant.decidedAt = stamp(); grant.decisionBy = auth.user.id; }
+        (db.dataRetentionActions ||= []).push({ id:uid("ret"), entityType:"worker_account", entityId:auth.user.id, workerId:auth.user.id, action:"restricted", reason:"account_deletion_requested_employment_records_follow_configured_retention", executeAfter:stamp(), executedAt:stamp(), createdBy:auth.user.id, createdAt:stamp() });
         db.sessions = db.sessions.filter(s => s.userId !== auth.user.id);
         db.jobApplications = db.jobApplications.filter(a => a.workerId !== auth.user.id);
         db.recruitmentMessages = db.recruitmentMessages.filter(m => m.workerId !== auth.user.id);

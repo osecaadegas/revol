@@ -6,6 +6,65 @@
   font-display: swap;
 }
 
+/* Digital CV, verified employment and confidential employer reports. */
+.professional-workspace { display: grid; gap: 24px; }
+.workspace-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-primary); }
+.workspace-toolbar h2 { margin: 4px 0 8px; font-size: clamp(24px, 4vw, 34px); }
+.workspace-toolbar p { margin: 0; color: var(--text-secondary); max-width: 720px; }
+.digital-cv-form { max-width: none; }
+.digital-cv-form .profile-section-title { grid-template-columns: minmax(0, 1fr); }
+.cv-stepper { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding-bottom: 20px; border-bottom: 1px solid var(--border-subtle); }
+.cv-stepper button { min-height: 52px; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border-primary); border-radius: var(--radius); color: var(--text-secondary); background: var(--surface-primary); text-align: left; }
+.cv-stepper button span { display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 26px; border-radius: 999px; background: var(--surface-elevated); color: var(--text-primary); }
+.cv-stepper button.active { border-color: var(--brand-primary); color: var(--text-primary); background: var(--brand-subtle); }
+.cv-step { display: grid; gap: 18px; }
+.cv-step[hidden], [data-cv-preview][hidden] { display: none; }
+.digital-cv-preview { display: grid; gap: 20px; padding: clamp(20px, 5vw, 48px); border: 1px solid var(--border-primary); border-radius: calc(var(--radius) * 1.5); background: var(--surface-primary); box-shadow: var(--shadow-card); }
+.digital-cv-preview > header { display: flex; justify-content: space-between; gap: 20px; padding-bottom: 20px; border-bottom: 2px solid var(--brand-primary); }
+.digital-cv-preview h2 { margin: 4px 0; font-size: 32px; }
+.digital-cv-preview section { display: grid; gap: 10px; }
+.digital-cv-preview section h3 { margin: 0; font-size: 15px; text-transform: uppercase; letter-spacing: .08em; color: var(--brand-link); }
+.digital-cv-preview footer { padding-top: 16px; border-top: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 12px; }
+.history-row { display: grid; gap: 3px; padding: 12px 0; border-top: 1px solid var(--border-subtle); }
+.history-row:first-of-type { border-top: 0; }
+.history-row span, .history-row p { color: var(--text-secondary); }
+.history-row.verified strong { display: flex; align-items: center; gap: 7px; color: var(--success); }
+.private-documents, .document-grid { display: grid; gap: 16px; }
+.document-grid article, .report-list article, .access-request { display: flex; align-items: center; gap: 10px; padding: 14px 0; border-top: 1px solid var(--border-subtle); }
+.document-grid article > div, .report-list article > div, .access-request > div { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.document-grid span, .report-list span, .access-request span, .compact-list span { color: var(--text-muted); font-size: 13px; }
+.compact-list { display: grid; }
+.compact-list > div { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border-subtle); }
+.employment-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 14px; }
+.employment-card { display: grid; gap: 14px; padding: 20px; border: 1px solid var(--border-primary); border-radius: var(--radius); background: var(--surface-primary); }
+.employment-card header, .evaluation-detail header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.employment-card h3, .employment-card p { margin: 0; }
+.status-pill { display: inline-flex; align-items: center; width: fit-content; padding: 5px 9px; border: 1px solid var(--border-primary); border-radius: 999px; color: var(--text-secondary); background: var(--surface-elevated); font-size: 12px; white-space: nowrap; }
+.status-pill.verified, .status-pill.published { color: var(--success); border-color: color-mix(in srgb, var(--success) 45%, transparent); }
+.verification-pair { display: flex; flex-wrap: wrap; gap: 8px; }
+.verification-pair span { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border-radius: var(--radius); background: var(--surface-elevated); color: var(--text-muted); font-size: 12px; }
+.verification-pair span.done { color: var(--success); }
+.employment-search { max-width: 440px; }
+.privacy-callout { padding: 12px 14px; border-left: 3px solid var(--brand-primary); background: var(--brand-subtle); color: var(--text-secondary); }
+.evaluation-detail { display: grid; gap: 18px; margin-top: 20px; padding: 20px; border: 1px solid var(--border-primary); border-radius: var(--radius); background: var(--surface-elevated); }
+.criteria-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.criteria-grid > div, .criteria-grid fieldset { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius); background: var(--surface-primary); }
+.criteria-grid > div > span { color: var(--brand-primary); letter-spacing: .1em; }
+.fact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.fact-grid span { display: grid; gap: 4px; padding: 12px; border-radius: var(--radius); background: var(--surface-primary); }
+.fact-grid small { color: var(--text-muted); }
+.compact-dispute { display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, .35fr); gap: 12px; padding: 18px 0; border-top: 1px solid var(--border-subtle); }
+.compact-dispute > .field:nth-last-of-type(1), .compact-dispute > button { grid-column: 1 / -1; }
+
+@media (max-width: 760px) {
+  .workspace-toolbar, .digital-cv-preview > header, .employment-card header, .evaluation-detail header { flex-direction: column; }
+  .cv-stepper { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .document-grid article, .report-list article, .access-request { align-items: stretch; flex-direction: column; }
+  .document-grid article .btn, .report-list article .btn, .access-request .btn { width: 100%; }
+  .fact-grid { grid-template-columns: 1fr; }
+  .compact-dispute { grid-template-columns: 1fr; }
+}
+
 :root {
   --bg-primary: #080d17;
   --bg-secondary: #0d1422;

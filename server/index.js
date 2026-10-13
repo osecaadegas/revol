@@ -7,6 +7,7 @@ const { URL } = require("url");
 const { renderPrivateMvpHtml } = require("./private-mvp");
 const { renderPrivateProjectHtml } = require("./private-project");
 const recruitment = require("./recruitment");
+const professionalProfile = require("./professional-profile");
 const { createPublicMarketplace } = require("./public-marketplace");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
@@ -34,7 +35,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20261007-dark";
+const PUBLIC_ASSET_VERSION = "20261013-cv";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -304,9 +305,13 @@ const TABLES = [
 ];
 for (const definition of TABLES.filter(t => ["jobOffers", "jobApplications"].includes(t.key))) definition.fields.recruitment = "recruitment";
 TABLES.push(...recruitment.TABLES);
+TABLES.push(...professionalProfile.TABLES);
 const recruitmentApi = recruitment.createRecruitment({ readDb, mutateDb, requireAuth, requireWorker, requireCompanyAccount,
   publicUser, publicCompany, publicJobOffer, audit, buildBootstrap, readBody, sendJson, responseHeaders,
   readPrivateUploadFile, savePrivateUploadFile, deletePrivateUploadFile, safeHttpUrl, hashPassword, publicJobPath, parsePhotoDataUrl });
+const professionalProfileApi = professionalProfile.createProfessionalProfile({ readDb, mutateDb, requireAuth, requireWorker,
+  requireCompanyAccount, publicUser, publicCompany, audit, buildBootstrap, readBody, sendJson, responseHeaders,
+  readPrivateUploadFile, savePrivateUploadFile, deletePrivateUploadFile });
 const publicMarketplace = createPublicMarketplace({ htmlEscape, publicJobPath, publicOpenJobs, renderPublicTopbarStatic, safeHttpUrl });
 
 function now() {
@@ -502,7 +507,8 @@ function createEmptyDb() {
     jobOffers: [],
     jobApplications: [],
     recruitmentMessages: [],
-    jobReports: []
+    jobReports: [],
+    ...Object.fromEntries(professionalProfile.EMPTY_KEYS.map((key) => [key, []]))
   };
 }
 
@@ -525,7 +531,8 @@ function ensureShape(db) {
     "jobOffers",
     "jobApplications",
     "recruitmentMessages",
-    "jobReports"
+    "jobReports",
+    ...professionalProfile.EMPTY_KEYS
   ]) {
     if (!Array.isArray(db[key])) db[key] = [];
   }
@@ -1368,6 +1375,7 @@ function buildBootstrap(db, auth) {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     workerProfiles,
     recruitment: recruitmentApi.snapshot(db, auth),
+    professional: professionalProfileApi.snapshot(db, auth),
     statusLabels: PUBLIC_STATUS_LABELS
   };
 }
@@ -2480,6 +2488,7 @@ function routeNotFound() {
 }
 
 async function handleApi(req, res, pathname) {
+  if (await professionalProfileApi.handle(req, res, pathname)) return;
   if (await recruitmentApi.handle(req, res, pathname)) return;
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
 
@@ -2497,10 +2506,12 @@ async function handleApi(req, res, pathname) {
     requireCronAuth(req);
     const result = await mutateDb(async (db) => maintainOperationalEvidence(db, req));
     const jobAlerts = await mutateDb(db => recruitmentApi.deliverAlerts(db));
+    const professionalRetention = await mutateDb(db => professionalProfileApi.maintain(db));
     sendJson(res, 200, {
       ok: true,
       ranAt: now(),
       jobAlerts,
+      professionalRetention,
       ...result
     });
     return;
@@ -2883,6 +2894,7 @@ async function handleApi(req, res, pathname) {
         bio: workerCv.bio,
         workerCv
       };
+      professionalProfileApi.syncLegacyCv(db, auth.user);
       if (
         photoRecord &&
         previousCv.profilePhoto?.storedName &&

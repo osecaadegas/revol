@@ -106,6 +106,26 @@ The app must first behave like a public labor-market board:
 | Private photo access | `/api/evidence/:id/file` checks authenticated access before reading local/Supabase private storage; `/api/evidence/:id/download` provides an audited watermarked download while the seven-day retention window is active; `/api/cron/operational-maintenance` deletes expired evidence from app storage |
 | Production build/startup without critical error | `npm run check` and `npm run smoke` |
 
+## Digital CV And Verified Employment Change Request
+
+| Requirement | Implementation |
+| --- | --- |
+| Stable worker profile and professional multi-step CV | Deterministic worker CV profile ID plus four-step editor in `public/professional-profile-ui.js` |
+| Upload PDF/DOCX without silent overwrite | Private `meo_cv_documents`; DOCX suggestions require explicit review and a later save; PDF is manual review |
+| Preview, versioning and PDF export | `meo_cv_versions`, in-workspace preview and authenticated `/api/professional/cv.pdf` |
+| Secure private documents | Authenticated `/api/professional/documents/:id/file`, private local/Supabase storage, hashes and access logs |
+| Verified employment history | `meo_employment_relationships` with worker/company confirmations and verified chronological CV display |
+| Employer eligibility | Verified company plus verified own employment relationship; company-created relationships require accepted/hired application evidence |
+| Structured evaluation criteria | Five fixed criteria plus optional evidence context and factual shift/weekend/overtime fields |
+| Separate facts and opinion | Employment and evaluation tables/routes/UI remain separate; evaluations never enter CV/PDF/public discovery |
+| Worker response and data rights | `meo_worker_disputes` correction/context/dispute/restriction/deletion/access workflow with company response |
+| Access and sharing history | `meo_report_access_logs`, access-request history and existing audit actions |
+| Retention and review expiry | Configured report review/retention dates, cron expiry and end-of-retention redaction with `meo_data_retention_actions` |
+| Cross-company privacy gate | Requests may be documented in `meo_company_access_grants`; report disclosure remains unavailable pending independent DPIA validation |
+| Database authorization | RLS on every new table; `anon`/`authenticated` grants revoked; server service role only, followed by custom-session row authorization in the API |
+
+See `docs/DIGITAL_CV_EMPLOYMENT.md` for boundaries and production prerequisites.
+
 ## Persistence
 
 The server supports `APP_STORAGE_DRIVER=local` for development and `APP_STORAGE_DRIVER=supabase` for real deployment. The Supabase mode uses relational tables prefixed with `meo_`, including marketplace vacancies and applications, RLS enabled on all app tables, and a private storage bucket for evidence files. Evidence records now include retention expiry and are deleted from app storage after seven days by authenticated maintenance or the protected scheduled maintenance endpoint.

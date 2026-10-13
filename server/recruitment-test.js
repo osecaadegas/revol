@@ -100,22 +100,22 @@ async function run() {
       await page.evaluate(token => localStorage.setItem("meo_session_token", token), wt);
       await page.reload();
       await page.locator('[data-recruitment="tab"][data-id="profile"]').click();
-      await page.locator('[data-recruitment-form="preferences"]').waitFor();
-      await page.locator('[data-recruitment-form="preferences"] input[name="languages"]').fill("Portugues, Ingles");
-      await page.getByRole("button", { name: "Guardar preferencias" }).click();
+      await page.locator('[data-professional-form="cv"]').waitFor();
+      await page.locator('[data-professional-form="cv"] textarea[name="summary"]').fill("Perfil profissional verificado no teste de interface.");
+      await page.getByRole("button", { name: "Guardar rascunho" }).click();
       await page.getByText("Alteracoes guardadas.", { exact: true }).waitFor();
-      for (const id of ["applications", "saved", "messages", "settings", "jobs"]) { await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor(); }
+      for (const id of ["employment", "applications", "saved", "messages", "settings", "jobs"]) { await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor(); }
       const screenshotDir = path.join(__dirname, "..", "tmp", "recruitment-qa"); fs.mkdirSync(screenshotDir, { recursive: true });
       await page.screenshot({ path: path.join(screenshotDir, "worker-desktop.png"), fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
-      for (const id of ["profile", "settings", "saved", "messages", "applications", "jobs"]) {
+      for (const id of ["profile", "employment", "settings", "saved", "messages", "applications", "jobs"]) {
         await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click();
         await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Mobile overflow: ${id}`);
       }
       await page.screenshot({ path: path.join(screenshotDir, "worker-mobile.png"), fullPage: true });
       await page.evaluate(token => localStorage.setItem("meo_session_token", token), ct); await page.reload();
-      for (const id of ["company", "applications", "candidates", "messages", "create", "jobs"]) {
+      for (const id of ["company", "employment", "evaluations", "access", "applications", "candidates", "messages", "create", "jobs"]) {
         await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click();
         await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Company mobile overflow: ${id}`);

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-13 - Digital CV And Verified Employment
+
+- Added a versioned multi-step Digital CV with preview, private PDF/DOCX
+  documents, confirmation-only extraction suggestions and PDF export.
+- Added stable worker CV IDs, verified employment relationships, bilateral
+  confirmation and chronological verified-history display.
+- Added verified-employer structured evaluation reports with attributable
+  authors, factual shift experience, worker responses and no aggregate score.
+- Added disputes/corrections, data-rights workflows, access requests/history,
+  report-view auditing, review expiry and retention redaction.
+- Kept cross-company evaluation visibility disabled pending an independently
+  reviewed GDPR DPIA and authorization validation.
+- Added migration `20261013070041_digital_cv_employment_history.sql`, updated
+  the clean-reset schema and added `npm run test:professional` authorization
+  coverage.
+
 ## 2026-10-07 - Consistent Dark Frontend
 
 - Applied a shared dark/blue design system to public discovery, worker/company
