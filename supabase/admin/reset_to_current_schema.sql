@@ -50,6 +50,8 @@ drop table if exists
 cascade;
 
 drop policy if exists "meo service role storage access" on storage.objects;
+drop function if exists public.meo_enforce_global_nif_uniqueness();
+drop function if exists public.meo_is_valid_nif(text);
 
 create table public.meo_app_meta (
   key text primary key,
@@ -77,9 +79,34 @@ values (
   }'::jsonb
 );
 
+create function public.meo_is_valid_nif(input text)
+returns boolean
+language sql
+immutable
+strict
+parallel safe
+security invoker
+set search_path = ''
+as $$
+  select case
+    when input ~ '^[1235689][0-9]{8}$' then (
+      select (case when candidate >= 10 then 0 else candidate end) = substring(input from 9 for 1)::integer
+      from (
+        select 11 - (sum(substring(input from position for 1)::integer * (10 - position)) % 11) as candidate
+        from generate_series(1, 8) as position
+      ) as checksum
+    )
+    else false
+  end;
+$$;
+
+revoke all on function public.meo_is_valid_nif(text) from public, anon, authenticated;
+grant execute on function public.meo_is_valid_nif(text) to service_role;
+
 create table public.meo_companies (
   id text primary key,
   name text not null,
+  nif text check (nif is null or public.meo_is_valid_nif(nif)),
   location text,
   website text,
   sector text,
@@ -93,6 +120,7 @@ create table public.meo_users (
   company_id text not null references public.meo_companies(id) on delete cascade,
   name text not null,
   email text not null unique,
+  nif text check (nif is null or public.meo_is_valid_nif(nif)),
   role text not null check (role in ('manager', 'employee', 'contractor', 'worker', 'company', 'client', 'developer')),
   password_hash text not null,
   active boolean not null default true,
@@ -346,6 +374,8 @@ create table public.meo_data_retention_actions (
 );
 
 create index meo_users_company_idx on public.meo_users(company_id);
+create unique index meo_companies_nif_unique_idx on public.meo_companies(nif) where nif is not null;
+create unique index meo_users_nif_unique_idx on public.meo_users(nif) where nif is not null;
 create index meo_sessions_user_idx on public.meo_sessions(user_id);
 create index meo_invites_company_idx on public.meo_invites(company_id);
 create index meo_work_orders_company_idx on public.meo_work_orders(company_id);
@@ -378,6 +408,34 @@ create index meo_retention_due_idx on public.meo_data_retention_actions(execute_
 create index meo_users_worker_cv_published_idx
   on public.meo_users ((profile->'workerCv'->>'published'))
   where role = 'worker';
+
+create function public.meo_enforce_global_nif_uniqueness()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if new.nif is null then return new; end if;
+  perform pg_advisory_xact_lock(hashtextextended(new.nif, 0));
+  if tg_table_name = 'meo_users' then
+    if exists (select 1 from public.meo_companies where nif = new.nif) then
+      raise exception 'NIF already belongs to another account' using errcode = '23505', constraint = 'meo_global_nif_unique';
+    end if;
+  elsif exists (select 1 from public.meo_users where nif = new.nif) then
+    raise exception 'NIF already belongs to another account' using errcode = '23505', constraint = 'meo_global_nif_unique';
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.meo_enforce_global_nif_uniqueness() from public, anon, authenticated;
+grant execute on function public.meo_enforce_global_nif_uniqueness() to service_role;
+
+create trigger meo_companies_global_nif_unique before insert or update of nif on public.meo_companies
+for each row execute function public.meo_enforce_global_nif_uniqueness();
+create trigger meo_users_global_nif_unique before insert or update of nif on public.meo_users
+for each row execute function public.meo_enforce_global_nif_uniqueness();
 
 alter table public.meo_app_meta enable row level security;
 alter table public.meo_companies enable row level security;

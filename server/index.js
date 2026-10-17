@@ -35,7 +35,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20261013-cv";
+const PUBLIC_ASSET_VERSION = "20261013-nif";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -44,6 +44,7 @@ const GOOGLE_AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/a
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo";
 const GOOGLE_STATE_TTL_MS = 10 * 60 * 1000;
+const GOOGLE_REGISTRATION_NIF_COOKIE = "meo_google_registration_nif";
 const APP_STORAGE_DRIVER = String(
   process.env.APP_STORAGE_DRIVER || (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY ? "supabase" : "local")
 ).toLowerCase();
@@ -122,6 +123,7 @@ const TABLES = [
     fields: {
       id: "id",
       name: "name",
+      nif: "nif",
       location: "location",
       website: "website",
       sector: "sector",
@@ -139,6 +141,7 @@ const TABLES = [
       companyId: "company_id",
       name: "name",
       email: "email",
+      nif: "nif",
       role: "role",
       passwordHash: "password_hash",
       active: "active",
@@ -308,7 +311,8 @@ TABLES.push(...recruitment.TABLES);
 TABLES.push(...professionalProfile.TABLES);
 const recruitmentApi = recruitment.createRecruitment({ readDb, mutateDb, requireAuth, requireWorker, requireCompanyAccount,
   publicUser, publicCompany, publicJobOffer, audit, buildBootstrap, readBody, sendJson, responseHeaders,
-  readPrivateUploadFile, savePrivateUploadFile, deletePrivateUploadFile, safeHttpUrl, hashPassword, publicJobPath, parsePhotoDataUrl });
+  readPrivateUploadFile, savePrivateUploadFile, deletePrivateUploadFile, safeHttpUrl, hashPassword, publicJobPath, parsePhotoDataUrl,
+  normalizeNif, requireValidNif, assertNifAvailable });
 const professionalProfileApi = professionalProfile.createProfessionalProfile({ readDb, mutateDb, requireAuth, requireWorker,
   requireCompanyAccount, publicUser, publicCompany, audit, buildBootstrap, readBody, sendJson, responseHeaders,
   readPrivateUploadFile, savePrivateUploadFile, deletePrivateUploadFile });
@@ -328,6 +332,43 @@ function randomToken(bytes = 32) {
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
+}
+
+function normalizeNif(value) {
+  return String(value || "").trim().replace(/[\s.-]/g, "");
+}
+
+function isValidPortugueseNif(value) {
+  const nif = normalizeNif(value);
+  if (!/^[1235689]\d{8}$/.test(nif)) return false;
+  const digits = [...nif].map(Number);
+  const total = digits.slice(0, 8).reduce((sum, digit, index) => sum + digit * (9 - index), 0);
+  const result = 11 - (total % 11);
+  const checkDigit = result >= 10 ? 0 : result;
+  return checkDigit === digits[8];
+}
+
+function requireValidNif(value) {
+  const nif = normalizeNif(value);
+  if (!isValidPortugueseNif(nif)) {
+    const error = new Error("Indique um NIF portugues valido com 9 digitos.");
+    error.status = 400;
+    throw error;
+  }
+  return nif;
+}
+
+function assertNifAvailable(db, nif, exclusions = {}) {
+  const normalized = normalizeNif(nif);
+  const duplicateUser = db.users.some((user) => user.id !== exclusions.userId && normalizeNif(user.nif) === normalized);
+  const duplicateCompany = db.companies.some((company) => company.id !== exclusions.companyId && (
+    normalizeNif(company.nif) === normalized || (!company.nif && normalizeNif(company.recruitment?.nif) === normalized)
+  ));
+  if (duplicateUser || duplicateCompany) {
+    const error = new Error("Ja existe uma conta registada com este NIF.");
+    error.status = 409;
+    throw error;
+  }
 }
 
 function cleanString(value, max = 300) {
@@ -443,6 +484,30 @@ function signGoogleState(payload) {
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = crypto.createHmac("sha256", googleStateSecret()).update(body).digest("base64url");
   return `${body}.${signature}`;
+}
+
+function signGoogleRegistrationNif(nif) {
+  const body = Buffer.from(JSON.stringify({ nif: requireValidNif(nif), createdAt: Date.now() })).toString("base64url");
+  const signature = crypto.createHmac("sha256", googleStateSecret()).update(body).digest("base64url");
+  return `${body}.${signature}`;
+}
+
+function verifyGoogleRegistrationNif(value) {
+  const [body, signature] = String(value || "").split(".");
+  if (!body || !signature) throw Object.assign(new Error("Google worker registration NIF is missing."), { status: 400 });
+  const expected = crypto.createHmac("sha256", googleStateSecret()).update(body).digest("base64url");
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actualBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(actualBuffer, expectedBuffer)) {
+    throw Object.assign(new Error("Google worker registration NIF is invalid."), { status: 400 });
+  }
+  let payload;
+  try { payload = JSON.parse(Buffer.from(body, "base64url").toString("utf-8")); }
+  catch { throw Object.assign(new Error("Google worker registration NIF is invalid."), { status: 400 }); }
+  if (!payload.createdAt || Date.now() - Number(payload.createdAt) > GOOGLE_STATE_TTL_MS) {
+    throw Object.assign(new Error("Google worker registration NIF has expired."), { status: 400 });
+  }
+  return requireValidNif(payload.nif);
 }
 
 function verifyGoogleState(value) {
@@ -821,6 +886,28 @@ function clearSessionCookie() {
   return `${SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
 }
 
+function googleRegistrationNifCookie(nif, req) {
+  const secure = requestOrigin(req).startsWith("https://") ? "; Secure" : "";
+  return `${GOOGLE_REGISTRATION_NIF_COOKIE}=${encodeURIComponent(signGoogleRegistrationNif(nif))}; HttpOnly; SameSite=Lax; Path=/api/auth/google/callback; Max-Age=${Math.floor(GOOGLE_STATE_TTL_MS / 1000)}${secure}`;
+}
+
+function clearGoogleRegistrationNifCookie(req) {
+  const secure = requestOrigin(req).startsWith("https://") ? "; Secure" : "";
+  return `${GOOGLE_REGISTRATION_NIF_COOKIE}=; HttpOnly; SameSite=Lax; Path=/api/auth/google/callback; Max-Age=0${secure}`;
+}
+
+function googleAuthorizationUrl(req, next, intent) {
+  const state = signGoogleState({ createdAt: Date.now(), nonce: randomToken(16), next, intent });
+  const googleUrl = new URL(GOOGLE_AUTHORIZATION_ENDPOINT);
+  googleUrl.searchParams.set("client_id", GOOGLE_CLIENT_ID);
+  googleUrl.searchParams.set("redirect_uri", googleRedirectUri(req));
+  googleUrl.searchParams.set("response_type", "code");
+  googleUrl.searchParams.set("scope", "openid profile email");
+  googleUrl.searchParams.set("state", state);
+  googleUrl.searchParams.set("prompt", "select_account");
+  return googleUrl.toString();
+}
+
 function getAuthContext(db, req) {
   const token = getRequestToken(req);
   if (!token) return null;
@@ -1018,6 +1105,7 @@ function publicCompany(company) {
   return {
     id: company.id,
     name: company.name,
+    nifConfigured: Boolean(company.nif),
     location: company.location || "",
     website: company.website || "",
     sector: company.sector || "",
@@ -1953,7 +2041,7 @@ function attachGoogleIdentity(user, googleUser) {
   };
 }
 
-function completeGoogleAuth(db, googleUser, intent, req) {
+function completeGoogleAuth(db, googleUser, intent, nif, req) {
   const email = normalizeEmail(googleUser.email);
   if (!email || googleUser.email_verified !== true) {
     const error = new Error("Google account must have a verified email.");
@@ -1976,12 +2064,15 @@ function completeGoogleAuth(db, googleUser, intent, req) {
       error.status = 404;
       throw error;
     }
+    const workerNif = requireValidNif(nif);
+    assertNifAvailable(db, workerNif);
     company = ensureWorkerPoolCompany(db);
     user = {
       id: nextId(db, "users", "usr"),
       companyId: company.id,
       name: cleanString(googleUser.name || email, 120),
       email,
+      nif: workerNif,
       role: "worker",
       passwordHash: hashPassword(randomToken(48)),
       active: true,
@@ -2517,27 +2608,24 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  if (req.method === "POST" && pathname === "/api/auth/google/start") {
+    const body = await readBody(req);
+    const next = safeReturnPath(body.next || "/");
+    if (body.intent !== "worker") throw Object.assign(new Error("Google registration intent is invalid."), { status: 400 });
+    const nif = requireValidNif(body.nif);
+    if (!googleAuthConfigured()) throw Object.assign(new Error("Google login is not configured."), { status: 503 });
+    sendJson(res, 200, { authorizationUrl: googleAuthorizationUrl(req, next, "worker") }, { "Set-Cookie": googleRegistrationNifCookie(nif, req) });
+    return;
+  }
+
   if (req.method === "GET" && pathname === "/api/auth/google/start") {
     const next = safeReturnPath(url.searchParams.get("next") || "/");
-    const intent = url.searchParams.get("intent") === "worker" ? "worker" : "login";
+    const intent = "login";
     if (!googleAuthConfigured()) {
       sendRedirect(res, addQueryParam(next, "auth_error", "google_not_configured"));
       return;
     }
-    const state = signGoogleState({
-      createdAt: Date.now(),
-      nonce: randomToken(16),
-      next,
-      intent
-    });
-    const googleUrl = new URL(GOOGLE_AUTHORIZATION_ENDPOINT);
-    googleUrl.searchParams.set("client_id", GOOGLE_CLIENT_ID);
-    googleUrl.searchParams.set("redirect_uri", googleRedirectUri(req));
-    googleUrl.searchParams.set("response_type", "code");
-    googleUrl.searchParams.set("scope", "openid profile email");
-    googleUrl.searchParams.set("state", state);
-    googleUrl.searchParams.set("prompt", "select_account");
-    sendRedirect(res, googleUrl.toString());
+    sendRedirect(res, googleAuthorizationUrl(req, next, intent));
     return;
   }
 
@@ -2555,6 +2643,9 @@ async function handleApi(req, res, pathname) {
       }
       const statePayload = verifyGoogleState(url.searchParams.get("state"));
       next = statePayload.next;
+      const registrationNif = statePayload.intent === "worker"
+        ? verifyGoogleRegistrationNif(parseCookies(req)[GOOGLE_REGISTRATION_NIF_COOKIE])
+        : "";
       const code = url.searchParams.get("code");
       if (!code) {
         sendRedirect(res, addQueryParam(next, "auth_error", "google_missing_code"));
@@ -2562,8 +2653,8 @@ async function handleApi(req, res, pathname) {
       }
       const tokens = await exchangeGoogleCode(req, code);
       const googleUser = await fetchGoogleUser(tokens.access_token);
-      const result = await mutateDb((db) => completeGoogleAuth(db, googleUser, statePayload.intent, req));
-      sendRedirect(res, addQueryParam(next, "auth", "google"), { "Set-Cookie": sessionCookie(result.session) });
+      const result = await mutateDb((db) => completeGoogleAuth(db, googleUser, statePayload.intent, registrationNif, req));
+      sendRedirect(res, addQueryParam(next, "auth", "google"), { "Set-Cookie": [sessionCookie(result.session), clearGoogleRegistrationNifCookie(req)] });
     } catch (error) {
       if (error.status >= 500) console.error(error);
       const code = error.status === 404
@@ -2571,7 +2662,7 @@ async function handleApi(req, res, pathname) {
         : error.status === 403
           ? "google_forbidden"
           : "google_failed";
-      sendRedirect(res, addQueryParam(next, "auth_error", code));
+      sendRedirect(res, addQueryParam(next, "auth_error", code), { "Set-Cookie": clearGoogleRegistrationNifCookie(req) });
     }
     return;
   }
@@ -2620,6 +2711,7 @@ async function handleApi(req, res, pathname) {
     const result = await mutateDb((db) => {
       const name = cleanString(body.name, 120);
       const email = normalizeEmail(body.email);
+      const nif = requireValidNif(body.nif);
       validatePassword(body.password);
       if (!name || !email) {
         const error = new Error("Name, email, and password are required.");
@@ -2631,12 +2723,14 @@ async function handleApi(req, res, pathname) {
         error.status = 409;
         throw error;
       }
+      assertNifAvailable(db, nif);
       const company = ensureWorkerPoolCompany(db);
       const user = {
         id: nextId(db, "users", "usr"),
         companyId: company.id,
         name,
         email,
+        nif,
         role: "worker",
         passwordHash: hashPassword(body.password),
         active: true,
@@ -2674,6 +2768,7 @@ async function handleApi(req, res, pathname) {
       const companyName = cleanString(body.companyName, 180);
       const name = cleanString(body.name, 120);
       const email = normalizeEmail(body.email);
+      const nif = requireValidNif(body.nif);
       validatePassword(body.password);
       if (!companyName || !name || !email) {
         const error = new Error("Company, name, email, and password are required.");
@@ -2685,13 +2780,16 @@ async function handleApi(req, res, pathname) {
         error.status = 409;
         throw error;
       }
+      assertNifAvailable(db, nif);
       const company = {
         id: nextId(db, "companies", "co"),
         name: companyName,
+        nif,
         location: cleanString(body.location, 160),
         website: cleanString(body.website, 240),
         sector: cleanString(body.sector, 160),
         description: cleanString(body.description, 1200),
+        recruitment: { nif, verification: "pending" },
         createdAt: now()
       };
       const user = {
@@ -3594,7 +3692,7 @@ async function requestHandler(req, res) {
       sendJson(res, 403, { error: "Origem do pedido nao autorizada." }); return;
     }
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
-    if (req.method === "POST" && ["/api/auth/login", "/api/register/worker", "/api/register/company"].includes(url.pathname)) {
+    if (req.method === "POST" && ["/api/auth/login", "/api/auth/google/start", "/api/register/worker", "/api/register/company"].includes(url.pathname)) {
       const key = `${req.socket.remoteAddress}:${url.pathname}`;
       const previous = authAttempts.get(key);
       const entry = previous && previous.until > Date.now() ? previous : { count: 0, until: Date.now() + 60000 };

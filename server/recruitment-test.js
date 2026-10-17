@@ -21,9 +21,9 @@ async function run() {
   base = `http://127.0.0.1:${server.address().port}`;
   let browser;
   try {
-    const company = await request("/api/register/company", "POST", { companyName: "Empresa teste", name: "Responsavel", email: "company@test.invalid", password: "password123" }, null, 201);
-    const other = await request("/api/register/company", "POST", { companyName: "Outra empresa", name: "Outro", email: "other@test.invalid", password: "password123" }, null, 201);
-    const worker = await request("/api/register/worker", "POST", { name: "Candidato Teste", email: "worker@test.invalid", password: "password123" }, null, 201);
+    const company = await request("/api/register/company", "POST", { companyName: "Empresa teste", nif: "123456789", name: "Responsavel", email: "company@test.invalid", password: "password123" }, null, 201);
+    const other = await request("/api/register/company", "POST", { companyName: "Outra empresa", nif: "502544180", name: "Outro", email: "other@test.invalid", password: "password123" }, null, 201);
+    const worker = await request("/api/register/worker", "POST", { name: "Candidato Teste", nif: "200000004", email: "worker@test.invalid", password: "password123" }, null, 201);
     const ct = company.session.token, wt = worker.session.token, ot = other.session.token;
     const workerId = worker.bootstrap.user.id;
     process.env.PLATFORM_ADMIN_USER_IDS = other.bootstrap.user.id;
@@ -149,6 +149,7 @@ async function run() {
     await request("/api/bootstrap", "GET", null, wt, 401);
     await request(`/api/recruitment/documents/${docId}`, "GET", null, ct, 404);
     assert.equal((await request("/api/bootstrap", "GET", null, ct)).jobApplications.length, 0);
+    await request("/api/register/worker", "POST", { name: "Conta Recriada", nif: "200000004", email: "worker-recreated@test.invalid", password: "password123" }, null, 201);
     console.log("recruitment: permissions, verification, profiles, documents, screening, pipeline, saved jobs, messages, reports, privacy, deletion and SEO passed");
   } finally {
     if (browser) await browser.close();

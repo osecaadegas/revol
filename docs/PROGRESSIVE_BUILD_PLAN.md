@@ -318,6 +318,19 @@ Status: implemented locally; migration and production legal/privacy validation p
 - See `docs/DIGITAL_CV_EMPLOYMENT.md` and migration
   `20261013070041_digital_cv_employment_history.sql`.
 
+### M31 - Unique Worker And Company NIF
+
+Status: implemented locally; production migration pending.
+
+- Added required NIF/NIPC fields to public trabalhador and company registration.
+- Added Portuguese NIF checksum validation in the browser and authoritative
+  server validation for email/password and Google trabalhador creation.
+- Prevented reuse across both account types in local persistence and Supabase.
+- Added canonical nullable columns for legacy accounts, per-table unique indexes
+  and a transaction advisory lock plus trigger for cross-table race protection.
+- Kept tax identifiers out of public vacancy/profile/CV responses.
+- See migration `20261013074216_unique_registration_nif.sql`.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.

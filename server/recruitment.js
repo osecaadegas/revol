@@ -306,8 +306,11 @@ function createRecruitment(h) {
         if (!c.name) fail("Indique o nome da empresa.");
         if (body.website !== undefined) { c.website = h.safeHttpUrl(body.website); if (body.website && !c.website) fail("Website invalido."); }
         const r = c.recruitment || {};
-        const nif = text(body.nif ?? r.nif, 20).replace(/\s/g, "");
-        if (nif && !/^\d{9}$/.test(nif)) fail("O NIF deve ter nove digitos.");
+        const requestedNif = h.requireValidNif(body.nif ?? c.nif ?? r.nif);
+        if (c.nif && requestedNif !== c.nif) fail("O NIF da empresa nao pode ser alterado neste perfil.", 409);
+        h.assertNifAvailable(db, requestedNif, { companyId: c.id });
+        const nif = c.nif || requestedNif;
+        c.nif = nif;
         c.recruitment = { ...r, nif, size: text(body.size ?? r.size, 80), benefits: text(body.benefits ?? r.benefits, 2000), verification: r.verification || "pending" };
         if (body.logo?.dataUrl) {
           const image = h.parsePhotoDataUrl(body.logo);
@@ -387,7 +390,7 @@ function createRecruitment(h) {
         db.jobApplications = db.jobApplications.filter(a => a.workerId !== auth.user.id);
         db.recruitmentMessages = db.recruitmentMessages.filter(m => m.workerId !== auth.user.id);
         for (const log of db.auditLogs.filter(l => l.actorId === auth.user.id)) { log.actorName = "Conta eliminada"; log.ip = ""; log.detail = {}; }
-        auth.user.name = "Conta eliminada"; auth.user.email = `${crypto.randomUUID()}@deleted.invalid`; auth.user.passwordHash = h.hashPassword(crypto.randomBytes(32).toString("hex")); auth.user.active = false; auth.user.profile = {};
+        auth.user.name = "Conta eliminada"; auth.user.email = `${crypto.randomUUID()}@deleted.invalid`; auth.user.nif = null; auth.user.passwordHash = h.hashPassword(crypto.randomBytes(32).toString("hex")); auth.user.active = false; auth.user.profile = {};
       } else fail("Operacao nao encontrada.", 404);
       h.audit(db, auth, "recruitment", auth.user.id, `recruitment.${pathname.split("/").pop()}.${req.method.toLowerCase()}`, {}, req);
       return { recruitment: snapshot(db, auth), bootstrap: h.buildBootstrap(db, auth) };

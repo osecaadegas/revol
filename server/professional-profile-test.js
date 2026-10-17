@@ -46,15 +46,15 @@ async function run() {
   base = `http://127.0.0.1:${server.address().port}`;
   let browser;
   try {
-    const admin = (await request("/api/register/company","POST",{ companyName:"Administracao",name:"Admin",email:"admin@cv.test",password:"password123" },null,201)).payload;
-    const company = (await request("/api/register/company","POST",{ companyName:"Empresa Verificada",name:"Gestor",email:"company@cv.test",password:"password123" },null,201)).payload;
-    const other = (await request("/api/register/company","POST",{ companyName:"Outra Empresa",name:"Outro Gestor",email:"other@cv.test",password:"password123" },null,201)).payload;
-    const worker = (await request("/api/register/worker","POST",{ name:"Maria Trabalhadora",email:"worker@cv.test",password:"password123" },null,201)).payload;
+    const admin = (await request("/api/register/company","POST",{ companyName:"Administracao",nif:"501964843",name:"Admin",email:"admin@cv.test",password:"password123" },null,201)).payload;
+    const company = (await request("/api/register/company","POST",{ companyName:"Empresa Verificada",nif:"123456789",name:"Gestor",email:"company@cv.test",password:"password123" },null,201)).payload;
+    const other = (await request("/api/register/company","POST",{ companyName:"Outra Empresa",nif:"502544180",name:"Outro Gestor",email:"other@cv.test",password:"password123" },null,201)).payload;
+    const worker = (await request("/api/register/worker","POST",{ name:"Maria Trabalhadora",nif:"200000004",email:"worker@cv.test",password:"password123" },null,201)).payload;
     const at = admin.session.token, ct = company.session.token, ot = other.session.token, wt = worker.session.token;
     const workerId = worker.bootstrap.user.id, companyId = company.bootstrap.company.id;
     process.env.PLATFORM_ADMIN_USER_IDS = admin.bootstrap.user.id;
 
-    for (const [token, id, nif] of [[ct,companyId,"123456789"],[ot,other.bootstrap.company.id,"987654321"]]) {
+    for (const [token, id, nif] of [[ct,companyId,"123456789"],[ot,other.bootstrap.company.id,"502544180"]]) {
       await request("/api/recruitment/company","PATCH",{ nif,location:"Braga",description:"Empresa com atividade comprovada",requestVerification:true },token);
       await request("/api/recruitment/admin","PATCH",{ companyId:id,verification:"verified" },at);
     }

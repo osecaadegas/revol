@@ -57,6 +57,10 @@ The normalized Digital CV tables are the current source for CV version history.
 `meo_users.profile.workerCv` remains as a compatibility projection for the
 existing recruitment application and discovery flows.
 
+`meo_users.nif` and `meo_companies.nif` hold the canonical fiscal identifiers
+for public registrations. Partial unique indexes plus the cross-table trigger
+prevent the same NIF from being assigned to any second worker/company account.
+
 It creates or updates the private `meo-evidence` storage bucket. Evidence photos,
 profile photos and PDF/DOCX CV documents are private storage objects. It does
 not delete the old `evidencias` bucket or storage objects; remove those manually

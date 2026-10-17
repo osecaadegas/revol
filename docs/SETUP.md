@@ -151,6 +151,10 @@ Behavior:
 
 - Existing active users can sign in with Google when the Google account email matches their app email.
 - New users can create an internal `worker` account through the trabalhador registration Google button.
+- New Google trabalhador accounts must provide a valid, unused NIF in the
+  registration form before leaving for Google authorization. It is submitted to
+  TrataPro in a same-origin POST, kept in a short-lived signed HttpOnly same-site
+  cookie and is not included in the URL or OAuth `state` sent to Google.
 - Google login does not auto-create company, client, developer, manager, employee, or contractor accounts. Those remain controlled by company registration, direct user creation, or invites.
 - The Google identity is stored in the existing user `profile.authProviders.google` data, so no extra Supabase table is required.
 
@@ -168,8 +172,9 @@ For a dirty Supabase project that already contains old prototype tables, run the
 8. Run `supabase/migrations/20260817000000_worker_cv_profiles.sql`.
 9. Run `supabase/migrations/20261007035242_recruitment_upgrade.sql`.
 10. Run `supabase/migrations/20261013070041_digital_cv_employment_history.sql`.
-11. Confirm the private storage bucket `meo-evidence` exists and remains private.
-12. Set these environment variables on the host:
+11. Run `supabase/migrations/20261013074216_unique_registration_nif.sql`.
+12. Confirm the private storage bucket `meo-evidence` exists and remains private.
+13. Set these environment variables on the host:
 
 ```text
 APP_STORAGE_DRIVER=supabase
@@ -178,7 +183,7 @@ SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 SUPABASE_EVIDENCE_BUCKET=meo-evidence
 ```
 
-11. Start or redeploy the Node app.
+14. Start or redeploy the Node app.
 
 The app still uses its own Phase 1 email/password/session system. Supabase Auth is not used in this phase, because the existing server already enforces roles, task visibility, and private evidence access.
 

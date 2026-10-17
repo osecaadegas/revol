@@ -113,6 +113,7 @@ async function run() {
 
     const companyRegistration = await request(baseUrl, "POST", "/api/register/company", {
       companyName: "Empresa de Teste",
+      nif: "502544180",
       name: "Responsavel Teste",
       email: "empresa@example.test",
       password: "password123",
@@ -166,12 +167,46 @@ async function run() {
       throw new Error("Missing or closed vacancy detail pages should return 404 with noindex metadata.");
     }
 
+    const invalidNifRegistration = await requestRaw(baseUrl, "POST", "/api/register/worker", {
+      name: "Worker NIF Invalido",
+      nif: "123456780",
+      email: "worker-invalid-nif@example.test",
+      password: "password123"
+    });
+    if (invalidNifRegistration.status !== 400) {
+      throw new Error("Worker registration should reject an invalid Portuguese NIF.");
+    }
+
+    const duplicateCompanyNif = await requestRaw(baseUrl, "POST", "/api/register/worker", {
+      name: "Worker NIF Duplicado",
+      nif: "502544180",
+      email: "worker-duplicate-company-nif@example.test",
+      password: "password123"
+    });
+    if (duplicateCompanyNif.status !== 409) {
+      throw new Error("Worker registration should reject a NIF already used by a company.");
+    }
+
     const workerRegistration = await request(baseUrl, "POST", "/api/register/worker", {
       name: "Worker Teste",
+      nif: "200000004",
       email: "worker@example.test",
       password: "password123"
     });
     const workerToken = workerRegistration.session.token;
+    if (Object.hasOwn(workerRegistration.bootstrap.user, "nif")) {
+      throw new Error("Worker NIF must not be exposed in bootstrap/public user responses.");
+    }
+
+    const duplicateWorkerNif = await requestRaw(baseUrl, "POST", "/api/register/worker", {
+      name: "Segundo Worker",
+      nif: "200000004",
+      email: "worker-duplicate@example.test",
+      password: "password123"
+    });
+    if (duplicateWorkerNif.status !== 409) {
+      throw new Error("Worker registration should reject a NIF already used by another worker.");
+    }
 
     const blockedApplication = await requestRaw(baseUrl, "POST", `/api/job-offers/${jobResult.jobOffer.id}/apply`, {
       message: "Tentativa antes de publicar CV."

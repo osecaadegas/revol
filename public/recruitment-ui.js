@@ -52,7 +52,7 @@
       return `<form class="form-grid recruitment-form" data-recruitment-form="company"><h2>Perfil da empresa</h2><p class="chip">${labels[p.verification] || labels.pending}</p>
         ${p.logo ? `<img class="company-profile-logo" src="/api/recruitment/company-logo/${encodeURIComponent(c.id)}" alt="Logotipo da empresa" width="96" height="96">` : ""}
         <label class="field">Logotipo (PNG, JPEG ou WebP, ate 6 MB)<input type="file" name="logo" accept="image/png,image/jpeg,image/webp"></label>
-        ${field("name", "Nome da empresa", c.name, "text", "required")}${field("nif", "NIF / NIPC", p.nif, "text", 'inputmode="numeric" pattern="[0-9]{9}"')}${field("location", "Localizacao", c.location)}${field("sector", "Setor", c.sector)}${field("size", "Dimensao da empresa", p.size)}${field("website", "Website", c.website, "url")}${area("description", "Sobre a empresa", c.description)}${area("benefits", "Beneficios", p.benefits)}${toggle("requestVerification", "Pedir revisao da empresa", false)}<button class="btn primary">Guardar empresa</button></form>`;
+        ${field("name", "Nome da empresa", c.name, "text", "required")}${field("nif", "NIF / NIPC", p.nif, "text", `inputmode="numeric" pattern="[0-9]{9}" ${c.nifConfigured ? 'readonly aria-readonly="true"' : ""}`)}${field("location", "Localizacao", c.location)}${field("sector", "Setor", c.sector)}${field("size", "Dimensao da empresa", p.size)}${field("website", "Website", c.website, "url")}${area("description", "Sobre a empresa", c.description)}${area("benefits", "Beneficios", p.benefits)}${toggle("requestVerification", "Pedir revisao da empresa", false)}<button class="btn primary">Guardar empresa</button></form>`;
     }
     function messages() {
       const messages = r().messages || [];

@@ -479,13 +479,25 @@
     return `/api/auth/google/start?intent=${encodeURIComponent(intent)}&next=${encodeURIComponent(next)}`;
   }
 
-  function renderGoogleAuthButton(label, intent = "login", next = "/") {
+  function renderGoogleAuthButton(label, intent = "login", next = "/", requiresNif = false) {
+    if (requiresNif) {
+      return `<button class="btn google full" type="button" data-google-worker data-next="${escapeHtml(next)}"><span aria-hidden="true">G</span>${escapeHtml(label)}</button>`;
+    }
     return `
       <a class="btn google full" href="${googleAuthUrl(intent, next)}">
         <span aria-hidden="true">G</span>
         ${escapeHtml(label)}
       </a>
     `;
+  }
+
+  function isValidPortugueseNif(value) {
+    const nif = String(value || "").replace(/[\s.-]/g, "");
+    if (!/^[1235689]\d{8}$/.test(nif)) return false;
+    const digits = [...nif].map(Number);
+    const total = digits.slice(0, 8).reduce((sum, digit, index) => sum + digit * (9 - index), 0);
+    const result = 11 - (total % 11);
+    return (result >= 10 ? 0 : result) === digits[8];
   }
 
   async function api(path, options = {}) {
@@ -1047,9 +1059,10 @@
           <h2>Registar trabalhador</h2>
           <p class="muted">Conta individual para candidatar-se a vagas publicas.</p>
         </div>
-        ${renderGoogleAuthButton("Criar trabalhador com Google", "worker", "/")}
-        <div class="auth-divider"><span>ou formulario</span></div>
         <div class="field"><label>Nome</label><input name="name" required autocomplete="name"></div>
+        <div class="field"><label>NIF (n.º de contribuinte)</label><input name="nif" required inputmode="numeric" pattern="[0-9]{9}" minlength="9" maxlength="9" autocomplete="off" placeholder="9 dígitos"></div>
+        ${renderGoogleAuthButton("Criar trabalhador com Google", "worker", "/", true)}
+        <div class="auth-divider"><span>ou continuar com email</span></div>
         <div class="field"><label>Email</label><input name="email" required type="email" autocomplete="email"></div>
         <div class="field"><label>Password</label><input name="password" required type="password" minlength="8" autocomplete="new-password"></div>
         <div class="field"><label>Titulo profissional</label><input name="headline" placeholder="Ex: Operador agricola, jardineiro, pintor"></div>
@@ -1068,6 +1081,7 @@
           <p class="muted">Conta empresarial para publicar vagas e rever candidaturas.</p>
         </div>
         <div class="field"><label>Empresa</label><input name="companyName" required autocomplete="organization"></div>
+        <div class="field"><label>NIF / NIPC da empresa</label><input name="nif" required inputmode="numeric" pattern="[0-9]{9}" minlength="9" maxlength="9" autocomplete="off" placeholder="9 dígitos"></div>
         <div class="field"><label>Responsavel</label><input name="name" required autocomplete="name"></div>
         <div class="field"><label>Email</label><input name="email" required type="email" autocomplete="email"></div>
         <div class="field"><label>Password</label><input name="password" required type="password" minlength="8" autocomplete="new-password"></div>
@@ -1187,9 +1201,29 @@
     window.TrataDesign.labelFields();
     const form = document.querySelector("[data-form]");
     if (!form) return;
+    const nifInput = form.querySelector('input[name="nif"]');
+    const validateNif = () => {
+      if (!nifInput) return true;
+      const valid = isValidPortugueseNif(nifInput.value);
+      nifInput.setCustomValidity(valid ? "" : "Indique um NIF português válido com 9 dígitos.");
+      return valid;
+    };
+    nifInput?.addEventListener("input", () => nifInput.setCustomValidity(""));
+    form.querySelector("[data-google-worker]")?.addEventListener("click", async (event) => {
+      event.preventDefault();
+      if (!validateNif()) { nifInput.reportValidity(); return; }
+      try {
+        const payload = await api("/api/auth/google/start", { method: "POST", body: { intent: "worker", next: event.currentTarget.dataset.next || "/", nif: nifInput.value } });
+        location.assign(payload.authorizationUrl);
+      } catch (error) {
+        setNotice(error.message, "error");
+        renderPublicBoard();
+      }
+    });
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       clearNotice();
+      if (!validateNif()) { nifInput.reportValidity(); return; }
       const data = Object.fromEntries(new FormData(form).entries());
       try {
         let payload;

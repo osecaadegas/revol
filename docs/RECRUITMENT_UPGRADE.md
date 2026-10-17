@@ -41,7 +41,9 @@ Google login, and private project workspaces are retained.
   a selected vacancy with coordinates. They can invite a worker to apply.
 - Vacancy-linked messages with unread states and interview invitations;
   candidates accept or request another time through the conversation.
-- Company profile includes NIF, industry, size, description, benefits, website
+- Company registration requires a checksum-valid, globally unique NIF/NIPC;
+  trabalhador registration requires the same fiscal identifier validation.
+  Company profile includes NIF, industry, size, description, benefits, website
   and optional logo. Verification is manual: pending/verified/rejected/suspended.
   Companies cannot self-verify. Identity changes reset verified status.
 - Moderation interface for company verification, reports, user/job suspension,

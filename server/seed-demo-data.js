@@ -6,6 +6,7 @@ const BASE_URL = process.env.SEED_BASE_URL || "http://localhost:4173";
 
 const DEMO_COMPANY = {
   companyName: "Obras Silva & Filhos, Lda",
+  nif: "502544180",
   name: "Carlos Silva",
   email: "empresa.demo@trata.pro",
   password: "DemoPass123!",
@@ -17,6 +18,7 @@ const DEMO_COMPANY = {
 
 const DEMO_WORKER = {
   name: "Ana Ferreira",
+  nif: "200000004",
   email: "trabalhador.demo@trata.pro",
   password: "DemoPass123!",
   headline: "Eletricista industrial",

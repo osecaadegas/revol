@@ -78,11 +78,17 @@ Returns a server-rendered public detail page for an open vacancy with canonical 
 
 `POST /api/register/worker`
 
-Creates a trabalhador account and session with an unpublished CV draft. Trabalhadores must publish the CV before applying to vacancies.
+Creates a trabalhador account and session with an unpublished CV draft. Requires
+`name`, `nif`, `email` and `password`. The NIF is validated as a Portuguese tax
+identifier and must not already belong to a worker or company account.
+Trabalhadores must publish the CV before applying to vacancies.
 
 `POST /api/register/company`
 
-Creates a company profile, company user, and session. Companies can publish vacancies.
+Creates a company profile, company user, and session. Requires `companyName`,
+company `nif`, responsible-person `name`, `email` and `password`. The NIF/NIPC
+is validated and must be globally unique across worker and company
+registrations. Companies can publish vacancies.
 
 `GET /api/invites/:token`
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v6-digital-cv";
+const CACHE_NAME = "tratapro-shell-v7-registration-nif";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

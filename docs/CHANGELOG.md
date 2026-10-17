@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-13 - Unique Registration NIF
+
+- Added a required Portuguese NIF field to trabalhador and company registration,
+  including the Google trabalhador registration path.
+- Added checksum validation and server-side duplicate protection across worker
+  and company accounts.
+- Kept Google-registration NIF data out of OAuth state by using a short-lived,
+  signed, HttpOnly same-site cookie for the callback.
+- Added nullable canonical NIF columns for existing records, partial unique
+  indexes and a cross-table transaction-safe Supabase uniqueness trigger.
+- Kept NIF values out of public worker profiles, vacancy search and public CVs.
+- Clear the worker NIF when an account is deleted so the same person can create
+  a replacement account without leaving two active identities.
+- Added registration regression coverage for invalid and duplicate identifiers.
+
 ## 2026-10-13 - Digital CV And Verified Employment
 
 - Added a versioned multi-step Digital CV with preview, private PDF/DOCX

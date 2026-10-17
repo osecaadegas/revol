@@ -47,6 +47,7 @@ The app must first behave like a public labor-market board:
 | Public brand is professional and simple | Public marketplace uses `TrataPro`, slogan `Trabalho certo. Prova feita.`, visible `logo.svg` wordmark, `TP` SVG icon, updated PWA icon and server-generated SEO site names |
 | Trabalhador registration required to apply | `/api/register/worker`, `/api/job-offers/:id/apply` requires internal role `worker` |
 | Company registration required to create vacancies | `/api/register/company`, `/api/job-offers` requires `company` or legacy `manager` |
+| Unique fiscal identity for public accounts | Trabalhador NIF and company NIF/NIPC are required at registration, checksum-validated and unique across both account types; identifiers remain outside public profiles and CV exports |
 | Company can manage received applications | `/api/applications/:id`, company marketplace view |
 | Trabalhador can track submitted applications | `jobApplications` in `/api/bootstrap`, reorganized trabalhador marketplace workspace in `public/app.js` |
 | Trabalhador CV profile required for applications | Sectioned trabalhador marketplace CV form in `public/app.js`, `PATCH /api/workers/profile`, and server-side application gate before `/api/job-offers/:id/apply` |
