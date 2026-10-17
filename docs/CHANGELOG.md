@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-10-17 - Percurso Profissional e Avaliações
+
+- Expanded confidential employer assessments to the 25 requested standard
+  questions, grouped into seven professional categories with scores 1-5,
+  `Não observado` and `Não aplicável`.
+- Added factual explanations for low scores, standard-only category averages,
+  scored-answer counts and `Sem dados suficientes` handling.
+- Added company questions, immutable question/scoring snapshots, private drafts,
+  assessment periods, duplicate prevention and audited correction versions.
+- Added a responsive chronological company/worker timeline, expanded answers,
+  factual shift/weekend/overtime/travel records, strengths and improvement areas.
+- Preserved verified-employment eligibility, originating-company ownership,
+  worker disputes/data access, audit logging, retention and disabled-by-default
+  cross-company sharing.
+- Added migration `20261017073331_professional_evaluation_history.sql`, updated
+  the reset schema and expanded `test:professional` authorization/regression coverage.
+
 ## 2026-10-13 - Unique Registration NIF
 
 - Added a required Portuguese NIF field to trabalhador and company registration,

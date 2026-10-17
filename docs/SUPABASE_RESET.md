@@ -47,6 +47,10 @@ meo_company_memberships
 meo_employment_relationships
 meo_employer_evaluation_reports
 meo_evaluation_criteria
+meo_custom_evaluation_questions
+meo_evaluation_question_versions
+meo_evaluation_answers
+meo_evaluation_revisions
 meo_company_access_grants
 meo_worker_disputes
 meo_report_access_logs

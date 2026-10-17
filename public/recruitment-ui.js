@@ -14,8 +14,8 @@
     const modes = [["onsite", "Presencial"], ["remote", "Remoto"], ["hybrid", "Hibrido"]];
     const shifts = [["", "A combinar"], ["day", "Diurno"], ["night", "Noturno"], ["rotating", "Rotativo"], ["weekends", "Fins de semana"]];
     function tabs() {
-      const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Historico verificado"], ["saved", "Guardadas"], ["messages", "Mensagens"], ["settings", "Privacidade"]]
-        : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Avaliacoes"], ["access", "Pedidos de acesso"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Mensagens"]];
+      const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Mensagens"], ["settings", "Privacidade"]]
+        : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["access", "Pedidos de acesso"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Mensagens"]];
       if (r().platformAdmin) items.push(["admin", "Administracao"]);
       const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"message-square",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
       return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ghost" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span></button>`).join("")}</nav>`;

@@ -36,6 +36,16 @@ vanilla JavaScript, local JSON and Supabase architecture.
   text while keeping a minimal retention event.
 - Company workspaces for employment confirmation, structured evaluations,
   worker requests and documented access requests.
+- A complete `Percurso Profissional e Avaliações` workflow with the 25 standard
+  observable-behaviour questions grouped into seven categories. Answers support
+  scores 1-5, `Não observado` and `Não aplicável`; low scores require factual
+  context and non-scored answers never enter category averages.
+- Company-specific questions with editable active definitions and immutable
+  per-assessment wording/scoring snapshots. Custom answers are labelled and do
+  not affect the shared standard-question averages.
+- Private editable drafts, explicit submission, duplicate-period protection,
+  strengths/improvement context, assessment dates, evaluator membership role,
+  and immutable correction versions linked through an audit revision record.
 
 ## Authorization Boundary
 
@@ -85,6 +95,17 @@ after `20261007035242_recruitment_upgrade.sql`. It creates:
 - `meo_company_access_grants`, `meo_worker_disputes`
 - `meo_report_access_logs`, `meo_data_retention_actions`
 
+Then apply `supabase/migrations/20261017073331_professional_evaluation_history.sql`.
+It adds the assessment period and evaluator metadata and creates:
+
+- `meo_custom_evaluation_questions`
+- `meo_evaluation_question_versions`, `meo_evaluation_answers`
+- `meo_evaluation_revisions`
+
+All four tables enable RLS, revoke `anon`/`authenticated` access, and remain
+reachable only by the server-side service role after the Node authorization
+checks. Cross-company report reads remain disabled.
+
 Optional configuration with production defaults:
 
 ```text
@@ -110,8 +131,10 @@ npm run smoke
 
 `test:professional` covers CV versions, review-only DOCX extraction, private
 downloads, PDF exclusion of evaluations, company verification, bilateral
-employment confirmation, evaluation ownership, cross-company denial, protected
-context rejection, disputes, access logs and the DPIA sharing gate.
+employment confirmation, all 25 questions, low-score evidence, draft privacy,
+duplicate periods, immutable custom-question wording, category averages,
+no-data handling, immutable corrections, evaluation ownership, cross-company
+denial, protected context rejection, disputes, access logs and the DPIA gate.
 
 ## Remaining Production Work
 

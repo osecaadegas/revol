@@ -331,6 +331,18 @@ Status: implemented locally; production migration pending.
 - Kept tax identifiers out of public vacancy/profile/CV responses.
 - See migration `20261013074216_unique_registration_nif.sql`.
 
+### M32 - Percurso Profissional e Avaliações
+
+Status: implemented locally; production migration and legal/privacy validation pending.
+
+- Expanded employer reports to the 25 standard observable professional
+  questions with 1-5/non-observed/non-applicable answers and category averages.
+- Added private drafts, assessment periods, duplicate prevention, company
+  questions, immutable wording snapshots and audited correction versions.
+- Preserved originating-company isolation, worker disputes/data access,
+  retention redaction and the disabled-by-default cross-company sharing gate.
+- See migration `20261017073331_professional_evaluation_history.sql`.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.

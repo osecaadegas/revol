@@ -173,8 +173,9 @@ For a dirty Supabase project that already contains old prototype tables, run the
 9. Run `supabase/migrations/20261007035242_recruitment_upgrade.sql`.
 10. Run `supabase/migrations/20261013070041_digital_cv_employment_history.sql`.
 11. Run `supabase/migrations/20261013074216_unique_registration_nif.sql`.
-12. Confirm the private storage bucket `meo-evidence` exists and remains private.
-13. Set these environment variables on the host:
+12. Run `supabase/migrations/20261017073331_professional_evaluation_history.sql`.
+13. Confirm the private storage bucket `meo-evidence` exists and remains private.
+14. Set these environment variables on the host:
 
 ```text
 APP_STORAGE_DRIVER=supabase
@@ -183,7 +184,7 @@ SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 SUPABASE_EVIDENCE_BUCKET=meo-evidence
 ```
 
-14. Start or redeploy the Node app.
+15. Start or redeploy the Node app.
 
 The app still uses its own Phase 1 email/password/session system. Supabase Auth is not used in this phase, because the existing server already enforces roles, task visibility, and private evidence access.
 

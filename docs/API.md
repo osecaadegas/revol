@@ -22,8 +22,14 @@ route exposes evaluation content publicly.
 - `DELETE /api/professional/documents/:id` - worker deletion and retention log.
 - `POST /api/professional/employments` - worker/company relationship proposal.
 - `PATCH /api/professional/employments/:id/confirm` - confirm or reject.
-- `POST /api/professional/evaluations` - verified employer report submission.
+- `POST /api/professional/evaluations` - create/update a private draft or submit
+  a verified employer assessment; accepts the 25 standard answers, selected
+  company questions, assessed period, strengths, improvements and an optional
+  correction target. Submitted records are never edited in place.
 - `GET /api/professional/evaluations/:id` - audited worker/originating-company view.
+- `POST /api/professional/custom-questions` - add an originating-company question.
+- `PATCH /api/professional/custom-questions/:id` - edit or archive that company's
+  active definition without changing historical assessment snapshots.
 - `POST /api/professional/disputes` - worker response or data-rights request.
 - `PATCH /api/professional/disputes/:id` - originating-company response.
 - `POST /api/professional/access-requests` - record a purpose/base request;

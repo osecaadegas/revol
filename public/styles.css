@@ -55,6 +55,25 @@
 .fact-grid small { color: var(--text-muted); }
 .compact-dispute { display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, .35fr); gap: 12px; padding: 18px 0; border-top: 1px solid var(--border-subtle); }
 .compact-dispute > .field:nth-last-of-type(1), .compact-dispute > button { grid-column: 1 / -1; }
+.evaluation-timeline { border-left: 2px solid var(--border-primary); padding-left: 18px; }
+.evaluation-timeline article { position: relative; }
+.evaluation-timeline article::before { content: ""; position: absolute; left: -25px; top: 24px; width: 12px; height: 12px; border-radius: 50%; background: var(--brand-primary); box-shadow: 0 0 0 4px var(--surface-primary); }
+.evaluation-form { max-width: 980px; }
+.evaluation-sections { display: grid; gap: 18px; }
+.evaluation-sections fieldset, .evaluation-form > fieldset { display: grid; gap: 14px; padding: 18px; border: 1px solid var(--border-primary); border-radius: var(--radius); }
+.evaluation-question { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(190px, .5fr); gap: 10px 16px; padding: 14px; border-radius: calc(var(--radius) - 4px); background: var(--surface-elevated); }
+.evaluation-question > p { margin: 0; }
+.evaluation-question > .field:last-child { grid-column: 1 / -1; }
+.evaluation-question .chip { margin-left: 8px; }
+.evaluation-answer-groups { display: grid; gap: 12px; }
+.evaluation-answer-groups details { border: 1px solid var(--border-primary); border-radius: var(--radius); overflow: hidden; }
+.evaluation-answer-groups summary { cursor: pointer; padding: 14px 16px; font-weight: 700; background: var(--surface-primary); }
+.evaluation-answer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; padding: 14px 16px; border-top: 1px solid var(--border-subtle); }
+.evaluation-answer.custom { border-left: 3px solid var(--brand-primary); }
+.evaluation-answer small, .evaluation-answer p { grid-column: 1 / -1; margin: 0; }
+.category-average-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 10px; }
+.category-average-grid > span { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--border-primary); border-radius: var(--radius); }
+.category-average-grid strong { font-size: 1.35rem; }
 
 @media (max-width: 760px) {
   .workspace-toolbar, .digital-cv-preview > header, .employment-card header, .evaluation-detail header { flex-direction: column; }
@@ -63,6 +82,8 @@
   .document-grid article .btn, .report-list article .btn, .access-request .btn { width: 100%; }
   .fact-grid { grid-template-columns: 1fr; }
   .compact-dispute { grid-template-columns: 1fr; }
+  .evaluation-question, .evaluation-answer { grid-template-columns: 1fr; }
+  .evaluation-question > .field:last-child, .evaluation-answer small, .evaluation-answer p { grid-column: 1; }
 }
 
 :root {

@@ -1536,7 +1536,7 @@
 
   function renderMarketplaceHero(role, allJobs, jobs, applications) {
     if ((isWorker() || isManager()) && recruitmentUI.current() !== "jobs") {
-      const headings = {profile:"O teu CV Digital", employment:isWorker() ? "Historico de Emprego Verificado" : "Trabalhadores e vinculos", evaluations:"Avaliacoes de emprego", access:"Pedidos de acesso", applications:"As tuas candidaturas", saved:"Oportunidades guardadas", messages:"Mensagens", settings:"Privacidade e dados", company:"A tua empresa", candidates:"Encontrar candidatos", create:state.editJobId ? "Editar vaga" : "Publicar uma vaga", admin:"Administracao"};
+      const headings = {profile:"O teu CV Digital", employment:isWorker() ? "Percurso Profissional e Avaliações" : "Trabalhadores e vínculos", evaluations:"Percurso Profissional e Avaliações", access:"Pedidos de acesso", applications:"As tuas candidaturas", saved:"Oportunidades guardadas", messages:"Mensagens", settings:"Privacidade e dados", company:"A tua empresa", candidates:"Encontrar candidatos", create:state.editJobId ? "Editar vaga" : "Publicar uma vaga", admin:"Administração"};
       return `<header class="workspace-page-heading"><p class="eyebrow">${isWorker() ? "Area do trabalhador" : "Area da empresa"}</p><h1>${escapeHtml(headings[recruitmentUI.current()] || "Recrutamento")}</h1></header>`;
     }
     const profile = isWorker() ? workerCvProfile() : null;

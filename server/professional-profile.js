@@ -1,13 +1,49 @@
 const crypto = require("crypto");
 const zlib = require("zlib");
 
-const CRITERIA = [
-  ["reliability", "Pontualidade e fiabilidade"],
-  ["quality", "Qualidade e produtividade"],
-  ["teamwork", "Trabalho em equipa e comunicacao"],
-  ["adaptability", "Adaptabilidade e aprendizagem"],
-  ["safety", "Seguranca e conduta profissional"]
+const STANDARD_QUESTIONS = [
+  ["attendance", "Assiduidade e pontualidade", [
+    ["attendance_schedule", "Cumpre os horários de entrada e regresso das pausas?"],
+    ["attendance_days", "Cumpre a presença nos dias de trabalho acordados?"],
+    ["attendance_notice", "Comunica atempadamente atrasos ou imprevistos?"]
+  ]],
+  ["adaptation", "Adaptação e autonomia", [
+    ["adaptation_changes", "Adapta-se a alterações de tarefas dentro das suas funções?"],
+    ["adaptation_pressure", "Mantém a qualidade do trabalho sob pressão?"],
+    ["adaptation_initiative", "Demonstra iniciativa dentro das suas responsabilidades?"],
+    ["adaptation_autonomy", "Executa tarefas com autonomia adequada à função?"],
+    ["adaptation_instructions", "Compreende e segue as instruções recebidas?"]
+  ]],
+  ["performance", "Desempenho e qualidade", [
+    ["performance_deadlines", "Cumpre os prazos acordados?"],
+    ["performance_quality", "Apresenta trabalho com qualidade consistente?"],
+    ["performance_productivity", "Atinge os objetivos de produtividade acordados?"],
+    ["performance_detail", "Presta atenção aos detalhes?"]
+  ]],
+  ["safety", "Segurança e organização", [
+    ["safety_rules", "Cumpre as regras de segurança?"],
+    ["safety_equipment", "Utiliza corretamente ferramentas e equipamentos?"],
+    ["safety_organisation", "Mantém o espaço de trabalho organizado?"]
+  ]],
+  ["collaboration", "Colaboração e comunicação", [
+    ["collaboration_team", "Colabora com os colegas?"],
+    ["collaboration_communication", "Comunica de forma clara e respeitosa?"],
+    ["collaboration_feedback", "Recebe orientações e críticas de forma construtiva?"]
+  ]],
+  ["learning", "Aprendizagem e resolução de problemas", [
+    ["learning_training", "Aplica o que aprende após receber formação?"],
+    ["learning_identify", "Identifica e comunica problemas atempadamente?"],
+    ["learning_solutions", "Propõe soluções adequadas aos problemas encontrados?"],
+    ["learning_responsibility", "Assume responsabilidade pelos erros e ajuda a corrigi-los?"],
+    ["learning_priorities", "Gere as prioridades de forma adequada?"]
+  ]],
+  ["professionalism", "Profissionalismo", [
+    ["professionalism_people", "Trata clientes e outras pessoas com profissionalismo?"],
+    ["professionalism_handover", "Faz uma passagem de tarefas clara quando necessário?"]
+  ]]
 ];
+const CRITERIA = STANDARD_QUESTIONS.flatMap(([categoryKey, categoryLabel, questions]) => questions.map(([key, question]) => ({ key, question, categoryKey, categoryLabel })));
+const ANSWER_STATES = new Set(["score", "not_observed", "not_applicable", "unanswered"]);
 const ACCESS_LAWFUL_BASES = new Set(["legitimate_interest", "legal_obligation", "pre_contract_steps"]);
 const DISPUTE_TYPES = new Set(["correction", "context", "dispute", "restriction", "deletion", "access"]);
 const EVALUATION_REVIEW_MONTHS = Math.max(1, Number(process.env.EVALUATION_REVIEW_MONTHS || 12));
@@ -16,7 +52,7 @@ const ACCESS_REQUEST_DAYS = Math.max(1, Number(process.env.ACCESS_REQUEST_DAYS |
 const MAX_CV_UPLOAD_BYTES = Math.max(1, Number(process.env.MAX_CV_UPLOAD_MB || 8)) * 1024 * 1024;
 const EMPTY_KEYS = [
   "cvProfiles", "cvVersions", "cvDocuments", "companyVerifications", "companyMemberships",
-  "employmentRelationships", "evaluationReports", "evaluationCriteria", "companyAccessGrants",
+  "employmentRelationships", "evaluationReports", "evaluationCriteria", "customEvaluationQuestions", "evaluationQuestionVersions", "evaluationAnswers", "evaluationRevisions", "companyAccessGrants",
   "employmentDisputes", "reportAccessLogs", "dataRetentionActions"
 ];
 
@@ -27,8 +63,12 @@ const TABLES = [
   { key: "companyVerifications", table: "meo_company_verifications", idKey: "id", fields: { id:"id", companyId:"company_id", status:"status", source:"source", evidence:"evidence", verifiedBy:"verified_by", verifiedAt:"verified_at", reviewedAt:"reviewed_at", createdAt:"created_at", updatedAt:"updated_at" } },
   { key: "companyMemberships", table: "meo_company_memberships", idKey: "id", fields: { id:"id", companyId:"company_id", userId:"user_id", role:"role", status:"status", verifiedAt:"verified_at", createdAt:"created_at", updatedAt:"updated_at" } },
   { key: "employmentRelationships", table: "meo_employment_relationships", idKey: "id", fields: { id:"id", workerId:"worker_id", companyId:"company_id", companyName:"company_name", position:"position", startDate:"start_date", endDate:"end_date", employmentStatus:"employment_status", verificationStatus:"verification_status", workerConfirmedAt:"worker_confirmed_at", companyConfirmedAt:"company_confirmed_at", createdBy:"created_by", createdByRole:"created_by_role", retentionUntil:"retention_until", createdAt:"created_at", updatedAt:"updated_at" } },
-  { key: "evaluationReports", table: "meo_employer_evaluation_reports", idKey: "id", fields: { id:"id", employmentId:"employment_id", workerId:"worker_id", companyId:"company_id", authorId:"author_id", status:"status", assessmentContext:"assessment_context", factualExperience:"factual_experience", version:"version", supersedesReportId:"supersedes_report_id", submittedAt:"submitted_at", reviewExpiresAt:"review_expires_at", retentionUntil:"retention_until", createdAt:"created_at", updatedAt:"updated_at" } },
+  { key: "evaluationReports", table: "meo_employer_evaluation_reports", idKey: "id", fields: { id:"id", employmentId:"employment_id", workerId:"worker_id", companyId:"company_id", authorId:"author_id", evaluatorRole:"evaluator_role", workerRole:"worker_role", periodStart:"period_start", periodEnd:"period_end", status:"status", assessmentContext:"assessment_context", strengths:"strengths", improvements:"improvements", factualExperience:"factual_experience", version:"version", supersedesReportId:"supersedes_report_id", submittedAt:"submitted_at", reviewExpiresAt:"review_expires_at", retentionUntil:"retention_until", createdAt:"created_at", updatedAt:"updated_at" } },
   { key: "evaluationCriteria", table: "meo_evaluation_criteria", idKey: "id", fields: { id:"id", reportId:"report_id", criterion:"criterion", rating:"rating", context:"context", createdAt:"created_at", updatedAt:"updated_at" } },
+  { key: "customEvaluationQuestions", table: "meo_custom_evaluation_questions", idKey: "id", fields: { id:"id", companyId:"company_id", questionText:"question_text", description:"description", category:"category", status:"status", createdBy:"created_by", createdAt:"created_at", updatedAt:"updated_at", archivedAt:"archived_at" } },
+  { key: "evaluationQuestionVersions", table: "meo_evaluation_question_versions", idKey: "id", fields: { id:"id", questionKey:"question_key", customQuestionId:"custom_question_id", companyId:"company_id", source:"source", questionText:"question_text", description:"description", categoryKey:"category_key", categoryLabel:"category_label", scoringDefinition:"scoring_definition", createdAt:"created_at" } },
+  { key: "evaluationAnswers", table: "meo_evaluation_answers", idKey: "id", fields: { id:"id", reportId:"report_id", questionVersionId:"question_version_id", source:"source", answerState:"answer_state", score:"score", comment:"comment", createdAt:"created_at", updatedAt:"updated_at" } },
+  { key: "evaluationRevisions", table: "meo_evaluation_revisions", idKey: "id", fields: { id:"id", reportId:"report_id", previousReportId:"previous_report_id", companyId:"company_id", changedBy:"changed_by", reason:"reason", snapshot:"snapshot", createdAt:"created_at" } },
   { key: "companyAccessGrants", table: "meo_company_access_grants", idKey: "id", fields: { id:"id", workerId:"worker_id", requesterCompanyId:"requester_company_id", requestedBy:"requested_by", purpose:"purpose", lawfulBasis:"lawful_basis", status:"status", requestedAt:"requested_at", expiresAt:"expires_at", decidedAt:"decided_at", decisionBy:"decision_by" } },
   { key: "employmentDisputes", table: "meo_worker_disputes", idKey: "id", fields: { id:"id", workerId:"worker_id", employmentId:"employment_id", reportId:"report_id", companyId:"company_id", type:"type", description:"description", workerResponse:"worker_response", status:"status", resolution:"resolution", createdAt:"created_at", updatedAt:"updated_at", resolvedAt:"resolved_at" } },
   { key: "reportAccessLogs", table: "meo_report_access_logs", idKey: "id", fields: { id:"id", workerId:"worker_id", reportId:"report_id", employmentId:"employment_id", viewerUserId:"viewer_user_id", viewerCompanyId:"viewer_company_id", action:"action", purpose:"purpose", lawfulBasis:"lawful_basis", ip:"ip", createdAt:"created_at" } },
@@ -152,10 +192,40 @@ function reportSummary(db, report) {
   return {
     id: report.id, employmentId: report.employmentId, workerId: report.workerId,
     companyId: report.companyId, companyName: company?.name || employment?.companyName || "Empresa",
-    authorId: report.authorId, authorName: author?.name || "Autor identificado", status: report.status,
+    authorId: report.authorId, authorName: author?.name || "Autor identificado", evaluatorRole:report.evaluatorRole || author?.role || "company", status: report.status,
     version: report.version || 1, submittedAt: report.submittedAt, reviewExpiresAt: report.reviewExpiresAt,
+    workerRole:report.workerRole || employment?.position || "", periodStart:report.periodStart || employment?.startDate || "", periodEnd:report.periodEnd || employment?.endDate || "",
     employmentDates: employment ? { startDate: employment.startDate, endDate: employment.endDate } : null,
     hasWorkerResponse: db.employmentDisputes.some(item => item.reportId === report.id && item.workerResponse)
+  };
+}
+
+function activeMembership(db, auth) {
+  if (!auth.company || !["company", "manager"].includes(auth.user.role)) return null;
+  return db.companyMemberships.find(item => item.companyId === auth.company.id && item.userId === auth.user.id && item.status === "active") || null;
+}
+
+function assertAuthorisedCompanyStaff(db, auth) {
+  assertVerifiedCompany(auth);
+  const membership = activeMembership(db, auth);
+  if (!membership || !["company", "manager"].includes(membership.role)) fail("Não tem uma função autorizada nesta empresa.", 403);
+  return membership;
+}
+
+function answerSummary(db, reportId) {
+  const answers = db.evaluationAnswers.filter(item => item.reportId === reportId);
+  const versions = new Map(db.evaluationQuestionVersions.map(item => [item.id, item]));
+  const categories = new Map();
+  let scoredAnswerCount = 0;
+  for (const answer of answers) {
+    if (answer.source !== "standard" || answer.answerState !== "score" || !Number.isInteger(answer.score)) continue;
+    const question = versions.get(answer.questionVersionId); if (!question) continue;
+    const current = categories.get(question.categoryKey) || { key:question.categoryKey, label:question.categoryLabel, total:0, count:0 };
+    current.total += answer.score; current.count += 1; categories.set(question.categoryKey, current); scoredAnswerCount += 1;
+  }
+  return {
+    scoredAnswerCount,
+    categoryAverages:[...categories.values()].map(item => ({ key:item.key, label:item.label, scoredAnswerCount:item.count, average:Number((item.total / item.count).toFixed(2)) }))
   };
 }
 
@@ -184,13 +254,15 @@ function snapshot(db, auth) {
   for (const item of employments) eligibleWorkerIds.add(item.workerId);
   return {
     crossCompanySharingEnabled: false,
-    criteria: CRITERIA.map(([key, label]) => ({ key, label })),
+    questionGroups: STANDARD_QUESTIONS.map(([key, label, questions]) => ({ key, label, questions:questions.map(([questionKey, question]) => ({ key:questionKey, question })) })),
+    criteria: CRITERIA,
+    customQuestions: manager ? db.customEvaluationQuestions.filter(item => item.companyId === auth.company.id).sort((a,b) => b.createdAt.localeCompare(a.createdAt)) : [],
     cv: cv ? { ...cv, stableProfileId: cv.id,
       verifiedEmployment: employments.filter(item => item.verificationStatus === "verified").map(item => publicEmployment(db, item)).sort((a,b) => String(b.startDate).localeCompare(String(a.startDate))) } : null,
     versions: worker ? db.cvVersions.filter(item => item.workerId === auth.user.id).map(item => ({ id:item.id, version:item.version, changeSource:item.changeSource, createdAt:item.createdAt })).sort((a,b) => b.version - a.version) : [],
     documents: worker ? db.cvDocuments.filter(item => item.workerId === auth.user.id && !item.deletedAt).map(publicDocument).filter(Boolean).sort((a,b) => b.createdAt.localeCompare(a.createdAt)) : [],
     employments: employments.map(item => publicEmployment(db, item)).sort((a,b) => String(b.startDate).localeCompare(String(a.startDate))),
-    reportSummaries: reports.map(item => reportSummary(db, item)).sort((a,b) => String(b.submittedAt || b.createdAt).localeCompare(String(a.submittedAt || a.createdAt))),
+    reportSummaries: reports.map(item => ({ ...reportSummary(db, item), ...answerSummary(db, item.id) })).sort((a,b) => String(b.submittedAt || b.createdAt).localeCompare(String(a.submittedAt || a.createdAt))),
     disputes: disputes.sort((a,b) => b.createdAt.localeCompare(a.createdAt)),
     accessRequests: accessRequests.sort((a,b) => b.requestedAt.localeCompare(a.requestedAt)),
     accessHistory: accessHistory.slice().sort((a,b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 200),
@@ -298,14 +370,60 @@ function evaluationContext(value, max = 1200) {
   return result;
 }
 
-function normalizeCriteria(value) {
-  const source = Array.isArray(value) ? value : [];
-  return CRITERIA.map(([criterion]) => {
-    const item = source.find(candidate => candidate?.criterion === criterion) || {};
-    const rating = Number(item.rating);
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) fail("Preencha todos os criterios com uma classificacao de 1 a 5.");
-    return { criterion, rating, context:evaluationContext(item.context, 700) };
-  });
+const SCORING_DEFINITION = {
+  1:"Muito abaixo do esperado", 2:"Abaixo do esperado", 3:"Corresponde ao esperado",
+  4:"Acima do esperado", 5:"Muito acima do esperado",
+  not_observed:"Não observado", not_applicable:"Não aplicável"
+};
+
+function normalizeAnswer(item, required) {
+  const rawState = text(item?.answerState || (item?.rating || item?.score ? "score" : "unanswered"), 30);
+  const answerState = ANSWER_STATES.has(rawState) ? rawState : "unanswered";
+  const score = answerState === "score" ? Number(item?.score ?? item?.rating) : null;
+  if (answerState === "score" && (!Number.isInteger(score) || score < 1 || score > 5)) fail("A classificação deve estar entre 1 e 5.");
+  if (required && answerState === "unanswered") fail("Responda a todas as perguntas padrão ou indique “Não observado” ou “Não aplicável”.");
+  const comment = evaluationContext(item?.comment ?? item?.context, 900);
+  if (answerState === "score" && score <= 2 && !comment) fail("As classificações 1 e 2 exigem uma explicação factual relacionada com o trabalho.");
+  return { answerState, score, comment };
+}
+
+function buildQuestionSnapshot(db, report, body, submittedAt) {
+  const supplied = Array.isArray(body.answers) ? body.answers : Array.isArray(body.criteria) ? body.criteria.map(item => ({ questionKey:item.criterion, answerState:"score", score:item.rating, comment:item.context })) : [];
+  const required = body.intent === "submit";
+  const snapshots = [];
+  for (const question of CRITERIA) {
+    const incoming = supplied.find(item => item?.questionKey === question.key || item?.criterion === question.key) || {};
+    snapshots.push({
+      version:{ id:uid("eqv"), questionKey:question.key, customQuestionId:null, companyId:null, source:"standard", questionText:question.question, description:"", categoryKey:question.categoryKey, categoryLabel:question.categoryLabel, scoringDefinition:SCORING_DEFINITION, createdAt:submittedAt },
+      answer:{ source:"standard", ...normalizeAnswer(incoming, required) }
+    });
+  }
+  const selectedCustomIds = new Set((Array.isArray(body.customQuestionIds) ? body.customQuestionIds : supplied.filter(item => item?.customQuestionId).map(item => item.customQuestionId)).map(String));
+  for (const custom of db.customEvaluationQuestions.filter(item => item.companyId === report.companyId && selectedCustomIds.has(item.id))) {
+    const incoming = supplied.find(item => item?.customQuestionId === custom.id) || {};
+    snapshots.push({
+      version:{ id:uid("eqv"), questionKey:`custom:${custom.id}`, customQuestionId:custom.id, companyId:custom.companyId, source:"custom", questionText:custom.questionText, description:custom.description, categoryKey:"company", categoryLabel:custom.category || "Perguntas da empresa", scoringDefinition:SCORING_DEFINITION, createdAt:submittedAt },
+      answer:{ source:"custom", ...normalizeAnswer(incoming, required) }
+    });
+  }
+  return snapshots;
+}
+
+function replaceReportAnswers(db, report, snapshots, createdAt) {
+  const oldVersionIds = new Set(db.evaluationAnswers.filter(item => item.reportId === report.id).map(item => item.questionVersionId));
+  db.evaluationAnswers = db.evaluationAnswers.filter(item => item.reportId !== report.id);
+  db.evaluationQuestionVersions = db.evaluationQuestionVersions.filter(item => !oldVersionIds.has(item.id));
+  for (const item of snapshots) {
+    db.evaluationQuestionVersions.push(item.version);
+    db.evaluationAnswers.push({ id:uid("eva"), reportId:report.id, questionVersionId:item.version.id, source:item.answer.source, answerState:item.answer.answerState, score:item.answer.score, comment:item.answer.comment, createdAt, updatedAt:createdAt });
+  }
+}
+
+function reportDetail(db, report) {
+  const versions = new Map(db.evaluationQuestionVersions.map(item => [item.id, item]));
+  const answers = db.evaluationAnswers.filter(item => item.reportId === report.id).map(answer => ({ ...answer, question:versions.get(answer.questionVersionId) })).filter(item => item.question);
+  return { ...reportSummary(db, report), assessmentContext:report.assessmentContext, strengths:report.strengths || "", improvements:report.improvements || "", factualExperience:report.factualExperience, answers, ...answerSummary(db, report.id),
+    workerResponses:db.employmentDisputes.filter(item => item.reportId === report.id).map(item => ({ id:item.id, type:item.type, workerResponse:item.workerResponse, description:item.description, status:item.status, resolution:item.resolution, createdAt:item.createdAt })) };
 }
 
 function pdfEscape(value) {
@@ -383,8 +501,11 @@ function createProfessionalProfile(h) {
         db.auditLogs.push({ id:uid("audit"), companyId:report.companyId, actorId:null, actorName:"Sistema", actorRole:"system", entityType:"evaluation_report", entityId:report.id, action:"evaluation_report.review_expired", detail:{ reviewExpiresAt:report.reviewExpiresAt }, ip:"", createdAt:stamp() });
       }
       if (Date.parse(report.retentionUntil) <= now && !db.dataRetentionActions.some(item => item.entityType === "evaluation_report" && item.entityId === report.id && item.action === "redacted")) {
+        const answerVersionIds = new Set(db.evaluationAnswers.filter(item => item.reportId === report.id).map(item => item.questionVersionId));
         db.evaluationCriteria = db.evaluationCriteria.filter(item => item.reportId !== report.id);
-        report.assessmentContext = ""; report.factualExperience = {}; report.status = "expired"; report.updatedAt = stamp(); redactedReports++;
+        db.evaluationAnswers = db.evaluationAnswers.filter(item => item.reportId !== report.id);
+        db.evaluationQuestionVersions = db.evaluationQuestionVersions.filter(item => !answerVersionIds.has(item.id));
+        report.assessmentContext = ""; report.strengths = ""; report.improvements = ""; report.factualExperience = {}; report.status = "expired"; report.updatedAt = stamp(); redactedReports++;
         db.dataRetentionActions.push({ id:uid("ret"), entityType:"evaluation_report", entityId:report.id, workerId:report.workerId, action:"redacted", reason:"configured_retention_period_elapsed", executeAfter:report.retentionUntil, executedAt:stamp(), createdBy:"system", createdAt:stamp() });
         db.auditLogs.push({ id:uid("audit"), companyId:report.companyId, actorId:null, actorName:"Sistema", actorRole:"system", entityType:"evaluation_report", entityId:report.id, action:"evaluation_report.retention_redacted", detail:{ retentionUntil:report.retentionUntil }, ip:"", createdAt:stamp() });
       }
@@ -421,15 +542,13 @@ function createProfessionalProfile(h) {
     const reportView = pathname.match(/^\/api\/professional\/evaluations\/([^/]+)$/);
     if (req.method === "GET" && reportView) {
       const result = await h.mutateDb(db => {
-        const auth = h.requireAuth(db, req), report = db.evaluationReports.find(item => item.id === reportView[1] && item.status !== "draft");
+        const auth = h.requireAuth(db, req), report = db.evaluationReports.find(item => item.id === reportView[1]);
         if (!report) fail("Relatorio nao encontrado.", 404);
-        const allowed = auth.user.id === report.workerId || (["company","manager"].includes(auth.user.role) && auth.company.id === report.companyId);
+        const allowed = (auth.user.id === report.workerId && report.status !== "draft") || (["company","manager"].includes(auth.user.role) && auth.company.id === report.companyId && activeMembership(db, auth));
         if (!allowed) fail("Relatorio nao encontrado.", 404);
         accessLog(db, auth, report, "evaluation_report.viewed", req);
         h.audit(db, auth, "evaluation_report", report.id, "evaluation_report.viewed", { workerId:report.workerId, companyId:report.companyId }, req);
-        return { report:{ ...reportSummary(db, report), assessmentContext:report.assessmentContext, factualExperience:report.factualExperience,
-          criteria:db.evaluationCriteria.filter(item => item.reportId === report.id).map(item => ({ criterion:item.criterion, rating:item.rating, context:item.context })),
-          workerResponses:db.employmentDisputes.filter(item => item.reportId === report.id).map(item => ({ id:item.id, type:item.type, workerResponse:item.workerResponse, description:item.description, status:item.status, resolution:item.resolution, createdAt:item.createdAt })) } };
+        return { report:reportDetail(db, report) };
       });
       h.sendJson(res, 200, result); return true;
     }
@@ -460,6 +579,7 @@ function createProfessionalProfile(h) {
         const employmentConfirm = pathname.match(/^\/api\/professional\/employments\/([^/]+)\/confirm$/);
         const disputeUpdate = pathname.match(/^\/api\/professional\/disputes\/([^/]+)$/);
         const accessUpdate = pathname.match(/^\/api\/professional\/access-requests\/([^/]+)$/);
+        const customQuestionUpdate = pathname.match(/^\/api\/professional\/custom-questions\/([^/]+)$/);
         if (docDelete && req.method === "DELETE") {
           h.requireWorker(auth); const document = db.cvDocuments.find(item => item.id === docDelete[1] && item.workerId === auth.user.id && !item.deletedAt); if (!document) fail("Documento nao encontrado.", 404);
           await h.deletePrivateUploadFile(document.storedName); document.deletedAt = stamp(); document.extractedData = {};
@@ -485,14 +605,58 @@ function createProfessionalProfile(h) {
           if (decision === "reject") employment.verificationStatus = "rejected";
           else { if (workerMode) employment.workerConfirmedAt = stamp(); else employment.companyConfirmedAt = stamp(); employment.verificationStatus = employment.workerConfirmedAt && employment.companyConfirmedAt && companyVerified(db.companies.find(item => item.id === employment.companyId)) ? "verified" : "pending"; }
           employment.updatedAt = stamp(); h.audit(db, auth, "employment", employment.id, `employment.${decision}ed`, { verificationStatus:employment.verificationStatus }, req);
+        } else if (pathname === "/api/professional/custom-questions" && req.method === "POST") {
+          assertAuthorisedCompanyStaff(db, auth);
+          const questionText = text(body.questionText, 500), description = text(body.description, 800), category = text(body.category, 120) || "Perguntas da empresa";
+          if (!questionText) fail("Indique o texto da pergunta da empresa.");
+          if (db.customEvaluationQuestions.some(item => item.companyId === auth.company.id && item.status === "active" && item.questionText.toLocaleLowerCase("pt-PT") === questionText.toLocaleLowerCase("pt-PT"))) fail("Esta pergunta da empresa já existe.", 409);
+          const question = { id:uid("ecq"), companyId:auth.company.id, questionText, description, category, status:"active", createdBy:auth.user.id, createdAt:stamp(), updatedAt:stamp(), archivedAt:null };
+          db.customEvaluationQuestions.push(question); h.audit(db, auth, "custom_evaluation_question", question.id, "custom_evaluation_question.created", {}, req);
+        } else if (customQuestionUpdate && req.method === "PATCH") {
+          assertAuthorisedCompanyStaff(db, auth);
+          const question = db.customEvaluationQuestions.find(item => item.id === customQuestionUpdate[1] && item.companyId === auth.company.id); if (!question) fail("Pergunta não encontrada.", 404);
+          if (body.action === "archive") { question.status = "archived"; question.archivedAt = stamp(); }
+          else {
+            const questionText = text(body.questionText, 500); if (!questionText) fail("Indique o texto da pergunta da empresa.");
+            question.questionText = questionText; question.description = text(body.description, 800); question.category = text(body.category, 120) || "Perguntas da empresa";
+          }
+          question.updatedAt = stamp(); h.audit(db, auth, "custom_evaluation_question", question.id, `custom_evaluation_question.${body.action === "archive" ? "archived" : "updated"}`, {}, req);
         } else if (pathname === "/api/professional/evaluations" && req.method === "POST") {
-          assertVerifiedCompany(auth); const employment = db.employmentRelationships.find(item => item.id === body.employmentId && item.companyId === auth.company.id && item.verificationStatus === "verified"); if (!employment) fail("A avaliacao exige um vinculo de emprego verificado com esta empresa.",403);
-          const prior = body.supersedesReportId ? db.evaluationReports.find(item => item.id === body.supersedesReportId && item.companyId === auth.company.id && item.employmentId === employment.id && item.status !== "draft") : null;
-          if (body.supersedesReportId && !prior) fail("Relatorio anterior nao encontrado.",404);
-          const criteria = normalizeCriteria(body.criteria), createdAt = stamp(); const report = { id:uid("evr"), employmentId:employment.id, workerId:employment.workerId, companyId:auth.company.id, authorId:auth.user.id, status:prior ? "corrected" : "submitted", assessmentContext:evaluationContext(body.assessmentContext,1600), factualExperience:{ nightShift:boolean(body.factualExperience?.nightShift), weekend:boolean(body.factualExperience?.weekend), overtime:boolean(body.factualExperience?.overtime), context:evaluationContext(body.factualExperience?.context,700) }, version:(prior?.version || 0)+1, supersedesReportId:prior?.id || null, submittedAt:createdAt, reviewExpiresAt:addMonths(createdAt,EVALUATION_REVIEW_MONTHS), retentionUntil:addYears(createdAt,EMPLOYMENT_DATA_RETENTION_YEARS), createdAt, updatedAt:createdAt };
-          if (prior) { prior.status = "superseded"; prior.updatedAt = createdAt; }
-          db.evaluationReports.push(report); criteria.forEach(item => db.evaluationCriteria.push({ id:uid("evc"), reportId:report.id, criterion:item.criterion, rating:item.rating, context:item.context, createdAt, updatedAt:createdAt }));
-          accessLog(db, auth, report, "evaluation_report.submitted", req, "employment_relationship_management"); h.audit(db, auth, "evaluation_report", report.id, "evaluation_report.submitted", { employmentId:employment.id, workerId:employment.workerId, version:report.version }, req);
+          const membership = assertAuthorisedCompanyStaff(db, auth);
+          const intent = body.intent === "draft" ? "draft" : "submit";
+          const employment = db.employmentRelationships.find(item => item.id === body.employmentId && item.companyId === auth.company.id && item.verificationStatus === "verified"); if (!employment) fail("A avaliação exige um vínculo de trabalho verificado com esta empresa.",403);
+          const existingDraft = body.reportId ? db.evaluationReports.find(item => item.id === body.reportId && item.companyId === auth.company.id && item.status === "draft") : null;
+          if (body.reportId && !existingDraft) fail("Rascunho não encontrado.", 404);
+          const priorId = text(body.supersedesReportId || body.correctionOfReportId, 140);
+          const prior = priorId ? db.evaluationReports.find(item => item.id === priorId && item.companyId === auth.company.id && item.employmentId === employment.id && item.status !== "draft" && item.status !== "superseded") : null;
+          if (priorId && !prior) fail("Avaliação anterior não encontrada.",404);
+          const periodStart = date(body.periodStart || employment.startDate, "Início do período", false);
+          const periodEnd = date(body.periodEnd || employment.endDate || new Date().toISOString().slice(0,10), "Fim do período", false);
+          if (periodEnd < periodStart) fail("O fim do período de avaliação deve ser igual ou posterior ao início.");
+          if (periodStart < employment.startDate || (employment.endDate && periodEnd > employment.endDate)) fail("O período avaliado tem de estar dentro das datas do vínculo verificado.");
+          const duplicate = db.evaluationReports.find(item => item.id !== existingDraft?.id && item.companyId === auth.company.id && item.workerId === employment.workerId && item.employmentId === employment.id && item.periodStart === periodStart && item.periodEnd === periodEnd && !["superseded","withdrawn","expired"].includes(item.status));
+          if (duplicate && !prior) fail("Já existe uma avaliação ou rascunho para esta empresa, trabalhador, vínculo e período.", 409);
+          const createdAt = stamp();
+          const report = existingDraft || { id:uid("evr"), employmentId:employment.id, workerId:employment.workerId, companyId:auth.company.id, authorId:auth.user.id, createdAt };
+          Object.assign(report, {
+            employmentId:employment.id, workerId:employment.workerId, companyId:auth.company.id,
+            evaluatorRole:membership.role, workerRole:text(body.workerRole,180) || employment.position,
+            periodStart, periodEnd, status:intent === "draft" ? "draft" : prior ? "corrected" : "submitted",
+            assessmentContext:evaluationContext(body.assessmentContext,1600), strengths:evaluationContext(body.strengths,1600), improvements:evaluationContext(body.improvements,1600),
+            factualExperience:{ nightShift:boolean(body.factualExperience?.nightShift), weekend:boolean(body.factualExperience?.weekend), overtime:boolean(body.factualExperience?.overtime), travel:boolean(body.factualExperience?.travel), context:evaluationContext(body.factualExperience?.context,700) },
+            version:prior ? (prior.version || 1) + 1 : report.version || 1, supersedesReportId:prior?.id || report.supersedesReportId || null,
+            submittedAt:intent === "submit" ? createdAt : null, reviewExpiresAt:addMonths(createdAt,EVALUATION_REVIEW_MONTHS), retentionUntil:addYears(createdAt,EMPLOYMENT_DATA_RETENTION_YEARS), updatedAt:createdAt
+          });
+          const snapshots = buildQuestionSnapshot(db, report, { ...body, intent }, createdAt);
+          replaceReportAnswers(db, report, snapshots, createdAt);
+          if (!existingDraft) db.evaluationReports.push(report);
+          if (intent === "submit") {
+            if (prior) {
+              db.evaluationRevisions.push({ id:uid("evrlog"), reportId:report.id, previousReportId:prior.id, companyId:auth.company.id, changedBy:auth.user.id, reason:text(body.correctionReason,1000) || "Correção autorizada", snapshot:reportDetail(db, prior), createdAt });
+              prior.status = "superseded"; prior.updatedAt = createdAt;
+            }
+            accessLog(db, auth, report, "evaluation_report.submitted", req, "employment_relationship_management"); h.audit(db, auth, "evaluation_report", report.id, "evaluation_report.submitted", { employmentId:employment.id, workerId:employment.workerId, version:report.version }, req);
+          } else h.audit(db, auth, "evaluation_report", report.id, "evaluation_report.draft_saved", { employmentId:employment.id, workerId:employment.workerId }, req);
         } else if (pathname === "/api/professional/disputes" && req.method === "POST") {
           h.requireWorker(auth); if (!DISPUTE_TYPES.has(body.type)) fail("Tipo de pedido invalido.");
           const report = body.reportId ? db.evaluationReports.find(item => item.id === body.reportId && item.workerId === auth.user.id) : null;
