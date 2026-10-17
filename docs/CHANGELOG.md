@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-10-17 - Industrial Workshop Visual System
+
+- Reworked the existing TrataPro public marketplace, authentication surfaces,
+  company/worker dashboards, Digital CV and professional-history interfaces
+  with a warm paper, black ink and high-visibility lime visual language.
+- Added the compact industrial wordmark, construction-tape dividers, hard
+  offset shadows, monospaced labels, squared controls and paper-grain texture.
+- Preserved all existing routes, forms, data flows, permissions and private
+  evaluation boundaries; this release contains no schema or API change.
+- Added responsive adaptations for the public navigation, search, cards,
+  dashboard rail, mobile navigation, modals and dense professional forms.
+
 ## 2026-10-17 - Percurso Profissional e Avaliações
 
 - Expanded confidential employer assessments to the 25 requested standard

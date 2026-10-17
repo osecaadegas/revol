@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 82" role="img" aria-label="TrataPro - Trabalho certo. Prova feita.">
-  <rect x="2" y="5" width="72" height="72" rx="12" fill="#2563eb"/>
-  <path d="M17 56 55 18h10v46H53V39L25 67h-8Z" fill="#ffffff"/>
-  <path d="M50 59 60 69 74 47" fill="none" stroke="#93c5fd" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="24" cy="24" r="5.5" fill="#ffffff"/>
-  <text x="92" y="39" fill="#f8fafc" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="0">TrataPro</text>
-  <text x="93" y="62" fill="#a7b0c0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="400" letter-spacing="0">Trabalho certo. Prova feita.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 82" role="img" aria-label="TrataPro - Trabalho certo. Prova feita.">
+  <circle cx="41" cy="41" r="37" fill="#d9f121" stroke="#15130f" stroke-width="3"/>
+  <path d="M16 44h50M19 32h44M24 56h34" stroke="#15130f" stroke-width="7"/>
+  <path d="M30 18h22l9 9v28l-9 9H30l-9-9V27z" fill="#d9f121" stroke="#15130f" stroke-width="3"/>
+  <text x="28" y="51" fill="#15130f" font-family="Arial Black, Impact, sans-serif" font-size="30" font-weight="900">T</text>
+  <text x="93" y="39" fill="#15130f" font-family="Arial Black, Impact, sans-serif" font-size="31" font-weight="900" letter-spacing="-1">TRATAPRO</text>
+  <text x="94" y="62" fill="#6e6759" font-family="Courier New, monospace" font-size="13" font-weight="700" letter-spacing="1.2">TRABALHO CERTO. PROVA FEITA.</text>
 </svg>

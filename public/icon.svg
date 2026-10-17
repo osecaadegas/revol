@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="TrataPro">
-  <rect width="128" height="128" rx="20" fill="#2563eb"/>
-  <path d="M24 93 92 25h12v78H90V52L36 106H24Z" fill="#ffffff"/>
-  <path d="M82 90 99 107 121 73" fill="none" stroke="#93c5fd" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="33" cy="34" r="9" fill="#ffffff"/>
+  <circle cx="64" cy="64" r="59" fill="#d9f121" stroke="#15130f" stroke-width="6"/>
+  <path d="M25 69h78M30 49h68M38 89h52" stroke="#15130f" stroke-width="11"/>
+  <path d="M46 26h36l16 16v44L82 102H46L30 86V42z" fill="#d9f121" stroke="#15130f" stroke-width="6"/>
+  <text x="41" y="84" fill="#15130f" font-family="Arial Black, Impact, sans-serif" font-size="65" font-weight="900">T</text>
 </svg>
