@@ -16,6 +16,8 @@
   states.
 - Replaced browser-native vacancy datalists with branded keyboard-accessible
   autocomplete panels so location and role suggestions retain the site design.
+- Moved desktop vacancy filters into a horizontal bar above the results, while
+  retaining the compact filter drawer on tablet and mobile layouts.
 
 ## 2026-10-17 - Percurso Profissional e Avaliações
 
