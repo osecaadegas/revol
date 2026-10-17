@@ -3655,3 +3655,101 @@ input::file-selector-button { border: 1px solid var(--text-primary); border-radi
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Dropdowns and disclosure menus belong to the same workshop language. */
+select,
+.field select,
+.filter-row select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 46px;
+  background-color: #fffdf6;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-primary) 50%),
+    linear-gradient(135deg, var(--text-primary) 50%, transparent 50%),
+    linear-gradient(to left, var(--brand-primary) 0, var(--brand-primary) 36px, var(--text-primary) 36px, var(--text-primary) 37px, transparent 37px);
+  background-position:
+    calc(100% - 20px) calc(50% - 2px),
+    calc(100% - 15px) calc(50% - 2px),
+    100% 0;
+  background-size: 5px 5px, 5px 5px, 38px 100%;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+select:hover,
+.field select:hover,
+.filter-row select:hover { background-color: var(--brand-subtle); }
+select:focus,
+.field select:focus,
+.filter-row select:focus { background-color: #fffdf6; }
+select:disabled { cursor: not-allowed; opacity: .58; background-color: var(--bg-secondary); }
+select option { color: var(--text-primary); background: var(--surface-primary); font-family: Inter, Arial, sans-serif; }
+
+details { border-radius: 1px; }
+details > summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 12px 48px 12px 14px;
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary);
+  background: var(--surface-primary);
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+  list-style: none;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary::after {
+  content: "+";
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  display: grid;
+  place-items: center;
+  width: 39px;
+  height: calc(100% + 2px);
+  border-left: 1px solid var(--text-primary);
+  background: var(--brand-primary);
+  font-family: Impact, "Arial Black", sans-serif;
+  font-size: 22px;
+  line-height: 1;
+}
+details[open] > summary { background: var(--brand-subtle); }
+details[open] > summary::after { content: "−"; color: white; background: var(--text-primary); }
+details > summary:hover { background: var(--brand-subtle); }
+details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
+.more-filters > div,
+.form-grid details > .field,
+.form-grid details > .split-fields { padding-inline: 14px; }
+.evaluation-answer-groups details { overflow: visible; }
+.evaluation-answer-groups details > summary { border: 0; border-bottom: 1px solid var(--text-primary); }
+
+@keyframes dropdown-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 980px) {
+  .public-nav.open {
+    top: calc(100% + 10px);
+    right: 14px;
+    left: 14px;
+    gap: 0;
+    padding: 8px;
+  }
+  .public-nav.open a,
+  .public-nav.open button { width: 100%; justify-content: flex-start; border: 0; border-bottom: 1px solid var(--border-subtle); box-shadow: none; }
+  .public-nav.open a.active { color: var(--text-primary); background: var(--brand-primary); }
+  .public-nav.open .public-nav-button { margin-top: 8px; border: 1px solid var(--text-primary); }
+  .mobile-workspace-menu > summary { margin-inline: -16px; border-color: #575249; color: white; background: var(--text-primary); }
+  .mobile-workspace-menu[open] > summary { color: var(--text-primary); background: var(--brand-primary); }
+  .mobile-workspace-menu > summary::after { border-color: #575249; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  details[open] > :not(summary) { animation: none; }
+}

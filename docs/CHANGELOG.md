@@ -11,6 +11,9 @@
   evaluation boundaries; this release contains no schema or API change.
 - Added responsive adaptations for the public navigation, search, cards,
   dashboard rail, mobile navigation, modals and dense professional forms.
+- Integrated native selects, advanced-filter disclosures and mobile dropdown
+  menus into the same workshop visual system with accessible focus and open
+  states.
 
 ## 2026-10-17 - Percurso Profissional e Avaliações
 
