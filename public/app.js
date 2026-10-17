@@ -355,12 +355,14 @@
     return uniqueSortedValues([...liveValues, ...fallback]);
   }
 
-  function renderDatalist(id, values) {
-    return `
-      <datalist id="${escapeHtml(id)}">
-        ${values.map((value) => `<option value="${escapeHtml(value)}"></option>`).join("")}
-      </datalist>
-    `;
+  function renderMarketSuggestionInput(filter, value, placeholder, values) {
+    return `<div class="market-suggestion-control">
+      <input data-market-filter="${escapeHtml(filter)}" data-market-suggestion-input value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false">
+      <div class="market-suggestions" role="listbox" hidden>
+        ${values.map((option) => `<button type="button" role="option" data-market-suggestion="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join("")}
+        <p data-market-suggestion-empty hidden>Sem sugestões correspondentes</p>
+      </div>
+    </div>`;
   }
 
   function renderMarketFilters(context, totalJobs, shownJobs) {
@@ -370,8 +372,6 @@
       : `${totalJobs} vagas abertas no mercado`;
     const positionOptions = marketOptionValues("position", defaultMarketPositions);
     const locationOptions = marketOptionValues("location", defaultMarketLocations);
-    const positionListId = `market-position-options-${context}`;
-    const locationListId = `market-location-options-${context}`;
     return `
       <form class="market-filter-bar market-filter-${escapeHtml(context)}" data-market-filter-form="${context}">
         <div class="market-filter-main">
@@ -381,11 +381,11 @@
           </div>
           <div class="field compact">
             <label>Cargo / funcao</label>
-            <input data-market-filter="position" list="${escapeHtml(positionListId)}" value="${escapeHtml(state.marketFilters.position)}" placeholder="Ex: trabalhador agricola">
+            ${renderMarketSuggestionInput("position", state.marketFilters.position, "Ex: trabalhador agricola", positionOptions)}
           </div>
           <div class="field compact">
             <label>Localizacao</label>
-            <input data-market-filter="location" list="${escapeHtml(locationListId)}" value="${escapeHtml(state.marketFilters.location)}" placeholder="Ex: Braga, Porto, Lisboa">
+            ${renderMarketSuggestionInput("location", state.marketFilters.location, "Ex: Braga, Porto, Lisboa", locationOptions)}
           </div>
           <div class="field compact">
             <label>Raio</label>
@@ -419,8 +419,6 @@
           <button class="btn primary" type="submit">Filtrar vagas</button>
           ${activeCount ? `<button class="btn ghost" type="button" data-action="clear-market-filters" data-market-context="${context}">Limpar filtros</button>` : ""}
         </div>
-        ${renderDatalist(positionListId, positionOptions)}
-        ${renderDatalist(locationListId, locationOptions)}
       </form>
     `;
   }
@@ -857,15 +855,13 @@
           <form class="market-search-panel" data-market-filter-form="landing" aria-label="Pesquisar vagas">
             <div class="field compact">
               <label>Cargo ou palavra-chave</label>
-              <input data-market-filter="query" list="market-hero-position-options" value="${escapeHtml(state.marketFilters.query)}" placeholder="Cargo, empresa ou palavra-chave">
+              ${renderMarketSuggestionInput("query", state.marketFilters.query, "Cargo, empresa ou palavra-chave", positionOptions)}
             </div>
             <div class="field compact">
               <label>Localizacao</label>
-              <input data-market-filter="location" list="market-hero-location-options" value="${escapeHtml(state.marketFilters.location)}" placeholder="Braga, Porto, Lisboa">
+              ${renderMarketSuggestionInput("location", state.marketFilters.location, "Braga, Porto, Lisboa", locationOptions)}
             </div>
             <button class="btn primary" type="submit">${icon("search")}Procurar vagas</button>
-            ${renderDatalist("market-hero-position-options", positionOptions)}
-            ${renderDatalist("market-hero-location-options", locationOptions)}
           </form>
           <div class="market-hero-actions">
             <a class="btn ghost" href="#vagas">Ver oportunidades ${icon("arrow-right")}</a>
@@ -1351,6 +1347,7 @@
   }
 
   function bindMarketFilters(renderTarget) {
+    bindMarketSuggestions();
     document.querySelectorAll("[data-market-filter-form]").forEach((form) => {
       form.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -1373,6 +1370,65 @@
         clearMarketFilters();
         clearNotice();
         renderTarget();
+      });
+    });
+  }
+
+  function bindMarketSuggestions() {
+    document.querySelectorAll("[data-market-suggestion-input]").forEach((input) => {
+      const control = input.closest(".market-suggestion-control");
+      const list = control?.querySelector(".market-suggestions");
+      if (!list) return;
+      const options = [...list.querySelectorAll("[data-market-suggestion]")];
+      const empty = list.querySelector("[data-market-suggestion-empty]");
+      let activeIndex = -1;
+
+      const close = () => {
+        list.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+        options.forEach((option) => option.classList.remove("active"));
+        activeIndex = -1;
+      };
+      const refresh = () => {
+        const query = normalizeSearch(input.value);
+        let visible = 0;
+        options.forEach((option) => {
+          const show = !query || normalizeSearch(option.dataset.marketSuggestion).includes(query);
+          option.hidden = !show;
+          if (show) visible += 1;
+        });
+        if (empty) empty.hidden = visible > 0;
+        list.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        activeIndex = -1;
+      };
+      const choose = (option) => {
+        input.value = option.dataset.marketSuggestion || option.textContent.trim();
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        close();
+        input.focus();
+      };
+
+      input.addEventListener("focus", refresh);
+      input.addEventListener("input", refresh);
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") return close();
+        const visibleOptions = options.filter((option) => !option.hidden);
+        if (!["ArrowDown", "ArrowUp", "Enter"].includes(event.key) || list.hidden) return;
+        if (!visibleOptions.length) return;
+        event.preventDefault();
+        if (event.key === "Enter" && activeIndex >= 0) return choose(visibleOptions[activeIndex]);
+        const direction = event.key === "ArrowDown" ? 1 : -1;
+        activeIndex = (activeIndex + direction + visibleOptions.length) % visibleOptions.length;
+        visibleOptions.forEach((option, index) => option.classList.toggle("active", index === activeIndex));
+        visibleOptions[activeIndex]?.scrollIntoView({ block: "nearest" });
+      });
+      options.forEach((option) => option.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+        choose(option);
+      }));
+      document.addEventListener("mousedown", (event) => {
+        if (!control.contains(event.target)) close();
       });
     });
   }

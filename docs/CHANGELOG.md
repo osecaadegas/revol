@@ -14,6 +14,8 @@
 - Integrated native selects, advanced-filter disclosures and mobile dropdown
   menus into the same workshop visual system with accessible focus and open
   states.
+- Replaced browser-native vacancy datalists with branded keyboard-accessible
+  autocomplete panels so location and role suggestions retain the site design.
 
 ## 2026-10-17 - Percurso Profissional e Avaliações
 
