@@ -2,6 +2,10 @@
 
 ## 2026-10-20
 
+- Os três atalhos móveis do trabalhador mantêm-se fixos em todas as áreas e
+  também no detalhe de uma tarefa; navegar pelo detalhe fecha-o. A barra já
+  não depende de um vínculo ativo: sem vínculo, Perfil abre o CV e Tarefas
+  apresenta o estado vazio. Não há alteração de permissões nem de dados.
 - No telemóvel, a navegação do trabalhador passa para um menu no topo e uma
   barra fixa com Perfil, Tarefas e Conversas; as outras áreas e a saída ficam
   no menu, fechado por defeito. O histórico no detalhe da tarefa também fica

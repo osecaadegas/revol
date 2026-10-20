@@ -23,7 +23,7 @@
       const items = h.isWorker() ? [...(activeEmployments().length ? [["home", "Perfil"]] : []), ["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Correspondência"], ["chat", "Conversas"], ["settings", "Privacidade"]]
         : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Correspondência"], ["chat", "Conversas"]];
       if (h.isWorker() && h.state.data.workOrders?.length) items.splice(4, 0, ["orders", "Ordens"]);
-      if (h.isWorker() && (h.state.data.tasks?.length || activeEmployments().length)) items.splice(4, 0, ["tasks", "Tarefas"]);
+      if (h.isWorker()) items.splice(4, 0, ["tasks", "Tarefas"]);
       if (r().platformAdmin) items.push(["admin", "Administracao"]);
       return items;
     }
@@ -40,8 +40,9 @@
       return `<details class="mobile-recruitment-menu"><summary><span>${h.state.view === "marketplace" ? `Área atual: <strong>${e(label)}</strong>` : "Áreas de recrutamento"}</span></summary>${tabs()}</details>`;
     }
     function quickTabs() {
-      if (!h.isWorker() || !activeEmployments().length) return "";
-      const items = [["home", "Perfil", "user-round"], ["tasks", "Tarefas", "clipboard-list"], ["chat", "Conversas", "message-square"]];
+      if (!h.isWorker()) return "";
+      const profileTab = activeEmployments().length ? "home" : "profile";
+      const items = [[profileTab, "Perfil", "user-round"], ["tasks", "Tarefas", "clipboard-list"], ["chat", "Conversas", "message-square"]];
       return `<nav class="worker-quick-nav" aria-label="Acesso rápido">${items.map(([id, label, symbol]) => `<button type="button" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbol)}<span>${label}</span>${id === "chat" && chat.unreadCount() ? `<span class="nav-alert-count" aria-label="${chat.unreadCount()} mensagens não lidas">${chat.unreadCount()}</span>` : ""}</button>`).join("")}</nav>`;
     }
 
@@ -232,6 +233,8 @@
           }
           if (action === "tab") {
             h.state.data = await h.api("/api/bootstrap");
+            // A task detail is modal; a shortcut inside it must navigate and close it together.
+            h.state.selectedTaskId = null;
             h.state.view = "marketplace";
             tab = id; if (id === "create") h.state.editJobId = null;
             if (id !== "home") justificationOpen = false;

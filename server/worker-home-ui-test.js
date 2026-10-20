@@ -85,4 +85,8 @@ state.data.attendanceEntries = [{ taskId: task.id, clockedInAt: "2026-10-20T08:0
 rendered = ui.content();
 assert.match(rendered, /data-attendance="clock-in"[^>]*disabled[^>]*>Entrar ao trabalho<\/button>/);
 assert.match(rendered, /data-attendance="clock-out"[^>]*>Saída<\/button>/);
+assert.equal((ui.quickTabs().match(/data-recruitment="tab"/g) || []).length, 3, "three shortcuts are available with an active employment");
+state.data.professional.employments = [];
+assert.match(ui.quickTabs(), /data-id="profile"[^>]*><span>Perfil<\/span>/, "without employment, Perfil opens the worker CV");
+assert.match(ui.tabs(), /data-id="tasks"/, "the task destination remains available without an assignment");
 console.log("worker-home-ui: compact actions, private justification disclosure and shift states passed");

@@ -260,6 +260,8 @@ async function run() {
       await workerMenu.locator('[data-recruitment="tab"][data-id="tasks"][aria-current="page"]').waitFor({state:"attached"});
       assert.match(await workerMenu.locator('summary').textContent(),/Menu/,"the full navigation is available from the top bar");
       assert.equal(await page.locator('.worker-quick-nav [data-id="tasks"]').getAttribute('aria-current'),"page","the active shortcut is identified");
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      assert.ok(await page.locator('.main-layout .worker-quick-nav').evaluate(el => Math.abs(el.getBoundingClientRect().bottom - innerHeight) < 2),"the shortcut bar stays fixed after scrolling");
       await page.locator('[data-open-task]').first().click();
       await page.locator('[data-drawer-panel]').getByText('Aguardamos que a empresa resolva este contratempo.',{ exact:false }).waitFor();
       await page.locator('[data-drawer-panel]').getByText(`Contratempo ativo: ${setbackReason}`).waitFor();
@@ -270,10 +272,11 @@ async function run() {
       assert.doesNotMatch(await taskHistory.textContent(),/assigneeId|employmentId|blockReason|status:|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,"task history uses readable details instead of technical fields");
       const workMap = page.locator('.task-map iframe'); await workMap.waitFor();
       assert.ok((await workMap.getAttribute('src')).includes('Rua%20Industrial%2010%2C%20Braga'),"the worker task embeds Google Maps from the stored address");
-      await page.locator('[data-action="close-drawer"]').click();
-      await page.locator('.worker-quick-nav [data-id="chat"]').click();
-      await page.locator('.worker-quick-nav [data-id="chat"][aria-current="page"]').waitFor({state:"attached"});
-      assert.equal(await page.locator('.worker-quick-nav [data-id="chat"]').getAttribute('aria-current'),"page","the conversation shortcut navigates directly");
+      await page.locator('.detail-panel .worker-quick-nav [data-id="chat"]').waitFor({state:"visible"});
+      await page.locator('.detail-panel .worker-quick-nav [data-id="chat"]').click();
+      await page.locator('[data-drawer-panel]').waitFor({state:"detached"});
+      await page.locator('.main-layout .worker-quick-nav [data-id="chat"][aria-current="page"]').waitFor({state:"attached"});
+      assert.equal(await page.locator('.main-layout .worker-quick-nav [data-id="chat"]').getAttribute('aria-current'),"page","the persistent conversation shortcut navigates directly from the task detail");
       await page.locator('[data-direct-chat-root]').waitFor();
       assert.equal(await page.locator('[data-direct-chat="open"]').count(),2,"worker chat keeps direction and administration as separate conversations");
       await page.getByRole('button',{ name:/Ana Administração/ }).click();
@@ -290,6 +293,17 @@ async function run() {
       await selectMobileTab('chat');
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),"Direct chat mobile overflow");
       await page.screenshot({ path:path.join(shots,"worker-direct-chat-mobile.png"),fullPage:true });
+      for (const width of [390,768,980]) {
+        await page.setViewportSize({ width,height:844 });
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        assert.ok(await page.locator('.main-layout .worker-quick-nav').evaluate(el => {
+          const box = el.getBoundingClientRect();
+          return getComputedStyle(el).display !== "none" && Math.abs(box.bottom - innerHeight) < 2;
+        }),`worker shortcuts stay fixed at ${width}px`);
+      }
+      await page.setViewportSize({ width:981,height:844 });
+      assert.equal(await page.locator('.main-layout .worker-quick-nav').evaluate(el => getComputedStyle(el).display),"none","desktop keeps its existing sidebar instead of a duplicate shortcut bar");
+      await page.setViewportSize({ width:390,height:844 });
       await selectMobileTab('profile');
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),"Digital CV mobile overflow");
       await page.screenshot({ path:path.join(shots,"worker-cv-mobile.png"),fullPage:true });

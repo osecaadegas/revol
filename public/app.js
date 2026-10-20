@@ -2816,6 +2816,7 @@
               ${logs.length ? logs.map(renderTaskHistoryCard).join("") : empty("Ainda não há acontecimentos registados nesta tarefa.")}
             </div>
           </details>
+          ${isWorker() ? recruitmentUI.quickTabs() : ""}
         </aside>
       </div>
     `;

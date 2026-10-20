@@ -4205,4 +4205,6 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
   .worker-quick-nav button:focus-visible, .worker-mobile-menu > summary:focus-visible { outline: 3px solid var(--text-primary); outline-offset: 2px; }
   .worker-quick-nav .nav-alert-count { position: absolute; top: 2px; right: 2px; }
   .content:has(.worker-quick-nav) { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+  .detail-panel:has(> .worker-quick-nav) { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+  body:has(.detail-panel > .worker-quick-nav) .main-layout .worker-quick-nav { display: none; }
 }

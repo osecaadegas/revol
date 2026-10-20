@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v23-mobile-worker-navigation";
+const CACHE_NAME = "tratapro-shell-v24-persistent-worker-shortcuts";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
