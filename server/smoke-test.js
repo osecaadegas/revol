@@ -336,6 +336,36 @@ async function run() {
       status: "in_progress"
     }, employeeToken);
 
+    const missingSetbackReason = await requestRaw(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
+      status: "blocked"
+    }, employeeToken);
+    if (missingSetbackReason.status !== 400) {
+      throw new Error("A task setback should require a reason.");
+    }
+
+    const setbackReason = "O acesso à zona de carga está encerrado.";
+    const setback = await request(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
+      status: "blocked",
+      blockReason: setbackReason
+    }, employeeToken);
+    if (setback.task.status !== "blocked" || setback.task.blockReason !== setbackReason) {
+      throw new Error("The worker setback and its reason should be persisted.");
+    }
+
+    const setbackBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, managerToken);
+    const setbackAlert = setbackBootstrap.operationalAlerts?.find((item) => item.taskId === taskId);
+    if (!setbackAlert || setbackAlert.assigneeName !== "Operador Teste" || setbackAlert.workOrderTitle !== "Servico de teste" || setbackAlert.reason !== setbackReason || !setbackAlert.message.includes("Tarefa de teste")) {
+      throw new Error("The company should receive a complete operational setback alert.");
+    }
+
+    await request(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
+      status: "in_progress"
+    }, employeeToken);
+    const resumedBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, managerToken);
+    if (resumedBootstrap.operationalAlerts?.some((item) => item.taskId === taskId)) {
+      throw new Error("A resumed task should no longer appear as an active setback alert.");
+    }
+
     const deniedEvidence = await requestRaw(baseUrl, "POST", `/api/tasks/${taskId}/evidence`, {
       photos: [smokePhoto("denied.png")],
       note: "Prova sem GPS.",

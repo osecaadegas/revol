@@ -72,7 +72,7 @@ const platformComparison = [
 const modules = [
   ["Portal de Projeto", "in-development", "Fundacao implementada", "Apresenta estado, roadmap, escopo, entregas, versoes e acesso preparado para cliente.", ["REQ-PORTAL-001", "REQ-DOC-001"]],
   ["Mercado de Vagas", "testing", "Fluxo API coberto por smoke test", "Vagas publicas, filtros, contas trabalhador/empresa, candidaturas e revisao pela empresa.", ["REQ-MKT-001", "REQ-MKT-002", "REQ-MKT-003"]],
-  ["Operacoes e Tarefas", "testing", "MVP funcional", "Ordens de trabalho, atribuicao de tarefas, estados operacionais e bloqueios com justificacao.", ["REQ-OPS-001", "REQ-OPS-002"]],
+  ["Operacoes e Tarefas", "testing", "MVP funcional", "Ordens de trabalho, atribuicao de tarefas, estados operacionais e contratempos com razão obrigatória.", ["REQ-OPS-001", "REQ-OPS-002"]],
   ["Evidencia e Validacao", "testing", "Privacidade de ficheiros validada em smoke test", "Fotografias privadas, notas, timestamp, localizacao pontual e decisao do gestor.", ["REQ-EVD-001", "REQ-EVD-002"]],
   ["Rastreabilidade de Requisitos", "planned", "Estrutura UI criada", "Modelo Manual -> Requisito -> Funcionalidade -> Estado, pronto para base de dados futura.", ["REQ-TRACE-001"]],
   ["Centro de Documentacao", "planned", "Catalogo protegido preparado", "Organizacao de manuais, especificacao MVP, roadmap, criterios e changelog sem expor ficheiros privados.", ["REQ-DOC-001"]]

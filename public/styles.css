@@ -2317,6 +2317,46 @@ td span:not(.status-badge) {
   border-left-color: var(--red);
 }
 
+.operational-alerts {
+  border-color: var(--warning);
+  background: var(--warning-subtle);
+}
+
+.operational-alert {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--text-primary);
+  border-left: 8px solid var(--warning);
+  padding: 12px;
+  background: var(--surface-primary);
+}
+
+.operational-alert strong { display: block; }
+.operational-alert p { margin: 4px 0; line-height: 1.45; }
+.operational-alert small { color: var(--text-secondary); }
+
+.company-operational-notice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+  border: 1px solid var(--text-primary);
+  border-left: 8px solid var(--warning);
+  padding: 14px 16px;
+  background: var(--warning-subtle);
+}
+
+.company-operational-notice strong { display: block; }
+.company-operational-notice p { margin: 4px 0 0; line-height: 1.4; }
+
+@media (max-width: 640px) {
+  .operational-alert, .company-operational-notice { grid-template-columns: 1fr; }
+  .operational-alert .btn, .company-operational-notice .btn { width: 100%; }
+}
+
 .card-actions {
   display: flex;
   flex-wrap: wrap;

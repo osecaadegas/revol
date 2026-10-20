@@ -174,7 +174,7 @@ Manager only. Creates an assigned task with deadline.
 
 `PATCH /api/tasks/:id/status`
 
-Manager or assigned responsible. Supports operational state changes. Blocking requires `blockReason`. Submitting for validation requires at least three non-expired task evidence photos with accepted authenticity metadata and granted GPS. When submitted, the server stamps `completedAt` and `validationDueAt` twelve hours later. Pending tasks past `validationDueAt` are auto-approved on the next authenticated maintenance pass.
+Manager or assigned responsible. Supports operational state changes. Communicating a setback uses the compatible internal status `blocked` and requires `blockReason`; company administrators then receive a contextual `operationalAlerts` entry in bootstrap data while the setback remains active. Submitting for validation requires at least three non-expired task evidence photos with accepted authenticity metadata and granted GPS. When submitted, the server stamps `completedAt` and `validationDueAt` twelve hours later. Pending tasks past `validationDueAt` are auto-approved on the next authenticated maintenance pass.
 
 `POST /api/tasks/:id/evidence`
 

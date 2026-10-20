@@ -132,8 +132,11 @@ async function run() {
     assert.ok(!workerBootstrap.workOrders.some(item => item.id === otherOrder.id),"an unrelated company order remains private");
     const startedTask = (await request(`/api/tasks/${plannedTask.id}/status`,"PATCH",{ status:"in_progress" },wt)).payload.task;
     assert.equal(startedTask.status,"in_progress","the assigned worker can operate the relationship-bound task");
+    const setbackReason = "A linha está parada por falta de material.";
+    await request(`/api/tasks/${plannedTask.id}/status`,"PATCH",{ status:"blocked",blockReason:setbackReason },wt);
     const companyBootstrap = (await request("/api/bootstrap","GET",undefined,ct)).payload;
     assert.ok(companyBootstrap.auditLogs.some(item => item.entityId === plannedTask.id && item.actorId === workerId),"worker task changes remain attributed in the originating company audit history");
+    assert.ok(companyBootstrap.operationalAlerts.some(item => item.taskId === plannedTask.id && item.workOrderTitle === companyOrder.title && item.reason === setbackReason),"company bootstrap includes the worker setback context");
 
     const standardQuestions = result.professional.questionGroups.flatMap(group => group.questions);
     assert.equal(standardQuestions.length,25,"the standard evaluation contains all 25 questions");
@@ -205,6 +208,8 @@ async function run() {
       await page.goto(base); await page.evaluate(token => localStorage.setItem("meo_session_token",token),wt); await page.reload();
       await page.locator('[data-recruitment="tab"][data-id="tasks"]').click();
       await page.locator('[data-open-task]').first().click();
+      await page.getByRole('button',{ name:'Contratempo',exact:true }).waitFor();
+      await page.locator('[data-drawer-panel]').getByText(`Contratempo: ${setbackReason}`).waitFor();
       const workMap = page.locator('.task-map iframe'); await workMap.waitFor();
       assert.ok((await workMap.getAttribute('src')).includes('Rua%20Industrial%2010%2C%20Braga'),"the worker task embeds Google Maps from the stored address");
       await page.locator('[data-action="close-drawer"]').click();
@@ -229,6 +234,10 @@ async function run() {
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),"Digital CV mobile overflow");
       await page.screenshot({ path:path.join(shots,"worker-cv-mobile.png"),fullPage:true });
       await page.evaluate(token => localStorage.setItem("meo_session_token",token),ct); await page.reload();
+      await page.locator('.company-operational-notice').waitFor();
+      const companySetbackNotice = page.locator('.company-operational-notice');
+      const companySetbackText = await companySetbackNotice.textContent();
+      assert.match(companySetbackText,/Maria Trabalhadora.*Turno de producao.*Preparar linha.*falta de material/i,"the visible company alert identifies worker, work order, task and reason");
       for (const id of ["employment","evaluations"]) {
         await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),`Company ${id} mobile overflow`);

@@ -68,7 +68,7 @@ const PUBLIC_STATUS_LABELS = {
   planned: "Planeada",
   assigned: "Atribuida",
   in_progress: "Em execucao",
-  blocked: "Bloqueada / espera material",
+  blocked: "Com contratempo",
   pending_validation: "Concluida a aguardar validacao",
   approved: "Aprovada",
   rejected: "Rejeitada"
@@ -1413,6 +1413,26 @@ function buildValidationAlerts(db, companyId, reference = Date.now()) {
     .sort((a, b) => String(a.validationDueAt).localeCompare(String(b.validationDueAt)));
 }
 
+function buildOperationalAlerts(db, companyId) {
+  return db.tasks
+    .filter((task) => task.companyId === companyId && task.status === "blocked" && task.blockReason)
+    .map((task) => {
+      const order = db.workOrders.find((item) => item.id === task.workOrderId);
+      const workOrderTitle = order?.title || "Obra sem designação";
+      return {
+        type: "task_setback",
+        taskId: task.id,
+        taskTitle: task.title,
+        assigneeName: task.assigneeName,
+        workOrderTitle,
+        reason: task.blockReason,
+        reportedAt: task.updatedAt,
+        message: `O colaborador ${task.assigneeName} na obra ${workOrderTitle} está com o contratempo ${task.title}. Razão: ${task.blockReason}`
+      };
+    })
+    .sort((a, b) => String(b.reportedAt).localeCompare(String(a.reportedAt)));
+}
+
 function buildBootstrap(db, auth) {
   const isManager = isCompanyAdmin(auth.user);
   const linkedWorkerIds = new Set(isManager ? db.employmentRelationships
@@ -1492,6 +1512,7 @@ function buildBootstrap(db, auth) {
     auditLogs: logs.slice(0, 250),
     invites,
     validationAlerts: isManager ? buildValidationAlerts(db, auth.company.id) : [],
+    operationalAlerts: isManager ? buildOperationalAlerts(db, auth.company.id) : [],
     jobOffers: jobOffers.map(publicJobOffer).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     jobApplications: jobApplications
       .map((application) => publicJobApplication(application, db, { includeWorkerProfile: isManager }))
@@ -3557,7 +3578,7 @@ async function handleApi(req, res, pathname) {
       if (nextStatus === "blocked") {
         const reason = cleanString(body.blockReason, 1000);
         if (!reason) {
-          const error = new Error("Blocking a task requires a justification.");
+          const error = new Error("É obrigatório indicar a razão do contratempo.");
           error.status = 400;
           throw error;
         }

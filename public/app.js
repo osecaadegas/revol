@@ -56,7 +56,7 @@
     planned: "Planeada",
     assigned: "Atribuida",
     in_progress: "Em execucao",
-    blocked: "Bloqueada / espera material",
+    blocked: "Com contratempo",
     pending_validation: "A aguardar validacao",
     approved: "Aprovada",
     rejected: "Rejeitada"
@@ -1471,6 +1471,7 @@
           </div>
           <div data-mobile-recruitment-navigation></div>
           ${noticeHtml()}
+          ${renderOperationalNotice()}
           ${renderView()}
         </main>
       </div>
@@ -2050,9 +2051,38 @@
     `;
   }
 
+  function renderOperationalAlert(alert) {
+    return `
+      <article class="operational-alert" role="alert">
+        <div>
+          <strong>Contratempo comunicado</strong>
+          <p>${escapeHtml(alert.message)}</p>
+          <small>${formatDate(alert.reportedAt)}</small>
+        </div>
+        <button class="btn ghost" data-open-task="${escapeHtml(alert.taskId)}">Abrir tarefa</button>
+      </article>
+    `;
+  }
+
+  function renderOperationalNotice() {
+    const alerts = isManager() ? (state.data.operationalAlerts || []) : [];
+    if (!alerts.length) return "";
+    const alert = alerts[0];
+    return `
+      <section class="company-operational-notice" role="alert" aria-live="polite">
+        <div>
+          <strong>${alerts.length === 1 ? "Novo contratempo operacional" : `${alerts.length} contratempos operacionais`}</strong>
+          <p>${escapeHtml(alert.message)}</p>
+        </div>
+        <button class="btn ghost" data-open-task="${escapeHtml(alert.taskId)}">Ver contratempo</button>
+      </section>
+    `;
+  }
+
   function renderDashboard() {
     const counts = getCounts();
     const validationAlerts = state.data.validationAlerts || [];
+    const operationalAlerts = state.data.operationalAlerts || [];
     const nextTasks = [...state.data.tasks]
       .filter((task) => !["approved", "rejected"].includes(task.status))
       .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))
@@ -2071,7 +2101,7 @@
         <article class="metric-card"><span>Tarefas</span><strong>${counts.total}</strong><p>Total acessivel</p></article>
         <article class="metric-card"><span>Ativas</span><strong>${counts.active}</strong><p>Atribuidas ou em curso</p></article>
         <article class="metric-card"><span>Validacao</span><strong>${counts.pending}</strong><p>Aguardam gestor</p></article>
-        <article class="metric-card"><span>Bloqueios</span><strong>${counts.blocked}</strong><p>Precisam de decisao</p></article>
+        <article class="metric-card"><span>Contratempos</span><strong>${counts.blocked}</strong><p>Precisam de atenção</p></article>
       </section>
       <section class="section-grid">
         <div class="panel">
@@ -2084,6 +2114,14 @@
           </div>
         </div>
         <div>
+          ${isManager() && operationalAlerts.length ? `
+            <div class="panel operational-alerts">
+              <div class="panel-header"><h2>Alertas de contratempos</h2><span class="chip blocked">${operationalAlerts.length}</span></div>
+              <div class="list">
+                ${operationalAlerts.map(renderOperationalAlert).join("")}
+              </div>
+            </div>
+          ` : ""}
           ${isManager() && validationAlerts.length ? `
             <div class="panel validation-reminders">
               <div class="panel-header"><h2>Lembretes de validacao</h2><span class="chip pending_validation">${validationAlerts.length}</span></div>
@@ -2195,7 +2233,7 @@
       <section class="view-heading">
         <div>
           <h1>Tarefas</h1>
-          <p>Atualize estados, submeta provas, justifique bloqueios e acompanhe decisoes.</p>
+          <p>Atualize estados, submeta provas, comunique contratempos com a respetiva razão e acompanhe decisões.</p>
         </div>
       </section>
       <section class="section-grid">
@@ -2296,7 +2334,7 @@
     return `
       <div class="panel">
         <h2>Fluxo do responsavel</h2>
-        <p class="muted">Abra uma tarefa para iniciar, bloquear com justificacao, adicionar fotografias e concluir para validacao.</p>
+        <p class="muted">Abra uma tarefa para iniciar, comunicar um contratempo com a respetiva razão, adicionar fotografias e concluir para validação.</p>
         <p><strong>${pending.length}</strong> tarefas ainda precisam de execucao.</p>
       </div>
     `;
@@ -2336,7 +2374,7 @@
           <span>${acceptedCount}/${finalEvidenceMinimum} provas finais validas</span>
           <span>${evidenceCount} fotos retidas</span>
           ${task.validationDueAt ? `<span>Validar ate ${formatDate(task.validationDueAt)}</span>` : ""}
-          ${task.blockReason ? `<span>Bloqueio: ${escapeHtml(task.blockReason)}</span>` : ""}
+          ${task.blockReason ? `<span>Contratempo: ${escapeHtml(task.blockReason)}</span>` : ""}
           ${task.validationComment ? `<span>Decisao: ${escapeHtml(task.validationComment)}</span>` : ""}
         </div>
         <div class="card-actions">
@@ -2546,7 +2584,7 @@
           ${task.description ? `<p class="muted">${escapeHtml(task.description)}</p>` : ""}
           ${task.planningNotes ? `<div class="notice"><strong>Notas de planeamento:</strong> ${escapeHtml(task.planningNotes)}</div>` : ""}
           ${renderTaskLocation(task, true)}
-          ${task.blockReason ? `<div class="notice error">Bloqueio: ${escapeHtml(task.blockReason)}</div>` : ""}
+          ${task.blockReason ? `<div class="notice error"><strong>Contratempo:</strong> ${escapeHtml(task.blockReason)}</div>` : ""}
           ${task.validationComment ? `<div class="notice success">Decisao: ${escapeHtml(task.validationComment)}</div>` : ""}
           ${renderTaskActions(task)}
           <div class="panel">
@@ -2578,16 +2616,17 @@
         <div class="panel-header"><h2>Acoes</h2></div>
         <div class="card-actions">
           <button class="btn accent" data-task-status="${task.id}" data-next-status="in_progress" ${!canChange ? "disabled" : ""}>Iniciar</button>
-          <button class="btn warn" data-action="show-block" ${!canChange ? "disabled" : ""}>Bloquear</button>
+          <button class="btn warn" data-action="show-block" ${!canChange ? "disabled" : ""}>Contratempo</button>
           <button class="btn primary" data-task-status="${task.id}" data-next-status="pending_validation" ${!canSubmitForValidation ? "disabled" : ""}>Concluir para validacao</button>
         </div>
         ${!readyForValidation && !["pending_validation", "approved"].includes(task.status) ? `<p class="muted">A conclusao fica disponivel depois de ${finalEvidenceMinimum} fotografias finais com GPS e autenticidade aceite.</p>` : ""}
         <form class="form-grid" data-form="block-task" data-task-id="${escapeHtml(task.id)}" style="display:none; margin-top: 12px">
           <div class="field">
-            <label>Justificacao do bloqueio</label>
-            <textarea name="blockReason" required placeholder="Ex: falta de material, acesso fechado, decisao pendente"></textarea>
+            <label>Razão do contratempo</label>
+            <textarea name="blockReason" required maxlength="1000" placeholder="Ex.: falta de material, acesso fechado ou decisão pendente"></textarea>
           </div>
-          <button class="btn warn" type="submit">Registar bloqueio</button>
+          <p class="muted">A empresa receberá um alerta com o seu nome, a obra, a tarefa e esta razão.</p>
+          <button class="btn warn" type="submit">Comunicar contratempo</button>
         </form>
         ${isManager() && task.status === "pending_validation" ? `
           <form class="form-grid" data-form="decision" data-task-id="${escapeHtml(task.id)}" style="margin-top: 14px">

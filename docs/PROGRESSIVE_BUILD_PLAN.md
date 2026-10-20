@@ -44,7 +44,7 @@ Status: complete.
 - Manager creates work orders with optional initial photos.
 - Manager creates tasks with assignee and deadline.
 - Employee/contractor sees only assigned tasks.
-- Responsible user starts, blocks with reason, adds photographic proof, and submits for validation.
+- Responsible user starts, communicates a setback with a mandatory reason, adds photographic proof, and submits for validation. Active setbacks create a contextual alert for company administrators.
 - Manager approves or rejects; rejection requires reason.
 
 ### M3 - Evidence And Audit

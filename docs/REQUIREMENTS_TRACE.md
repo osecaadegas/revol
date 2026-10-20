@@ -98,7 +98,7 @@ The app must first behave like a public labor-market board:
 | Direct worker/company conversations | `Conversas` UI plus `/api/direct-chat`; a verified relationship is required and each conversation is restricted to the worker and one explicitly selected company member |
 | Direct-message persistence and audit | `meo_direct_conversations`, `meo_direct_messages`, unread/read timestamps, rate limiting and company-scoped audit events |
 | Operational states | `planned`, `assigned`, `in_progress`, `blocked`, `pending_validation`, `approved`, `rejected` |
-| Block justification | Status change to `blocked` requires reason |
+| Operational setback | The worker-facing `Contratempo` action requires a reason; the internal compatible `blocked` status creates a company alert identifying the worker, work order, task and reason |
 | Photo evidence | `/api/tasks/:id/evidence`, stored privately in local uploads or Supabase Storage; final task validation requires at least three GPS-authenticated photos |
 | Timestamp and user recording | Audit log plus evidence/task metadata, capture/upload timestamps, SHA-256 file hash and authenticity checks |
 | Point-in-time location request with user permission | Browser geolocation button; final task evidence requires granted GPS and records coordinates, accuracy and GPS timestamp |
@@ -163,7 +163,7 @@ These are documented in the source PDFs as excluded or future-phase concepts and
 3. Manager creates a task with responsible user, planned start, work location, notes and deadline; an external worker must have a verified relationship with that company.
 4. Responsible user logs in and sees only assigned tasks.
 5. Responsible user starts task.
-6. Responsible user can block task only with justification.
+6. The responsible user can communicate a setback only with a reason; company administrators receive a contextual operational alert.
 7. Responsible user uploads at least three final photo evidence files with granted point-in-time GPS.
 8. Responsible user submits task for validation; the employer receives a 12-hour validation window and sees validation reminders in the manager dashboard.
 9. Manager/company approves or rejects before the validation deadline; pending tasks auto-approve after the deadline.

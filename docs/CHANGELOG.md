@@ -2,6 +2,11 @@
 
 ## 2026-10-20
 
+- A ação `Bloquear` das tarefas passou a chamar-se `Contratempo`. A razão é
+  obrigatória no cliente e no servidor; enquanto a tarefa estiver parada, a
+  empresa recebe no painel um alerta com colaborador, obra, tarefa, data e razão.
+  Ao retomar o trabalho o alerta ativo desaparece, mantendo-se o evento no
+  histórico de auditoria.
 - Os comentários opcionais de cada pergunta de avaliação ficam agora
   recolhidos por defeito e abrem apenas através de `Adicionar comentário`.
   O controlo é acessível, permite voltar a ocultar o campo sem perder o texto
