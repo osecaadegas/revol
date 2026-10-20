@@ -2,6 +2,12 @@
 
 ## 2026-10-20
 
+- Os alertas de contratempos da empresa atualizam-se automaticamente enquanto
+  o painel está aberto e ao regressar ao separador, sem apagar formulários em
+  curso. Uma rota autenticada e limitada à empresa devolve só os seus alertas;
+  abrir um alerta atualiza a tarefa antes de a mostrar. Não é necessária uma
+  migração SQL adicional para esta notificação: usa o estado e a razão já
+  existentes na tabela de tarefas.
 - Criado um menu móvel de recrutamento com a secção atual, acesso às áreas de
   trabalhador e empresa e indicadores de tarefas, vínculos e conversas. Em
   ecrãs estreitos, a navegação operacional e a escala de avaliações adaptam-se

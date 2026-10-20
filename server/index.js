@@ -3030,6 +3030,14 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  if (req.method === "GET" && pathname === "/api/operational-alerts") {
+    const db = await readDb();
+    const auth = requireAuth(db, req);
+    requireManager(auth);
+    sendJson(res, 200, { alerts: buildOperationalAlerts(db, auth.company.id) });
+    return;
+  }
+
   if (req.method === "PATCH" && pathname === "/api/workers/profile") {
     const body = await readBody(req, MULTI_UPLOAD_BODY_BYTES);
     const result = await mutateDb(async (db) => {

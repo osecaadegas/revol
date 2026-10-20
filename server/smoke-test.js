@@ -352,6 +352,32 @@ async function run() {
       throw new Error("The worker setback and its reason should be persisted.");
     }
 
+    const unauthenticatedAlerts = await requestRaw(baseUrl, "GET", "/api/operational-alerts");
+    if (unauthenticatedAlerts.status !== 401) {
+      throw new Error("Operational alerts must require authentication.");
+    }
+    const workerAlerts = await requestRaw(baseUrl, "GET", "/api/operational-alerts", null, employeeToken);
+    if (workerAlerts.status !== 403) {
+      throw new Error("Workers must not read company operational alerts.");
+    }
+    const liveAlerts = await request(baseUrl, "GET", "/api/operational-alerts", null, managerToken);
+    if (liveAlerts.alerts?.[0]?.taskId !== taskId || liveAlerts.alerts[0].reason !== setbackReason) {
+      throw new Error("The company should receive the active setback through the refresh endpoint.");
+    }
+    const otherCompany = await request(baseUrl, "POST", "/api/register/company", {
+      companyName: "Outra Empresa de Teste",
+      nif: "509779018",
+      name: "Responsavel Externo",
+      email: "outra-empresa@example.test",
+      password: "password123",
+      location: "Porto",
+      sector: "Servicos operacionais"
+    });
+    const otherCompanyAlerts = await request(baseUrl, "GET", "/api/operational-alerts", null, otherCompany.session.token);
+    if (otherCompanyAlerts.alerts.length !== 0) {
+      throw new Error("A different company must not read another company's setback alerts.");
+    }
+
     const setbackBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, managerToken);
     const setbackAlert = setbackBootstrap.operationalAlerts?.find((item) => item.taskId === taskId);
     if (!setbackAlert || setbackAlert.assigneeName !== "Operador Teste" || setbackAlert.workOrderTitle !== "Servico de teste" || setbackAlert.reason !== setbackReason || !setbackAlert.message.includes("Tarefa de teste")) {
@@ -364,6 +390,10 @@ async function run() {
     const resumedBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, managerToken);
     if (resumedBootstrap.operationalAlerts?.some((item) => item.taskId === taskId)) {
       throw new Error("A resumed task should no longer appear as an active setback alert.");
+    }
+    const resolvedAlerts = await request(baseUrl, "GET", "/api/operational-alerts", null, managerToken);
+    if (resolvedAlerts.alerts.some((item) => item.taskId === taskId)) {
+      throw new Error("The live company alert must disappear after work resumes.");
     }
 
     const deniedEvidence = await requestRaw(baseUrl, "POST", `/api/tasks/${taskId}/evidence`, {

@@ -33,6 +33,7 @@
     locationDraft: { status: "not_requested" },
     lastInviteLink: ""
   };
+  let operationalAlertsRefreshInFlight = false;
 
   const roleLabels = {
     manager: "Gestor",
@@ -530,6 +531,44 @@
 
   async function refreshData() {
     state.data = await api("/api/bootstrap");
+  }
+
+  async function refreshOperationalAlerts() {
+    if (operationalAlertsRefreshInFlight || !state.data || !isManager() || document.hidden) return;
+    operationalAlertsRefreshInFlight = true;
+    const sessionToken = state.token;
+    try {
+      const payload = await api("/api/operational-alerts");
+      if (!state.data || state.token !== sessionToken || !isManager()) return;
+      const alerts = Array.isArray(payload.alerts) ? payload.alerts : [];
+      const previous = JSON.stringify(state.data.operationalAlerts || []);
+      if (previous === JSON.stringify(alerts)) return;
+      state.data.operationalAlerts = alerts;
+      const notice = document.querySelector("[data-operational-notice]");
+      if (notice) notice.innerHTML = renderOperationalNotice();
+      const panel = document.querySelector("[data-operational-alerts-panel]");
+      if (panel) panel.innerHTML = renderOperationalAlertsPanel();
+      const count = document.querySelector("[data-operational-alert-count]");
+      if (count) count.textContent = String(alerts.length);
+    } catch {
+      // Keep the last known alert visible during temporary network failures.
+      if (!state.token) renderPublicBoard();
+    } finally {
+      operationalAlertsRefreshInFlight = false;
+    }
+  }
+
+  async function openOperationalTask(taskId) {
+    try {
+      await refreshData();
+      if (!state.data.tasks.some((task) => task.id === taskId)) throw new Error("A tarefa já não está disponível.");
+      state.selectedTaskId = taskId;
+      state.locationDraft = { status: "not_requested" };
+      renderApp();
+    } catch (error) {
+      setNotice(error.message, "error");
+      renderApp();
+    }
   }
 
   async function refreshPrivateProject() {
@@ -1471,7 +1510,7 @@
           </div>
           <div data-mobile-recruitment-navigation>${isWorker() || isManager() ? recruitmentUI.mobileTabs() : ""}</div>
           ${noticeHtml()}
-          ${renderOperationalNotice()}
+          <div data-operational-notice aria-live="polite">${renderOperationalNotice()}</div>
           ${renderView()}
         </main>
       </div>
@@ -2059,7 +2098,7 @@
           <p>${escapeHtml(alert.message)}</p>
           <small>${formatDate(alert.reportedAt)}</small>
         </div>
-        <button class="btn ghost" data-open-task="${escapeHtml(alert.taskId)}">Abrir tarefa</button>
+        <button class="btn ghost" data-operational-task="${escapeHtml(alert.taskId)}">Abrir tarefa</button>
       </article>
     `;
   }
@@ -2069,20 +2108,30 @@
     if (!alerts.length) return "";
     const alert = alerts[0];
     return `
-      <section class="company-operational-notice" role="alert" aria-live="polite">
+      <section class="company-operational-notice" role="alert">
         <div>
           <strong>${alerts.length === 1 ? "Novo contratempo operacional" : `${alerts.length} contratempos operacionais`}</strong>
           <p>${escapeHtml(alert.message)}</p>
         </div>
-        <button class="btn ghost" data-open-task="${escapeHtml(alert.taskId)}">Ver contratempo</button>
+        <button class="btn ghost" data-operational-task="${escapeHtml(alert.taskId)}">Ver contratempo</button>
       </section>
+    `;
+  }
+
+  function renderOperationalAlertsPanel() {
+    const alerts = state.data.operationalAlerts || [];
+    if (!isManager() || !alerts.length) return "";
+    return `
+      <div class="panel operational-alerts">
+        <div class="panel-header"><h2>Alertas de contratempos</h2><span class="chip blocked">${alerts.length}</span></div>
+        <div class="list">${alerts.map(renderOperationalAlert).join("")}</div>
+      </div>
     `;
   }
 
   function renderDashboard() {
     const counts = getCounts();
     const validationAlerts = state.data.validationAlerts || [];
-    const operationalAlerts = state.data.operationalAlerts || [];
     const nextTasks = [...state.data.tasks]
       .filter((task) => !["approved", "rejected"].includes(task.status))
       .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))
@@ -2101,7 +2150,7 @@
         <article class="metric-card"><span>Tarefas</span><strong>${counts.total}</strong><p>Total acessivel</p></article>
         <article class="metric-card"><span>Ativas</span><strong>${counts.active}</strong><p>Atribuidas ou em curso</p></article>
         <article class="metric-card"><span>Validacao</span><strong>${counts.pending}</strong><p>Aguardam gestor</p></article>
-        <article class="metric-card"><span>Contratempos</span><strong>${counts.blocked}</strong><p>Precisam de atenção</p></article>
+        <article class="metric-card"><span>Contratempos</span><strong data-operational-alert-count>${counts.blocked}</strong><p>Precisam de atenção</p></article>
       </section>
       <section class="section-grid">
         <div class="panel">
@@ -2114,14 +2163,7 @@
           </div>
         </div>
         <div>
-          ${isManager() && operationalAlerts.length ? `
-            <div class="panel operational-alerts">
-              <div class="panel-header"><h2>Alertas de contratempos</h2><span class="chip blocked">${operationalAlerts.length}</span></div>
-              <div class="list">
-                ${operationalAlerts.map(renderOperationalAlert).join("")}
-              </div>
-            </div>
-          ` : ""}
+          ${isManager() ? `<div data-operational-alerts-panel>${renderOperationalAlertsPanel()}</div>` : ""}
           ${isManager() && validationAlerts.length ? `
             <div class="panel validation-reminders">
               <div class="panel-header"><h2>Lembretes de validacao</h2><span class="chip pending_validation">${validationAlerts.length}</span></div>
@@ -2782,6 +2824,13 @@
       });
     });
 
+    document.querySelectorAll("[data-operational-notice], [data-operational-alerts-panel]").forEach((container) => {
+      container.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-operational-task]");
+        if (button && container.contains(button)) openOperationalTask(button.dataset.operationalTask);
+      });
+    });
+
     document.querySelectorAll("[data-close-drawer], [data-action='close-drawer']").forEach((element) => {
       element.addEventListener("click", (event) => {
         if (event.target.dataset.drawerPanel !== undefined) return;
@@ -3145,6 +3194,11 @@
   }
 
   async function init() {
+    window.setInterval(refreshOperationalAlerts, 30000);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) refreshOperationalAlerts();
+    });
+    window.addEventListener("focus", refreshOperationalAlerts);
     const entryParams = new URLSearchParams(location.search);
     if (entryParams.get("apply")) sessionStorage.setItem("tratapro_apply", entryParams.get("apply"));
     if (entryParams.get("report")) sessionStorage.setItem("tratapro_apply", entryParams.get("report"));

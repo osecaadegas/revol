@@ -227,6 +227,16 @@ verified-employment reference, scheduled start, planning notes and fixed work
 location fields used by the task API. These GPS coordinates describe the work
 site selected by the company and are not background or continuous tracking.
 
+Os alertas de `Contratempo` não exigem SQL novo: utilizam `meo_tasks.status`
+e `meo_tasks.block_reason`, ambos presentes no esquema inicial. O painel da
+empresa consulta `/api/operational-alerts` a cada 30 segundos enquanto está
+visível e ao regressar ao separador. Se não aparecer um alerta, confirme que
+a tarefa foi efetivamente colocada em `Contratempo` com uma razão, que a sessão
+é de um gestor da mesma empresa e que as migrações de base necessárias à
+criação da tarefa já foram aplicadas. A ausência de migrações de outras
+funcionalidades é um problema distinto e deve ser tratada pela ordem indicada
+na secção Supabase Setup.
+
 ## Production Notes
 
 This build is ready for a Phase 1 test environment on a persistent Node host or on a Node host backed by Supabase.
