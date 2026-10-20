@@ -256,6 +256,13 @@ criação da tarefa já foram aplicadas. A ausência de migrações de outras
 funcionalidades é um problema distinto e deve ser tratada pela ordem indicada
 na secção Supabase Setup.
 
+Para retomar uma tarefa com contratempo, um gestor da empresa abre a tarefa e
+usa «Resolver e retomar tarefa» com uma explicação concreta. O endpoint
+autenticado `POST /api/tasks/:id/resolve-setback` rejeita trabalhadores e outras
+empresas; a atualização direta do estado enquanto está bloqueada é rejeitada.
+A resolução e o motivo original ficam no audit log já existente, sem migração
+adicional. O trabalhador vê a resolução no detalhe e no histórico da tarefa.
+
 Cliente Zero (Fase 1) exige a migração aditiva
 `supabase/migrations/20261020170000_merit_work_order_core.sql` antes de
 publicar o código novo em Vercel. A migração acrescenta equipa, datas e estado

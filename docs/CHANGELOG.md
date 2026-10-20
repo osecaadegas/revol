@@ -2,6 +2,10 @@
 
 ## 2026-10-20
 
+- A empresa pode resolver um contratempo ativo na tarefa com uma descrição
+  obrigatória da solução. Só essa ação autorizada permite retomar o trabalho;
+  motivo original, resolução, autor e data ficam no histórico auditável e
+  visíveis ao trabalhador. O alerta prioritário desaparece após a resolução.
 - A categoria inteira «Tarefas» pisca alternadamente a vermelho e azul
   enquanto a empresa tiver contratempos ativos, incluindo no menu móvel. O
   aviso usa o estado real dos alertas, cessa quando estes são resolvidos e

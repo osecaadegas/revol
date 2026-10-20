@@ -465,9 +465,48 @@ async function run() {
       throw new Error("The company should receive a complete operational setback alert.");
     }
 
-    await request(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
+    const workerCannotSelfResolve = await requestRaw(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
       status: "in_progress"
     }, employeeToken);
+    if (workerCannotSelfResolve.status !== 409) throw new Error("A worker must not dismiss an active setback without company resolution.");
+    const managerCannotSkipResolution = await requestRaw(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
+      status: "in_progress"
+    }, managerToken);
+    if (managerCannotSkipResolution.status !== 409) throw new Error("A manager must use the audited setback-resolution workflow.");
+    const unauthenticatedResolution = await requestRaw(baseUrl, "POST", `/api/tasks/${taskId}/resolve-setback`, {
+      resolution: "O acesso foi restabelecido."
+    });
+    if (unauthenticatedResolution.status !== 401) throw new Error("Setback resolution requires authentication.");
+    const workerResolution = await requestRaw(baseUrl, "POST", `/api/tasks/${taskId}/resolve-setback`, {
+      resolution: "O acesso foi restabelecido."
+    }, employeeToken);
+    if (workerResolution.status !== 403) throw new Error("The worker cannot resolve a company setback.");
+    const otherCompanyResolution = await requestRaw(baseUrl, "POST", `/api/tasks/${taskId}/resolve-setback`, {
+      resolution: "O acesso foi restabelecido."
+    }, otherCompany.session.token);
+    if (otherCompanyResolution.status !== 404) throw new Error("Another company cannot resolve this task.");
+    const emptyResolution = await requestRaw(baseUrl, "POST", `/api/tasks/${taskId}/resolve-setback`, {
+      resolution: "Resolvido"
+    }, managerToken);
+    if (emptyResolution.status !== 400) throw new Error("A factual resolution must be required.");
+    const resolutionText = "O acesso à zona de carga foi reaberto e a equipa pode prosseguir.";
+    const resolved = await request(baseUrl, "POST", `/api/tasks/${taskId}/resolve-setback`, {
+      resolution: resolutionText
+    }, managerToken);
+    if (resolved.task.status !== "in_progress" || resolved.task.blockReason ||
+        resolved.task.lastSetbackResolution?.text !== resolutionText ||
+        resolved.task.lastSetbackResolution?.reportedReason !== setbackReason) {
+      throw new Error("The company resolution and original reason should survive in the task history.");
+    }
+    const duplicateResolution = await requestRaw(baseUrl, "POST", `/api/tasks/${taskId}/resolve-setback`, {
+      resolution: resolutionText
+    }, managerToken);
+    if (duplicateResolution.status !== 409) throw new Error("A resolved setback must not be resolved twice.");
+    const workerAfterResolution = await request(baseUrl, "GET", "/api/bootstrap", null, employeeToken);
+    if (workerAfterResolution.tasks.find((task) => task.id === taskId)?.lastSetbackResolution?.text !== resolutionText ||
+        !workerAfterResolution.auditLogs.some((log) => log.entityId === taskId && log.action === "task.setback_resolved")) {
+      throw new Error("The assigned worker should see the resolution and its audit entry.");
+    }
     const resumedBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, managerToken);
     if (resumedBootstrap.operationalAlerts?.some((item) => item.taskId === taskId)) {
       throw new Error("A resumed task should no longer appear as an active setback alert.");

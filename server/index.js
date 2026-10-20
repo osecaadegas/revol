@@ -1173,10 +1173,20 @@ function publicWorkOrder(order, auth = null) {
   };
 }
 
-function publicTask(task) {
+function publicTask(task, db) {
+  const resolutionLog = db.auditLogs.find((entry) =>
+    entry.entityType === "task" && entry.entityId === task.id &&
+    entry.companyId === task.companyId && entry.action === "task.setback_resolved"
+  );
   return {
     ...task,
-    validationDueAt: task.validationDueAt || null
+    validationDueAt: task.validationDueAt || null,
+    lastSetbackResolution: resolutionLog ? {
+      text: resolutionLog.detail.resolution,
+      reportedReason: resolutionLog.detail.reportedReason,
+      resolvedAt: resolutionLog.createdAt,
+      resolvedBy: resolutionLog.actorName
+    } : null
   };
 }
 
@@ -1602,7 +1612,7 @@ function buildBootstrap(db, auth) {
     company: publicCompany(auth.company),
     users: isManager ? companyUsers : companyUsers.filter((user) => user.id === auth.user.id),
     workOrders: workOrders.map((order) => publicWorkOrder(order, auth)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    tasks: tasks.map(publicTask).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    tasks: tasks.map((task) => publicTask(task, db)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     attendanceAvailable: db.attendanceSchemaReady !== false,
     attendanceEntries: db.attendanceEntries.filter((entry) => isManager ? entry.companyId === auth.company.id : entry.workerId === auth.user.id).sort((a, b) => b.clockedInAt.localeCompare(a.clockedInAt)).slice(0, 100),
     attendanceJustifications: db.attendanceJustifications.filter((item) => isManager ? item.companyId === auth.company.id : item.workerId === auth.user.id).map(({ storedName, ...item }) => ({ ...item, downloadUrl: storedName ? `/api/attendance/justifications/${encodeURIComponent(item.id)}/file` : null })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 100),
@@ -1638,7 +1648,7 @@ function buildPrivateMvpData(db, auth) {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     tasks: db.tasks
       .filter((task) => task.companyId === companyId)
-      .map(publicTask)
+      .map((task) => publicTask(task, db))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     evidences: db.evidences
       .filter((evidence) => evidence.companyId === companyId)
@@ -3634,7 +3644,7 @@ async function handleApi(req, res, pathname) {
         });
       }
       audit(db, auth, "work_order", order.id, "work_order.created", { title, address, assignedUserIds, expectedStartDate, expectedEndDate }, req);
-      return { workOrder: publicWorkOrder(order), tasks: createdTasks.map(publicTask), bootstrap: buildBootstrap(db, auth) };
+      return { workOrder: publicWorkOrder(order), tasks: createdTasks.map((task) => publicTask(task, db)), bootstrap: buildBootstrap(db, auth) };
     });
     sendJson(res, 201, result);
     return;
@@ -3773,7 +3783,7 @@ async function handleApi(req, res, pathname) {
         workAddress,
         dueDate
       }, req);
-      return { task: publicTask(task), bootstrap: buildBootstrap(db, auth) };
+      return { task: publicTask(task, db), bootstrap: buildBootstrap(db, auth) };
     });
     sendJson(res, 201, result);
     return;
@@ -3866,6 +3876,11 @@ async function handleApi(req, res, pathname) {
         error.status = 400;
         throw error;
       }
+      if (task.status === "blocked") {
+        const error = new Error("A empresa tem de registar a resolução do contratempo antes de a tarefa prosseguir.");
+        error.status = 409;
+        throw error;
+      }
       if (nextStatus === "blocked") {
         const reason = cleanString(body.blockReason, 1000);
         if (!reason) {
@@ -3894,7 +3909,42 @@ async function handleApi(req, res, pathname) {
         status: nextStatus,
         blockReason: nextStatus === "blocked" ? task.blockReason : ""
       }, req);
-      return { task: publicTask(task), bootstrap: buildBootstrap(db, auth) };
+      return { task: publicTask(task, db), bootstrap: buildBootstrap(db, auth) };
+    });
+    sendJson(res, 200, result);
+    return;
+  }
+
+  const resolveSetbackMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/resolve-setback$/);
+  if (req.method === "POST" && resolveSetbackMatch) {
+    const taskId = decodeURIComponent(resolveSetbackMatch[1]);
+    const body = await readBody(req);
+    const result = await mutateDb(async (db) => {
+      const auth = requireAuth(db, req);
+      requireManager(auth);
+      const task = db.tasks.find((item) => item.id === taskId);
+      assertSameCompany(auth, task);
+      if (task.status !== "blocked") {
+        const error = new Error("Esta tarefa não tem um contratempo ativo para resolver.");
+        error.status = 409;
+        throw error;
+      }
+      const resolution = cleanString(body.resolution, 1000);
+      if (resolution.length < 10) {
+        const error = new Error("Descreva a resolução do contratempo com pelo menos 10 caracteres.");
+        error.status = 400;
+        throw error;
+      }
+      const reportedReason = task.blockReason;
+      task.status = task.startedAt ? "in_progress" : "assigned";
+      task.blockReason = "";
+      task.updatedAt = now();
+      audit(db, auth, "task", task.id, "task.setback_resolved", {
+        reportedReason,
+        resolution,
+        status: task.status
+      }, req);
+      return { task: publicTask(task, db), bootstrap: buildBootstrap(db, auth) };
     });
     sendJson(res, 200, result);
     return;
@@ -3933,7 +3983,7 @@ async function handleApi(req, res, pathname) {
       if (decision === "approved") task.approvedAt = now();
       if (decision === "rejected") task.rejectedAt = now();
       audit(db, auth, "task", task.id, `task.${decision}`, { reason }, req);
-      return { task: publicTask(task), bootstrap: buildBootstrap(db, auth) };
+      return { task: publicTask(task, db), bootstrap: buildBootstrap(db, auth) };
     });
     sendJson(res, 200, result);
     return;
@@ -4022,7 +4072,7 @@ async function handleApi(req, res, pathname) {
         company: publicCompany(auth.company),
         users: db.users.filter((item) => item.companyId === companyId).map(publicUser),
         workOrders: db.workOrders.filter((item) => item.companyId === companyId).map((order) => publicWorkOrder(order)),
-        tasks: db.tasks.filter((item) => item.companyId === companyId).map(publicTask),
+        tasks: db.tasks.filter((item) => item.companyId === companyId).map((task) => publicTask(task, db)),
         evidences: db.evidences.filter((item) => item.companyId === companyId).map(publicEvidence),
         auditLogs: db.auditLogs.filter((item) => item.companyId === companyId),
         jobOffers: db.jobOffers.filter((item) => item.companyId === companyId).map(publicJobOffer),

@@ -2516,7 +2516,8 @@
           <span>${acceptedCount}/${finalEvidenceMinimum} provas finais validas</span>
           <span>${evidenceCount} fotos retidas</span>
           ${task.validationDueAt ? `<span>Validar ate ${formatDate(task.validationDueAt)}</span>` : ""}
-          ${task.blockReason ? `<span>Contratempo: ${escapeHtml(task.blockReason)}</span>` : ""}
+          ${task.status === "blocked" && task.blockReason ? `<span>Contratempo: ${escapeHtml(task.blockReason)}</span>` : ""}
+          ${task.status !== "blocked" && task.lastSetbackResolution ? `<span>Contratempo resolvido: ${escapeHtml(task.lastSetbackResolution.text)}</span>` : ""}
           ${task.validationComment ? `<span>Decisao: ${escapeHtml(task.validationComment)}</span>` : ""}
         </div>
         <div class="card-actions">
@@ -2662,7 +2663,10 @@
       <article class="history-card">
         <strong>${escapeHtml(actionLabel(log.action))}</strong>
         <p>${escapeHtml(log.actorName || "Sistema")} - ${formatDate(log.createdAt)}</p>
-        ${log.detail && Object.keys(log.detail).length ? `<p>${escapeHtml(detailLabel(log.detail))}</p>` : ""}
+        ${log.action === "task.setback_resolved" ? `
+          <p><strong>Motivo comunicado:</strong> ${escapeHtml(log.detail?.reportedReason || "Não indicado")}</p>
+          <p><strong>Resolução:</strong> ${escapeHtml(log.detail?.resolution || "Não indicada")}</p>
+        ` : log.detail && Object.keys(log.detail).length ? `<p>${escapeHtml(detailLabel(log.detail))}</p>` : ""}
       </article>
     `;
   }
@@ -2680,6 +2684,7 @@
       "work_order.created": "Ordem criada",
       "task.created": "Tarefa criada",
       "task.status_changed": "Estado da tarefa alterado",
+      "task.setback_resolved": "Contratempo resolvido pela empresa",
       "task.validation_reminder": "Lembrete de validacao",
       "evidence.created": "Prova fotografica submetida",
       "evidence.retention_deleted": "Prova apagada por retencao",
@@ -2726,7 +2731,8 @@
           ${task.description ? `<p class="muted">${escapeHtml(task.description)}</p>` : ""}
           ${task.planningNotes ? `<div class="notice"><strong>Notas de planeamento:</strong> ${escapeHtml(task.planningNotes)}</div>` : ""}
           ${renderTaskLocation(task, true)}
-          ${task.blockReason ? `<div class="notice error"><strong>Contratempo:</strong> ${escapeHtml(task.blockReason)}</div>` : ""}
+          ${task.status === "blocked" && task.blockReason ? `<div class="notice error"><strong>Contratempo ativo:</strong> ${escapeHtml(task.blockReason)}</div>` : ""}
+          ${task.status !== "blocked" && task.lastSetbackResolution ? `<div class="notice success"><strong>Contratempo resolvido por ${escapeHtml(task.lastSetbackResolution.resolvedBy)}:</strong> ${escapeHtml(task.lastSetbackResolution.text)} <small>${formatDate(task.lastSetbackResolution.resolvedAt)}</small></div>` : ""}
           ${task.validationComment ? `<div class="notice success">Decisao: ${escapeHtml(task.validationComment)}</div>` : ""}
           ${renderTaskActions(task)}
           <div class="panel">
@@ -2753,6 +2759,22 @@
     const canChange = canOperate && task.status !== "approved";
     const readyForValidation = qualifyingEvidence(task.id).length >= finalEvidenceMinimum;
     const canSubmitForValidation = canChange && readyForValidation && task.status !== "pending_validation";
+    if (task.status === "blocked") return `
+      <div class="panel">
+        <div class="panel-header"><h2>Resolver contratempo</h2></div>
+        ${isManager() ? `
+          <p class="muted">Registe o que foi resolvido. O motivo original e a resolução permanecem no histórico da tarefa.</p>
+          <form class="form-grid" data-form="resolve-setback" data-task-id="${escapeHtml(task.id)}">
+            <div class="field">
+              <label>Como foi resolvido?
+                <textarea name="resolution" required minlength="10" maxlength="1000" placeholder="Ex.: material entregue à equipa; o trabalho pode prosseguir."></textarea>
+              </label>
+            </div>
+            <button class="btn accent" type="submit">Resolver e retomar tarefa</button>
+          </form>
+        ` : `<p class="notice">Aguardamos que a empresa resolva este contratempo. Poderá retomar a tarefa quando a resolução for registada.</p>`}
+      </div>
+    `;
     return `
       <div class="panel">
         <div class="panel-header"><h2>Acoes</h2></div>
@@ -3028,6 +3050,7 @@
           if (type === "update-application") await updateApplication(form);
           if (type === "evidence") await submitEvidence(form);
           if (type === "block-task") await blockTask(form);
+          if (type === "resolve-setback") await resolveSetback(form);
           if (type === "decision") await decideTask(event, form);
           renderApp();
         } catch (error) {
@@ -3217,6 +3240,16 @@
   async function blockTask(form) {
     const data = Object.fromEntries(new FormData(form).entries());
     await updateTaskStatus(form.dataset.taskId, "blocked", { blockReason: data.blockReason });
+  }
+
+  async function resolveSetback(form) {
+    const data = Object.fromEntries(new FormData(form).entries());
+    const payload = await api(`/api/tasks/${encodeURIComponent(form.dataset.taskId)}/resolve-setback`, {
+      method: "POST",
+      body: { resolution: data.resolution }
+    });
+    state.data = payload.bootstrap;
+    setNotice("Contratempo resolvido. A tarefa pode prosseguir.");
   }
 
   async function decideTask(event, form) {
