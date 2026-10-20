@@ -128,7 +128,7 @@ The app must first behave like a public labor-market board:
 | Worker response and data rights | `meo_worker_disputes` correction/context/dispute/restriction/deletion/access workflow with company response |
 | Access and sharing history | `meo_report_access_logs`, access-request history and existing audit actions |
 | Retention and review expiry | Configured report review/retention dates, cron expiry and end-of-retention redaction with `meo_data_retention_actions` |
-| Cross-company privacy gate | Requests may be documented in `meo_company_access_grants`; report disclosure remains unavailable pending independent DPIA validation |
+| Cross-company privacy gate | Report disclosure remains unavailable pending independent DPIA validation; the company request form is hidden from normal navigation while sharing is disabled, while protected records and worker data-rights visibility remain available |
 | Database authorization | RLS on every new table; `anon`/`authenticated` grants revoked; server service role only, followed by custom-session row authorization in the API |
 
 See `docs/DIGITAL_CV_EMPLOYMENT.md` for boundaries and production prerequisites.

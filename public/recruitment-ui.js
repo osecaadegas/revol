@@ -19,7 +19,7 @@
       : [];
     function tabs() {
       const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Correspondência"], ["chat", "Conversas"], ["settings", "Privacidade"]]
-        : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["access", "Pedidos de acesso"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Correspondência"], ["chat", "Conversas"]];
+        : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Correspondência"], ["chat", "Conversas"]];
       if (h.isWorker() && h.state.data.tasks?.length) items.splice(4, 0, ["tasks", "Tarefas"]);
       if (r().platformAdmin) items.push(["admin", "Administracao"]);
       const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",tasks:"clipboard-list",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"mail",chat:"message-circle",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
@@ -116,7 +116,6 @@
       if (tab === "tasks") return h.renderTasks();
       if (tab === "employment") return h.isWorker() ? professional.workerEmployment() : professional.companyEmployment();
       if (tab === "evaluations") return professional.evaluations();
-      if (tab === "access") return professional.accessRequests();
       if (tab === "settings") return settings();
       if (tab === "saved") return saved();
       if (tab === "company") return company();

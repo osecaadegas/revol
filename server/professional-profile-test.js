@@ -225,7 +225,7 @@ async function run() {
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),"Digital CV mobile overflow");
       await page.screenshot({ path:path.join(shots,"worker-cv-mobile.png"),fullPage:true });
       await page.evaluate(token => localStorage.setItem("meo_session_token",token),ct); await page.reload();
-      for (const id of ["employment","evaluations","access"]) {
+      for (const id of ["employment","evaluations"]) {
         await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),`Company ${id} mobile overflow`);
         if (id === "evaluations") {
@@ -236,6 +236,7 @@ async function run() {
           await scale.getByText("7 em 10").waitFor();
         }
       }
+      assert.equal(await page.locator('[data-recruitment="tab"][data-id="access"]').count(),0,"cross-company access is not presented as a normal company action while sharing is disabled");
       await page.screenshot({ path:path.join(shots,"company-access-mobile.png"),fullPage:true });
       assert.deepEqual(errors,[],"Professional dashboard browser errors");
       await context.close();

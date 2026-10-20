@@ -2,6 +2,10 @@
 
 ## 2026-10-20
 
+- Removido `Pedidos de acesso` da navegação normal das empresas enquanto a
+  partilha de avaliações entre empresas está desativada. O bloqueio no servidor,
+  o registo protegido e os direitos de acesso/contestação do trabalhador são
+  preservados sem apresentar um formulário de partilha fora de contexto.
 - Tornadas imutáveis as avaliações profissionais depois da submissão. A API
   rejeita alterações por `reportId`, substituições e correções da classificação;
   uma avaliação posterior exige um novo registo com período diferente. Pedidos
