@@ -92,6 +92,8 @@ The app must first behave like a public labor-market board:
 | Manager manages users | Direct user creation, activation toggle, invite links |
 | Secure invite associated to company and role | `/api/invites`, token-bound company/role acceptance |
 | Work orders with address/location text, description, optional initial photos | `/api/work-orders`, UI work order form, private evidence records |
+| Cliente Zero: multi-person work-order planning | Existing work orders now include assigned employee/contractor/verified-worker IDs, expected dates and an independent simple status; only managers can change the order state, and the assigned team can see it before any task exists |
+| Cliente Zero: order completion and accountability | Start/completion timestamps and mandatory reasons for blocked/rejected states are retained in the order and audit history; tasks remain optional sub-units |
 | Task creation with assignee and deadline | `/api/tasks`, manager task form; recruited workers require a verified relationship with the assigning company |
 | Worker planning and task access | Conditional `Tarefas` worker navigation; scheduled start, planning notes, fixed work address/GPS and relationship-bound authorization |
 | Recruitment correspondence | Existing application and interview messages, relabelled `Correspondência` without changing their recruitment context or stored history |
@@ -159,8 +161,8 @@ These are documented in the source PDFs as excluded or future-phase concepts and
 ## Acceptance Flow
 
 1. Manager creates or invites an authorized user.
-2. Manager creates a work order.
-3. Manager creates a task with responsible user, planned start, work location, notes and deadline; an external worker must have a verified relationship with that company.
+2. Manager creates a work order with team and expected dates; assigned people can see it without a separate task.
+3. Manager creates an optional task with responsible user, planned start, work location, notes and deadline; an external worker must have a verified relationship with that company.
 4. Responsible user logs in and sees only assigned tasks.
 5. Responsible user starts task.
 6. The responsible user can communicate a setback only with a reason; company administrators receive a contextual operational alert.

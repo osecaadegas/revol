@@ -2,6 +2,10 @@
 
 ## 2026-10-20
 
+- Iniciada a Fase 1 do Cliente Zero nas ordens existentes: criação com equipa
+  atribuída e datas previstas, consulta direta pela equipa mesmo sem tarefas,
+  estados próprios com motivos obrigatórios para contratempos/rejeições, datas
+  reais e auditoria. A migração SQL é aditiva e não altera o recrutamento.
 - Os alertas de contratempos da empresa atualizam-se automaticamente enquanto
   o painel está aberto e ao regressar ao separador, sem apagar formulários em
   curso. Uma rota autenticada e limitada à empresa devolve só os seus alertas;

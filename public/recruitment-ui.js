@@ -20,13 +20,14 @@
     function tabItems() {
       const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Correspondência"], ["chat", "Conversas"], ["settings", "Privacidade"]]
         : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Correspondência"], ["chat", "Conversas"]];
+      if (h.isWorker() && h.state.data.workOrders?.length) items.splice(4, 0, ["orders", "Ordens"]);
       if (h.isWorker() && h.state.data.tasks?.length) items.splice(4, 0, ["tasks", "Tarefas"]);
       if (r().platformAdmin) items.push(["admin", "Administracao"]);
       return items;
     }
     function tabs() {
       const items = tabItems();
-      const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",tasks:"clipboard-list",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"mail",chat:"message-circle",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
+      const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",orders:"folder",tasks:"clipboard-list",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"mail",chat:"message-circle",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
       const pendingCount = pendingEmploymentRequests().length;
       const activeTasks = (h.state.data.tasks || []).filter(item => ["assigned", "in_progress", "blocked"].includes(item.status)).length;
       return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ghost" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span>${id === "employment" && pendingCount ? `<span class="nav-alert-count" aria-label="${pendingCount} vinculo pendente">${pendingCount}</span>` : id === "tasks" && activeTasks ? `<span class="nav-alert-count" aria-label="${activeTasks} tarefas ativas">${activeTasks}</span>` : id === "chat" && chat.unreadCount() ? `<span class="nav-alert-count" aria-label="${chat.unreadCount()} mensagens não lidas">${chat.unreadCount()}</span>` : ""}</button>`).join("")}</nav>`;
@@ -121,6 +122,7 @@
     }
     function content() {
       if (tab === "profile") return professional.cv();
+      if (tab === "orders") return h.renderOrders();
       if (tab === "tasks") return h.renderTasks();
       if (tab === "employment") return h.isWorker() ? professional.workerEmployment() : professional.companyEmployment();
       if (tab === "evaluations") return professional.evaluations();

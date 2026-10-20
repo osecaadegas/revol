@@ -3,7 +3,7 @@
   const tokenKey = "meo_session_token";
   const icon = window.TrataDesign.icon;
   const recruitmentUI = window.createRecruitmentUI({ get state() { return state; }, escapeHtml, isWorker, api, setNotice, renderApp,
-    renderWorkerProfilePanel, renderJobCard, renderApplicationCard, renderJobOfferForm, renderTasks, resolveKnownLocation });
+    renderWorkerProfilePanel, renderJobCard, renderApplicationCard, renderJobOfferForm, renderOrders, renderTasks, resolveKnownLocation });
 
   const state = {
     token: localStorage.getItem(tokenKey) || "",
@@ -61,6 +61,23 @@
     pending_validation: "A aguardar validacao",
     approved: "Aprovada",
     rejected: "Rejeitada"
+  };
+
+  const orderStatusLabels = {
+    planned: "Planeada",
+    in_progress: "Em curso",
+    blocked: "Com contratempo",
+    pending_validation: "Concluída · aguarda aprovação",
+    approved: "Aprovada",
+    rejected: "Rejeitada"
+  };
+  const orderNextStatuses = {
+    planned: ["in_progress"],
+    in_progress: ["blocked", "pending_validation"],
+    blocked: ["in_progress", "pending_validation"],
+    pending_validation: ["approved", "rejected"],
+    rejected: ["in_progress"],
+    approved: []
   };
 
   const finalEvidenceMinimum = 3;
@@ -2194,7 +2211,7 @@
       <section class="view-heading">
         <div>
           <h1>Ordens de trabalho</h1>
-          <p>Crie servicos com morada, descricao e fotografias iniciais. Depois atribua tarefas a responsaveis.</p>
+          <p>Planeie a obra, atribua a equipa e acompanhe o estado. Crie tarefas apenas quando fizerem falta.</p>
         </div>
       </section>
       <section class="section-grid">
@@ -2212,26 +2229,37 @@
   }
 
   function renderOrderForm() {
+    const people = state.data.users.filter((user) => user.active && ["employee", "contractor", "worker"].includes(user.role));
     return `
       <form class="panel form-grid" data-form="create-order">
         <div class="panel-header"><h2>Nova ordem</h2></div>
         <div class="field">
-          <label>Titulo</label>
-          <input name="title" required placeholder="Ex: Tratamento jardim Braga">
+          <label for="order-title">Título</label>
+          <input id="order-title" name="title" required maxlength="180" placeholder="Ex.: Renovação de apartamento">
         </div>
         <div class="field">
-          <label>Morada ou localizacao textual</label>
-          <input name="address" required placeholder="Rua, freguesia, referencia">
+          <label for="order-address">Morada ou local de trabalho</label>
+          <input id="order-address" name="address" required maxlength="240" placeholder="Rua, localidade ou referência">
         </div>
         <div class="field">
-          <label>Descricao</label>
-          <textarea name="description" placeholder="Contexto, materiais, notas de entrada"></textarea>
+          <label for="order-description">Descrição breve</label>
+          <textarea id="order-description" name="description" maxlength="2000" rows="2" required placeholder="O que é preciso fazer?"></textarea>
         </div>
+        <div class="order-date-fields">
+          <div class="field"><label for="order-start">Início previsto</label><input id="order-start" name="expectedStartDate" type="date" required></div>
+          <div class="field"><label for="order-end">Conclusão prevista</label><input id="order-end" name="expectedEndDate" type="date" required></div>
+        </div>
+        <fieldset class="order-team-picker">
+          <legend>Equipa atribuída</legend>
+          ${people.length ? people.map((user) => `
+            <label><input type="checkbox" name="assignedUserIds" value="${escapeHtml(user.id)}"><span>${escapeHtml(user.name)} <small>${escapeHtml(roleLabels[user.role] || user.role)}</small></span></label>
+          `).join("") : `<p class="muted">Adicione colaboradores ou confirme um vínculo antes de criar a ordem.</p>`}
+        </fieldset>
         <div class="field">
-          <label>Fotografias iniciais opcionais</label>
-          <input name="photos" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+          <label for="order-photos">Fotografias iniciais (opcional)</label>
+          <input id="order-photos" name="photos" type="file" accept="image/png,image/jpeg,image/webp" multiple>
         </div>
-        <button class="btn primary full" type="submit">Criar ordem</button>
+        <button class="btn primary full" type="submit" ${people.length ? "" : "disabled"}>Criar ordem</button>
       </form>
     `;
   }
@@ -2248,6 +2276,9 @@
   function renderOrderCard(order) {
     const tasks = state.data.tasks.filter((task) => task.workOrderId === order.id);
     const photos = orderEvidence(order.id);
+    const assignedIds = Array.isArray(order.assignedUserIds) ? order.assignedUserIds : [];
+    const status = order.status || "planned";
+    const nextStatuses = orderNextStatuses[status] || [];
     return `
       <article class="order-card">
         <header>
@@ -2258,12 +2289,28 @@
               <span>${formatDate(order.createdAt)}</span>
             </div>
           </div>
-          <span class="chip">${tasks.length} tarefas</span>
+          <span class="chip ${escapeHtml(status)}">${escapeHtml(orderStatusLabels[status] || status)}</span>
         </header>
+        <div class="meta-row"><span>Equipa: ${order.assignedUserCount ?? assignedIds.length} pessoa(s)</span><span>${tasks.length} tarefa(s)</span></div>
+        ${isManager() && assignedIds.length ? `<p class="muted">${assignedIds.map((id) => escapeHtml(userById(id)?.name || "Colaborador")).join(" · ")}</p>` : ""}
+        ${order.expectedStartDate || order.expectedEndDate ? `<p class="muted">Previsto: ${order.expectedStartDate ? formatDate(order.expectedStartDate) : "—"} a ${order.expectedEndDate ? formatDate(order.expectedEndDate) : "—"}</p>` : ""}
+        ${order.actualStartedAt ? `<p class="muted">Iniciada: ${formatDate(order.actualStartedAt)}${order.actualCompletedAt ? ` · Concluída: ${formatDate(order.actualCompletedAt)}` : ""}</p>` : ""}
+        ${order.statusReason ? `<div class="notice ${status === "blocked" || status === "rejected" ? "error" : ""}"><strong>Razão:</strong> ${escapeHtml(order.statusReason)}</div>` : ""}
         ${order.description ? `<p class="muted">${escapeHtml(order.description)}</p>` : ""}
         ${photos.length ? `<div class="evidence-grid">${photos.map(renderEvidenceCard).join("")}</div>` : ""}
+        ${isManager() && nextStatuses.length ? `
+          <form class="order-status-form" data-form="update-order-status" data-order-id="${escapeHtml(order.id)}">
+            <label>Atualizar estado da ordem
+              <select name="status" required>${nextStatuses.map((next) => `<option value="${next}">${escapeHtml(orderStatusLabels[next])}</option>`).join("")}</select>
+            </label>
+            <label data-order-reason ${["blocked", "rejected"].includes(nextStatuses[0]) ? "" : "hidden"}>Razão do contratempo ou da rejeição
+              <input name="reason" maxlength="1000" placeholder="Ex.: materiais em falta ou trabalho a corrigir" ${["blocked", "rejected"].includes(nextStatuses[0]) ? "required" : ""}>
+            </label>
+            <button class="btn ghost" type="submit">Guardar estado</button>
+          </form>
+        ` : ""}
         <div class="card-actions">
-          <button class="btn ghost" data-view="tasks" data-filter-order="${escapeHtml(order.id)}">Ver tarefas</button>
+          ${isWorker() ? (tasks.length ? `<button class="btn ghost" data-recruitment="tab" data-id="tasks">Ver tarefas</button>` : "") : `<button class="btn ghost" data-view="tasks" data-filter-order="${escapeHtml(order.id)}">Ver tarefas</button>`}
         </div>
       </article>
     `;
@@ -2889,6 +2936,15 @@
       });
     });
 
+    document.querySelectorAll(".order-status-form select[name='status']").forEach((select) => {
+      select.addEventListener("change", () => {
+        const reason = select.form.querySelector("[data-order-reason]");
+        const required = ["blocked", "rejected"].includes(select.value);
+        reason.hidden = !required;
+        reason.querySelector("input").required = required;
+      });
+    });
+
     bindForms();
   }
 
@@ -2902,6 +2958,7 @@
         try {
           const type = form.dataset.form;
           if (type === "create-order") await createOrder(form);
+          if (type === "update-order-status") await updateOrderStatus(form);
           if (type === "create-task") await createTask(form);
           if (type === "create-user") await createUser(form);
           if (type === "create-invite") await createInvite(form);
@@ -2926,6 +2983,9 @@
 
   async function createOrder(form) {
     const data = Object.fromEntries(new FormData(form).entries());
+    data.assignedUserIds = [...form.querySelectorAll('input[name="assignedUserIds"]:checked')].map((input) => input.value);
+    if (!data.assignedUserIds.length) throw new Error("Escolha pelo menos uma pessoa para a ordem.");
+    if (data.expectedEndDate < data.expectedStartDate) throw new Error("A conclusão prevista não pode ser anterior ao início.");
     const input = form.querySelector("input[type='file']");
     const photos = await filesToPhotos(input.files, 4);
     const payload = await api("/api/work-orders", {
@@ -2935,6 +2995,17 @@
     state.data = payload.bootstrap;
     state.view = "orders";
     setNotice("Ordem criada.");
+  }
+
+  async function updateOrderStatus(form) {
+    const data = Object.fromEntries(new FormData(form).entries());
+    const payload = await api(`/api/work-orders/${encodeURIComponent(form.dataset.orderId)}/status`, {
+      method: "PATCH",
+      body: { status: data.status, reason: data.reason }
+    });
+    state.data = payload.bootstrap;
+    state.view = "orders";
+    setNotice("Estado da ordem atualizado.");
   }
 
   async function createTask(form) {

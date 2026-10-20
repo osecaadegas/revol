@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v14-direct-chat";
+const CACHE_NAME = "tratapro-shell-v15-work-orders";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

@@ -162,6 +162,14 @@ create table public.meo_work_orders (
   title text not null,
   address text not null,
   description text,
+  assigned_user_ids jsonb not null default '[]'::jsonb check (jsonb_typeof(assigned_user_ids) = 'array' and jsonb_array_length(assigned_user_ids) <= 20),
+  expected_start_date date,
+  expected_end_date date,
+  status text not null default 'planned' check (status in ('planned','in_progress','blocked','pending_validation','approved','rejected')),
+  status_reason text not null default '',
+  actual_started_at timestamptz,
+  actual_completed_at timestamptz,
+  constraint meo_work_orders_expected_dates_check check (expected_end_date is null or expected_start_date is null or expected_end_date >= expected_start_date),
   created_by text not null references public.meo_users(id) on delete restrict,
   created_at timestamptz not null,
   updated_at timestamptz not null
@@ -436,6 +444,7 @@ create unique index meo_users_nif_unique_idx on public.meo_users(nif) where nif 
 create index meo_sessions_user_idx on public.meo_sessions(user_id);
 create index meo_invites_company_idx on public.meo_invites(company_id);
 create index meo_work_orders_company_idx on public.meo_work_orders(company_id);
+create index meo_work_orders_company_status_idx on public.meo_work_orders(company_id,status);
 create index meo_tasks_company_idx on public.meo_tasks(company_id);
 create index meo_tasks_assignee_idx on public.meo_tasks(assignee_id);
 create index meo_tasks_work_order_idx on public.meo_tasks(work_order_id);

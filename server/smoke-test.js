@@ -277,6 +277,24 @@ async function run() {
       password: "password123"
     }, managerToken);
     const employeeId = userResult.user.id;
+    const secondEmployee = await request(baseUrl, "POST", "/api/users", {
+      name: "Segundo Operador",
+      email: "segundo-operador@example.test",
+      role: "employee",
+      password: "password123"
+    }, managerToken);
+    const contractor = await request(baseUrl, "POST", "/api/users", {
+      name: "Prestador Teste",
+      email: "prestador@example.test",
+      role: "contractor",
+      password: "password123"
+    }, managerToken);
+    const unassignedEmployee = await request(baseUrl, "POST", "/api/users", {
+      name: "Nao Atribuido",
+      email: "nao-atribuido@example.test",
+      role: "employee",
+      password: "password123"
+    }, managerToken);
 
     const clientUser = await request(baseUrl, "POST", "/api/users", {
       name: "Cliente Teste",
@@ -296,13 +314,64 @@ async function run() {
       throw new Error("Client/developer managed roles were not created.");
     }
 
+    const plannedStart = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const plannedEnd = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
+    const invalidOrderDates = await requestRaw(baseUrl, "POST", "/api/work-orders", {
+      title: "Renovação inválida",
+      address: "Rua de Teste 1",
+      description: "Verificar as datas previstas.",
+      assignedUserIds: [employeeId],
+      expectedStartDate: plannedEnd,
+      expectedEndDate: plannedStart
+    }, managerToken);
+    if (invalidOrderDates.status !== 400) throw new Error("Work-order dates must be valid and ordered.");
+    const invalidOrderTeam = await requestRaw(baseUrl, "POST", "/api/work-orders", {
+      title: "Equipa inválida",
+      address: "Rua de Teste 1",
+      description: "Verificar a equipa atribuída.",
+      assignedUserIds: [clientUser.user.id],
+      expectedStartDate: plannedStart,
+      expectedEndDate: plannedEnd
+    }, managerToken);
+    if (invalidOrderTeam.status !== 403) throw new Error("Non-operational users must not be assigned to work orders.");
     const orderResult = await request(baseUrl, "POST", "/api/work-orders", {
       title: "Servico de teste",
       address: "Rua de Teste 1",
       description: "Validar fluxo operacional.",
+      assignedUserIds: [employeeId, secondEmployee.user.id, contractor.user.id],
+      expectedStartDate: plannedStart,
+      expectedEndDate: plannedEnd,
       photos: []
     }, managerToken);
     const workOrderId = orderResult.workOrder.id;
+    if (orderResult.workOrder.status !== "planned" || orderResult.workOrder.assignedUserIds.length !== 3) {
+      throw new Error("A new work order should retain its planned state and three-person team.");
+    }
+    const login = await request(baseUrl, "POST", "/api/auth/login", {
+      email: "operador@example.test",
+      password: "password123"
+    });
+    const employeeToken = login.session.token;
+    const employeeOrderBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, employeeToken);
+    const employeeOrder = employeeOrderBootstrap.workOrders.find((order) => order.id === workOrderId);
+    if (!employeeOrder || employeeOrderBootstrap.tasks.length) {
+      throw new Error("An assigned employee should see the work order before a task exists.");
+    }
+    if (employeeOrder.assignedUserCount !== 3 || employeeOrder.assignedUserIds.some((id) => id !== employeeId)) {
+      throw new Error("Assigned staff should see the team size without other members' internal IDs.");
+    }
+    const unassignedLogin = await request(baseUrl, "POST", "/api/auth/login", {
+      email: "nao-atribuido@example.test",
+      password: "password123"
+    });
+    const unassignedBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, unassignedLogin.session.token);
+    if (unassignedBootstrap.workOrders.some((order) => order.id === workOrderId)) {
+      throw new Error("An unrelated employee must not see the team's work order.");
+    }
+    const workerStatusChange = await requestRaw(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "in_progress"
+    }, employeeToken);
+    if (workerStatusChange.status !== 403) throw new Error("Employees must not manage work-order status.");
 
     const clientTaskAssignment = await requestRaw(baseUrl, "POST", "/api/tasks", {
       workOrderId,
@@ -325,12 +394,6 @@ async function run() {
     if (taskResult.task.workAddress !== "Rua de Teste 1" || taskResult.task.workLocation.status !== "not_requested") {
       throw new Error("Task planning should derive its map from the work address without requiring GPS coordinates.");
     }
-
-    const login = await request(baseUrl, "POST", "/api/auth/login", {
-      email: "operador@example.test",
-      password: "password123"
-    });
-    const employeeToken = login.session.token;
 
     await request(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
       status: "in_progress"
@@ -435,6 +498,50 @@ async function run() {
       decision: "approved",
       reason: "Validado em smoke test."
     }, managerToken);
+
+    const wrongCompanyOrderUpdate = await requestRaw(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "in_progress"
+    }, otherCompany.session.token);
+    if (wrongCompanyOrderUpdate.status !== 404) throw new Error("Another company must not manage this work order.");
+    const skippedOrderState = await requestRaw(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "approved"
+    }, managerToken);
+    if (skippedOrderState.status !== 400) throw new Error("Work-order approvals must follow the review states.");
+    const startedOrder = await request(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "in_progress"
+    }, managerToken);
+    if (!startedOrder.workOrder.actualStartedAt) throw new Error("The order start must be timestamped.");
+    const missingOrderBlockReason = await requestRaw(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "blocked"
+    }, managerToken);
+    if (missingOrderBlockReason.status !== 400) throw new Error("Blocked orders require a reason.");
+    await request(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "blocked", reason: "Material em falta"
+    }, managerToken);
+    await request(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "in_progress"
+    }, managerToken);
+    await request(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "pending_validation"
+    }, managerToken);
+    const rejectedOrder = await request(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "rejected", reason: "É necessário corrigir o acabamento."
+    }, managerToken);
+    if (rejectedOrder.workOrder.actualCompletedAt || !rejectedOrder.workOrder.statusReason) {
+      throw new Error("Rejection must retain its reason and reopen completion.");
+    }
+    await request(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "in_progress"
+    }, managerToken);
+    await request(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "pending_validation"
+    }, managerToken);
+    const approvedOrder = await request(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
+      status: "approved"
+    }, managerToken);
+    if (approvedOrder.workOrder.status !== "approved" || !approvedOrder.workOrder.actualCompletedAt) {
+      throw new Error("The approved work order must retain its actual completion timestamp.");
+    }
 
     const reminderTaskResult = await request(baseUrl, "POST", "/api/tasks", {
       workOrderId,

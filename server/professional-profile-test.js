@@ -115,8 +115,12 @@ async function run() {
     await request(`/api/direct-chat/conversations/${administrationConversation.id}/read`,"PATCH",{},wt);
     assert.equal((await request("/api/direct-chat","GET",undefined,wt)).payload.chat.unreadCount,0);
 
-    const companyOrder = (await request("/api/work-orders","POST",{ title:"Turno de producao",address:"Rua Industrial 10, Braga",description:"Ordem para trabalhador contratado",photos:[] },ct,201)).payload.workOrder;
-    const otherOrder = (await request("/api/work-orders","POST",{ title:"Ordem sem vinculo",address:"Rua Externa 2, Braga",description:"Teste de isolamento",photos:[] },ot,201)).payload.workOrder;
+    const otherEmployee = (await request("/api/users","POST",{ name:"Operador Externo",email:"operador-externo@cv.test",role:"employee",password:"password123" },ot,201)).payload.user;
+    const companyOrder = (await request("/api/work-orders","POST",{ title:"Turno de producao",address:"Rua Industrial 10, Braga",description:"Ordem para trabalhador contratado",assignedUserIds:[workerId],expectedStartDate:"2026-11-01",expectedEndDate:"2026-11-02",photos:[] },ct,201)).payload.workOrder;
+    const otherOrder = (await request("/api/work-orders","POST",{ title:"Ordem sem vinculo",address:"Rua Externa 2, Braga",description:"Teste de isolamento",assignedUserIds:[otherEmployee.id],expectedStartDate:"2026-11-01",expectedEndDate:"2026-11-02",photos:[] },ot,201)).payload.workOrder;
+    const directOrderBootstrap = (await request("/api/bootstrap","GET",undefined,wt)).payload;
+    assert.ok(directOrderBootstrap.workOrders.some(item => item.id === companyOrder.id),"a verified worker sees a directly assigned order without a task");
+    assert.ok(!directOrderBootstrap.workOrders.some(item => item.id === otherOrder.id),"a different company's order remains private");
     await request("/api/tasks","POST",{ workOrderId:otherOrder.id,title:"Atribuicao indevida",assigneeId:workerId,dueDate:"2026-11-02" },ot,403);
     const plannedTask = (await request("/api/tasks","POST",{
       workOrderId:companyOrder.id,title:"Preparar linha",description:"Confirmar equipamento antes do turno.",assigneeId:workerId,

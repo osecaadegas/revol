@@ -147,7 +147,7 @@ async function run() {
         const employee = await request('/api/users', 'POST', {name:'Operador de teste',email:'operator@test.invalid',role:'employee',password:'password123'}, ct, 201);
         await request('/api/users', 'POST', {name:'Cliente de teste',email:'client@test.invalid',role:'client',password:'password123'}, ct, 201);
         const client = await request('/api/auth/login', 'POST', {email:'client@test.invalid',password:'password123'});
-        const order = await request('/api/work-orders', 'POST', {title:'Servico de teste',address:'Alpiarca',description:'Verificacao visual local',photos:[]}, ct, 201);
+        const order = await request('/api/work-orders', 'POST', {title:'Servico de teste',address:'Alpiarca',description:'Verificacao visual local',assignedUserIds:[employee.user.id],expectedStartDate:'2099-10-09',expectedEndDate:'2099-10-10',photos:[]}, ct, 201);
         await request('/api/tasks', 'POST', {workOrderId:order.workOrder.id,title:'Tarefa de teste',assigneeId:employee.user.id,dueDate:'2099-10-10'}, ct, 201);
         await require('./design-test').reviewDesign(browser, base, { worker: wt, company: ct, admin: ot, client:client.session.token }, job.publicPath, `/empresas/${company.bootstrap.company.id}-empresa-teste`);
       }

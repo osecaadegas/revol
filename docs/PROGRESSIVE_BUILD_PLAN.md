@@ -374,6 +374,29 @@ Status: implemented locally; production migration pending.
   and mobile presentation and no public or unauthenticated endpoint.
 - See migration `20261020160000_direct_worker_company_chat.sql`.
 
+### M35 - Cliente Zero: ordens de trabalho como unidade central
+
+Status: Fase 1 implementada localmente; migração e validação em produção pendentes.
+
+- Evolui `meo_work_orders` sem substituir contas, tarefas, fotos ou histórico:
+  equipa direta até 20 pessoas, datas previstas, estado simples e datas reais.
+- O gestor cria uma ordem com várias pessoas numa única ação. Trabalhadores
+  atribuídos veem-na mesmo sem tarefa individual; tarefas continuam opcionais.
+- O gestor gere a progressão planeada → em curso → contratempo/concluída para
+  aprovação → aprovada/rejeitada. Contratempo e rejeição exigem motivo; cada
+  alteração fica atribuída no audit log. O estado da ordem é deliberadamente
+  gerido pelo gestor e não é inferido automaticamente de uma tarefa isolada.
+- O servidor valida vínculo verificado para trabalhadores recrutados, empresa,
+  papéis, datas e transições. Não há exposição pública de ordens.
+- Migração aditiva: `20261020170000_merit_work_order_core.sql`.
+
+Próximas fases, dependentes de aceitação da Fase 1: (2) conversa por ordem e
+pedidos de materiais; (3) episódios com prova, confirmação e contestação;
+(4) percurso profissional verificável; (5) exportação mensal PDF/JSON e
+anexação de relatórios revistos; (6) indicadores operacionais básicos. Não
+introduzir classificações automáticas, salários automáticos ou partilha entre
+empresas sem revisão de privacidade e base legal.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.

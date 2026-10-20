@@ -188,8 +188,9 @@ For a dirty Supabase project that already contains old prototype tables, run the
 13. Run `supabase/migrations/20261020090000_worker_task_planning.sql`.
 14. Run `supabase/migrations/20261020123000_evaluation_rating_scale_0_10.sql`.
 15. Run `supabase/migrations/20261020160000_direct_worker_company_chat.sql`.
-16. Confirm the private storage bucket `meo-evidence` exists and remains private.
-17. Set these environment variables on the host:
+16. Run `supabase/migrations/20261020170000_merit_work_order_core.sql` before deploying the Cliente Zero work-order UI/API.
+17. Confirm the private storage bucket `meo-evidence` exists and remains private.
+18. Set these environment variables on the host:
 
 ```text
 APP_STORAGE_DRIVER=supabase
@@ -198,7 +199,7 @@ SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 SUPABASE_EVIDENCE_BUCKET=meo-evidence
 ```
 
-15. Start or redeploy the Node app.
+19. Start or redeploy the Node app.
 
 The app still uses its own Phase 1 email/password/session system. Supabase Auth is not used in this phase, because the existing server already enforces roles, task visibility, and private evidence access.
 
@@ -236,6 +237,15 @@ a tarefa foi efetivamente colocada em `Contratempo` com uma razão, que a sessã
 criação da tarefa já foram aplicadas. A ausência de migrações de outras
 funcionalidades é um problema distinto e deve ser tratada pela ordem indicada
 na secção Supabase Setup.
+
+Cliente Zero (Fase 1) exige a migração aditiva
+`supabase/migrations/20261020170000_merit_work_order_core.sql` antes de
+publicar o código novo em Vercel. A migração acrescenta equipa, datas e estado
+às ordens existentes sem eliminar dados. Até ser aplicada e validada no projeto
+Supabase usado pelo site, não publicar esta versão do servidor em produção:
+novas ordens iriam tentar escrever colunas ainda inexistentes. Não executar o
+script de reset para obter estas colunas; esse script é destrutivo e destina-se
+apenas a uma instalação nova ou reposição deliberada.
 
 ## Production Notes
 

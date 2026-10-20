@@ -4034,3 +4034,38 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
   .mobile-recruitment-menu .recruitment-tabs { grid-template-columns: minmax(0,1fr); }
   .rating-options { grid-template-columns: repeat(4,minmax(0,1fr)); }
 }
+.order-date-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.order-team-picker {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border-primary, var(--line));
+  padding: 12px;
+}
+
+.order-team-picker legend { padding: 0 6px; }
+.order-team-picker label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px;
+  cursor: pointer;
+}
+.order-team-picker input { width: 20px; height: 20px; flex: 0 0 20px; }
+.order-team-picker small { display: block; color: var(--text-secondary, var(--muted)); }
+.order-status-form { display: grid; gap: 10px; border-top: 1px solid var(--border-primary, var(--line)); padding-top: 12px; }
+.order-status-form label { display: grid; gap: 6px; font-size: 13px; }
+.order-status-form [hidden] { display: none; }
+.order-status-form select, .order-status-form input { width: 100%; min-width: 0; min-height: 44px; }
+.order-status-form .btn { justify-self: start; }
+
+@media (max-width: 600px) {
+  .order-date-fields { grid-template-columns: 1fr; }
+  .order-status-form .btn { width: 100%; }
+}

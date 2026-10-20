@@ -191,6 +191,13 @@ const TABLES = [
       title: "title",
       address: "address",
       description: "description",
+      assignedUserIds: "assigned_user_ids",
+      expectedStartDate: "expected_start_date",
+      expectedEndDate: "expected_end_date",
+      status: "status",
+      statusReason: "status_reason",
+      actualStartedAt: "actual_started_at",
+      actualCompletedAt: "actual_completed_at",
       createdBy: "created_by",
       createdAt: "created_at",
       updatedAt: "updated_at"
@@ -1125,8 +1132,19 @@ function publicCompany(company) {
   };
 }
 
-function publicWorkOrder(order) {
-  return { ...order };
+function publicWorkOrder(order, auth = null) {
+  const assignedUserIds = Array.isArray(order.assignedUserIds) ? order.assignedUserIds : [];
+  return {
+    ...order,
+    assignedUserCount: assignedUserIds.length,
+    assignedUserIds: auth && !isCompanyAdmin(auth.user) ? assignedUserIds.filter((id) => id === auth.user.id) : assignedUserIds,
+    expectedStartDate: order.expectedStartDate || null,
+    expectedEndDate: order.expectedEndDate || null,
+    status: order.status || "planned",
+    statusReason: order.statusReason || "",
+    actualStartedAt: order.actualStartedAt || null,
+    actualCompletedAt: order.actualCompletedAt || null
+  };
 }
 
 function publicTask(task) {
@@ -1351,6 +1369,48 @@ function verifiedTaskEmployment(db, companyId, workerId, employmentId = "") {
   ) || null;
 }
 
+const WORK_ORDER_STATUSES = new Set(["planned", "in_progress", "blocked", "pending_validation", "approved", "rejected"]);
+const WORK_ORDER_NEXT_STATUSES = {
+  planned: ["in_progress"],
+  in_progress: ["blocked", "pending_validation"],
+  blocked: ["in_progress", "pending_validation"],
+  pending_validation: ["approved", "rejected"],
+  rejected: ["in_progress"],
+  approved: []
+};
+
+function workOrderDate(value) {
+  const text = cleanString(value, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return "";
+  const date = new Date(`${text}T00:00:00.000Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === text ? text : "";
+}
+
+function validatedWorkOrderAssignees(db, companyId, value) {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 20) {
+    const error = new Error("Escolha entre 1 e 20 pessoas para a ordem.");
+    error.status = 400;
+    throw error;
+  }
+  const ids = [...new Set(value.map((item) => cleanString(item, 80)))];
+  if (ids.length !== value.length || ids.some((id) => !id)) {
+    const error = new Error("A equipa atribuída contém identificadores inválidos ou repetidos.");
+    error.status = 400;
+    throw error;
+  }
+  for (const id of ids) {
+    const user = db.users.find((item) => item.id === id && item.active !== false);
+    const sameCompany = user?.companyId === companyId && ["employee", "contractor"].includes(user.role);
+    const verifiedWorker = user?.role === "worker" && Boolean(verifiedTaskEmployment(db, companyId, id));
+    if (!sameCompany && !verifiedWorker) {
+      const error = new Error("Só é possível atribuir membros da empresa ou trabalhadores com vínculo verificado.");
+      error.status = 403;
+      throw error;
+    }
+  }
+  return ids;
+}
+
 function canAccessTask(auth, task, db) {
   if (!task) return false;
   if (auth.user.role === "worker") {
@@ -1365,12 +1425,15 @@ function canAccessTask(auth, task, db) {
 function canAccessWorkOrder(auth, db, order) {
   if (!order) return false;
   if (auth.user.role === "worker") {
-    return db.tasks.some((task) => task.workOrderId === order.id && canAccessTask(auth, task, db));
+    return (Array.isArray(order.assignedUserIds) && order.assignedUserIds.includes(auth.user.id) &&
+      Boolean(verifiedTaskEmployment(db, order.companyId, auth.user.id))) ||
+      db.tasks.some((task) => task.workOrderId === order.id && canAccessTask(auth, task, db));
   }
   if (order.companyId !== auth.company.id) return false;
   if (isCompanyAdmin(auth.user)) return true;
   if (!isOperationalUser(auth.user)) return false;
-  return db.tasks.some((task) => task.workOrderId === order.id && task.assigneeId === auth.user.id);
+  return (Array.isArray(order.assignedUserIds) && order.assignedUserIds.includes(auth.user.id)) ||
+    db.tasks.some((task) => task.workOrderId === order.id && task.assigneeId === auth.user.id);
 }
 
 function taskScopedAuth(auth, task) {
@@ -1451,7 +1514,7 @@ function buildBootstrap(db, auth) {
   if (isManager) {
     workOrders = db.workOrders.filter((order) => order.companyId === auth.company.id);
   } else {
-    workOrders = db.workOrders.filter((order) => workOrderIds.has(order.id));
+    workOrders = db.workOrders.filter((order) => workOrderIds.has(order.id) || canAccessWorkOrder(auth, db, order));
   }
 
   const visibleOrderIds = new Set(workOrders.map((order) => order.id));
@@ -1506,7 +1569,7 @@ function buildBootstrap(db, auth) {
     user: publicUser(auth.user),
     company: publicCompany(auth.company),
     users: isManager ? companyUsers : companyUsers.filter((user) => user.id === auth.user.id),
-    workOrders: workOrders.map(publicWorkOrder).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    workOrders: workOrders.map((order) => publicWorkOrder(order, auth)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     tasks: tasks.map(publicTask).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     evidences: evidences.map(publicEvidence).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     auditLogs: logs.slice(0, 250),
@@ -3371,17 +3434,27 @@ async function handleApi(req, res, pathname) {
       const title = cleanString(body.title, 180);
       const address = cleanString(body.address, 240);
       const description = cleanString(body.description, 2000);
-      if (!title || !address) {
-        const error = new Error("Work order title and address are required.");
+      const expectedStartDate = workOrderDate(body.expectedStartDate);
+      const expectedEndDate = workOrderDate(body.expectedEndDate);
+      if (!title || !address || !description || !expectedStartDate || !expectedEndDate || expectedEndDate < expectedStartDate) {
+        const error = new Error("Indique título, morada, descrição breve e datas previstas válidas, com o fim igual ou posterior ao início.");
         error.status = 400;
         throw error;
       }
+      const assignedUserIds = validatedWorkOrderAssignees(db, auth.company.id, body.assignedUserIds);
       const order = {
         id: nextId(db, "workOrders", "wo"),
         companyId: auth.company.id,
         title,
         address,
         description,
+        assignedUserIds,
+        expectedStartDate,
+        expectedEndDate,
+        status: "planned",
+        statusReason: "",
+        actualStartedAt: null,
+        actualCompletedAt: null,
         createdBy: auth.user.id,
         createdAt: now(),
         updatedAt: now()
@@ -3396,10 +3469,45 @@ async function handleApi(req, res, pathname) {
           req
         });
       }
-      audit(db, auth, "work_order", order.id, "work_order.created", { title, address }, req);
+      audit(db, auth, "work_order", order.id, "work_order.created", { title, address, assignedUserIds, expectedStartDate, expectedEndDate }, req);
       return { workOrder: publicWorkOrder(order), bootstrap: buildBootstrap(db, auth) };
     });
     sendJson(res, 201, result);
+    return;
+  }
+
+  const workOrderStatusMatch = pathname.match(/^\/api\/work-orders\/([^/]+)\/status$/);
+  if (req.method === "PATCH" && workOrderStatusMatch) {
+    const orderId = decodeURIComponent(workOrderStatusMatch[1]);
+    const body = await readBody(req);
+    const result = await mutateDb((db) => {
+      const auth = requireAuth(db, req);
+      requireManager(auth);
+      const order = db.workOrders.find((item) => item.id === orderId);
+      assertSameCompany(auth, order);
+      const currentStatus = WORK_ORDER_STATUSES.has(order.status) ? order.status : "planned";
+      const nextStatus = cleanString(body.status, 40);
+      if (!WORK_ORDER_NEXT_STATUSES[currentStatus].includes(nextStatus)) {
+        const error = new Error("Esta mudança de estado da ordem não é permitida.");
+        error.status = 400;
+        throw error;
+      }
+      const reason = cleanString(body.reason, 1000);
+      if (["blocked", "rejected"].includes(nextStatus) && !reason) {
+        const error = new Error("Indique a razão do contratempo ou da rejeição.");
+        error.status = 400;
+        throw error;
+      }
+      order.status = nextStatus;
+      order.statusReason = ["blocked", "rejected"].includes(nextStatus) ? reason : "";
+      if (nextStatus === "in_progress" && !order.actualStartedAt) order.actualStartedAt = now();
+      if (nextStatus === "pending_validation") order.actualCompletedAt = now();
+      if (nextStatus === "rejected") order.actualCompletedAt = null;
+      order.updatedAt = now();
+      audit(db, auth, "work_order", order.id, "work_order.status_changed", { from: currentStatus, to: nextStatus, reason }, req);
+      return { workOrder: publicWorkOrder(order), bootstrap: buildBootstrap(db, auth) };
+    });
+    sendJson(res, 200, result);
     return;
   }
 
@@ -3481,9 +3589,20 @@ async function handleApi(req, res, pathname) {
         rejectedAt: null
       };
       db.tasks.push(task);
+      if (!Array.isArray(workOrder.assignedUserIds)) workOrder.assignedUserIds = [];
+      if (!workOrder.assignedUserIds.includes(assignee.id)) {
+        if (workOrder.assignedUserIds.length >= 20) {
+          const error = new Error("A ordem já tem o limite de 20 pessoas atribuídas.");
+          error.status = 400;
+          throw error;
+        }
+        workOrder.assignedUserIds.push(assignee.id);
+        audit(db, auth, "work_order", workOrder.id, "work_order.team_extended", { assigneeId: assignee.id, taskId: task.id }, req);
+      }
       workOrder.updatedAt = now();
       audit(db, auth, "task", task.id, "task.created", {
         title,
+        workOrderId: workOrder.id,
         assigneeId: assignee.id,
         employmentId: employment?.id || null,
         scheduledStartAt,
@@ -3738,7 +3857,7 @@ async function handleApi(req, res, pathname) {
         exportedAt: now(),
         company: publicCompany(auth.company),
         users: db.users.filter((item) => item.companyId === companyId).map(publicUser),
-        workOrders: db.workOrders.filter((item) => item.companyId === companyId).map(publicWorkOrder),
+        workOrders: db.workOrders.filter((item) => item.companyId === companyId).map((order) => publicWorkOrder(order)),
         tasks: db.tasks.filter((item) => item.companyId === companyId).map(publicTask),
         evidences: db.evidences.filter((item) => item.companyId === companyId).map(publicEvidence),
         auditLogs: db.auditLogs.filter((item) => item.companyId === companyId),
