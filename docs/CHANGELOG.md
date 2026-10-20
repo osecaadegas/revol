@@ -2,6 +2,10 @@
 
 ## 2026-10-20
 
+- A categoria inteira «Tarefas» pisca alternadamente a vermelho e azul
+  enquanto a empresa tiver contratempos ativos, incluindo no menu móvel. O
+  aviso usa o estado real dos alertas, cessa quando estes são resolvidos e
+  mantém um destaque vermelho estático se o utilizador reduzir movimento.
 - As ordens podem agora ser criadas juntamente com uma tarefa, equipa,
   início, prazo e morada. A operação gera uma tarefa individual por membro;
   coordenadas fixas da obra são opcionais. O trabalhador com vínculo ativo

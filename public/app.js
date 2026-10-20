@@ -566,6 +566,9 @@
       badge.textContent = count ? String(count) : "";
       badge.setAttribute("aria-label", `${count} contratempo${count === 1 ? "" : "s"} ativo${count === 1 ? "" : "s"}`);
     });
+    document.querySelectorAll("[data-operational-alert-target]").forEach((button) => {
+      button.classList.toggle("operational-siren", count > 0);
+    });
     document.querySelector(".mobile-workspace-menu")?.classList.toggle("has-operational-alert", count > 0);
     document.title = count
       ? `⚠ ${count} contratempo${count === 1 ? "" : "s"} · TrataPro`
@@ -1577,7 +1580,7 @@
           })
           .map(
             ([view, label]) => `
-              <button type="button" data-view="${view}" class="${state.view === view ? "active" : ""}">
+              <button type="button" data-view="${view}" ${view === "tasks" && isManager() ? "data-operational-alert-target" : ""} class="${state.view === view ? "active" : ""} ${view === "tasks" && operationalAlertCount() ? "operational-siren" : ""}">
                 ${icon(({project:"folder",mvp:"layout-dashboard",dashboard:"layout-dashboard",orders:"folder",tasks:"clipboard-list",team:"users",history:"history"})[view] || "briefcase-business")}<span>${label}</span><span>${view === "tasks" ? state.data.tasks.length : ""}</span>${view === "tasks" && isManager() ? renderOperationalAlertBadge() : ""}
               </button>
             `
@@ -1603,7 +1606,7 @@
           })
           .map(
             ([view, label]) => `
-              <button type="button" data-view="${view}" class="${state.view === view ? "active" : ""}">${label}${view === "tasks" && isManager() ? renderOperationalAlertBadge() : ""}</button>
+              <button type="button" data-view="${view}" ${view === "tasks" && isManager() ? "data-operational-alert-target" : ""} class="${state.view === view ? "active" : ""} ${view === "tasks" && operationalAlertCount() ? "operational-siren" : ""}">${label}${view === "tasks" && isManager() ? renderOperationalAlertBadge() : ""}</button>
             `
           )
           .join("")}

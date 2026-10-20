@@ -2363,6 +2363,35 @@ td span:not(.status-badge) {
 .mobile-workspace-menu.has-operational-alert[open] > summary { color: white; background: var(--danger); }
 .mobile-workspace-menu.has-operational-alert > summary .operational-alert-badge { color: var(--danger); background: white; }
 
+/* A whole navigation category signals an unresolved operational setback. */
+@keyframes operational-siren {
+  0%, 49% { color: #fff; background-color: #a71919; }
+  50%, 100% { color: #fff; background-color: #164b91; }
+}
+.sidebar .nav button.operational-siren,
+.sidebar .nav button.operational-siren:hover,
+.mobile-workspace-menu .mobile-nav button.operational-siren,
+.mobile-workspace-menu .mobile-nav button.operational-siren:hover,
+.mobile-workspace-menu.has-operational-alert > summary,
+.mobile-workspace-menu.has-operational-alert[open] > summary {
+  color: #fff;
+  animation: operational-siren 2s steps(1, end) infinite;
+}
+.operational-siren .operational-alert-badge,
+.mobile-workspace-menu.has-operational-alert > summary .operational-alert-badge {
+  color: #111;
+  background: #fff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar .nav button.operational-siren,
+  .mobile-workspace-menu .mobile-nav button.operational-siren,
+  .mobile-workspace-menu.has-operational-alert > summary {
+    animation: none;
+    color: #fff;
+    background: #a71919;
+  }
+}
+
 @media (max-width: 640px) {
   .operational-alert, .company-operational-notice { grid-template-columns: 1fr; }
   .operational-alert .btn, .company-operational-notice .btn { width: 100%; }
@@ -4124,4 +4153,11 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
   .order-task-plan { padding: 12px; }
   .worker-shift-card { flex-direction: column; align-items: stretch; }
   .worker-shift-card .btn { min-height: 48px; width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-workspace-menu.has-operational-alert[open] > summary {
+    color: #fff;
+    background: #a71919;
+  }
 }

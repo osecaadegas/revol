@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v17-priority-alert";
+const CACHE_NAME = "tratapro-shell-v18-contratempo-siren";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
