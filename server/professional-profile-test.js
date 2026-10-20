@@ -266,6 +266,7 @@ async function run() {
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),"narrow worker navigation has no horizontal page overflow");
       await workerMenu.locator('[data-recruitment="tab"][data-id="tasks"]').click();
       await workerMenu.locator('[data-recruitment="tab"][data-id="tasks"][aria-current="page"]').waitFor({state:"attached"});
+      await page.locator('.main-layout .worker-quick-nav [data-id="tasks"].task-attention-active').waitFor();
       assert.match(await workerMenu.locator('summary').textContent(),/Menu/,"the full navigation is available from the top bar");
       assert.equal(await page.locator('.worker-quick-nav [data-id="tasks"]').getAttribute('aria-current'),"page","the active shortcut is identified");
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -371,9 +372,12 @@ async function run() {
       await request(`/api/tasks/${plannedTask.id}/resolve-setback`,"POST",{ resolution:workerSetbackResolution },ct);
       await page.evaluate(() => window.dispatchEvent(new Event("focus")));
       await page.locator(".setback-resolution-alert").waitFor();
+      await page.locator('.main-layout .worker-quick-nav [data-id="tasks"].task-attention-resolved').waitFor();
       assert.match(await page.locator(".setback-resolution-alert").textContent(),/Preparar linha.*material chegou.*prosseguir/i,"the worker receives the company resolution while the task page is open");
-      await page.locator(".setback-resolution-alert [data-setback-task]").click();
+      await page.locator('.main-layout .worker-quick-nav [data-id="tasks"]').click();
       await page.locator(".setback-resolution-alert").waitFor({ state:"detached" });
+      await page.locator('.main-layout .worker-quick-nav [data-id="tasks"]:not(.task-attention-active):not(.task-attention-resolved)').waitFor();
+      await page.locator(`[data-open-task="${plannedTask.id}"]`).first().click();
       await page.locator("[data-drawer-panel] .notice.success").filter({ hasText:workerSetbackResolution }).waitFor();
       assert.deepEqual(errors,[],"Professional dashboard browser errors");
       await context.close();

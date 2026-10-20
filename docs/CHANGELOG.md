@@ -2,6 +2,11 @@
 
 ## 2026-10-20
 
+- No espaço do trabalhador, o botão «Tarefas» fica vermelho enquanto existir
+  um contratempo ativo. Quando a empresa o resolve, passa a verde para avisar
+  que o trabalho pode continuar; ao abrir Tarefas, o aviso fica confirmado e
+  o botão recupera a cor normal. O estado é atualizado automaticamente e a
+  confirmação fica guardada apenas no navegador do trabalhador.
 - Reduzidos pedidos em série no arranque autenticado e nas conversas diretas:
   o mural público só carrega quando necessário e as respostas existentes da
   API alimentam a lista após leitura/envio. Os ficheiros JavaScript/CSS

@@ -32,7 +32,10 @@
       const symbols = {home:"user-round",jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",orders:"folder",tasks:"clipboard-list",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"mail",chat:"message-circle",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
       const pendingCount = pendingEmploymentRequests().length;
       const activeTasks = (h.state.data.tasks || []).filter(item => ["assigned", "in_progress", "blocked"].includes(item.status)).length;
-      return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ghost" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span>${id === "employment" && pendingCount ? `<span class="nav-alert-count" aria-label="${pendingCount} vinculo pendente">${pendingCount}</span>` : id === "tasks" && activeTasks ? `<span class="nav-alert-count" aria-label="${activeTasks} tarefas ativas">${activeTasks}</span>` : id === "chat" && chat.unreadCount() ? `<span class="nav-alert-count" aria-label="${chat.unreadCount()} mensagens não lidas">${chat.unreadCount()}</span>` : ""}</button>`).join("")}</nav>`;
+      return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => {
+        const attention = id === "tasks" ? taskAttentionState() : "";
+        return `<button class="btn ghost${attention ? ` task-attention-${attention}` : ""}" data-recruitment="tab" data-id="${id}" ${id === "tasks" ? `data-worker-task-attention aria-label="${taskAttentionLabel(attention)}"` : ""} aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span>${id === "employment" && pendingCount ? `<span class="nav-alert-count" aria-label="${pendingCount} vinculo pendente">${pendingCount}</span>` : id === "tasks" && activeTasks ? `<span class="nav-alert-count" aria-label="${activeTasks} tarefas ativas">${activeTasks}</span>` : id === "chat" && chat.unreadCount() ? `<span class="nav-alert-count" aria-label="${chat.unreadCount()} mensagens não lidas">${chat.unreadCount()}</span>` : ""}</button>`;
+      }).join("")}</nav>`;
     }
     function mobileTabs() {
       const label = tabItems().find(([id]) => id === tab)?.[1] || "Vagas";
@@ -43,7 +46,10 @@
       if (!h.isWorker()) return "";
       const profileTab = activeEmployments().length ? "home" : "profile";
       const items = [[profileTab, "Perfil", "user-round"], ["tasks", "Tarefas", "clipboard-list"], ["chat", "Conversas", "message-square"]];
-      return `<nav class="worker-quick-nav" aria-label="Acesso rápido">${items.map(([id, label, symbol]) => `<button type="button" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbol)}<span>${label}</span>${id === "chat" && chat.unreadCount() ? `<span class="nav-alert-count" aria-label="${chat.unreadCount()} mensagens não lidas">${chat.unreadCount()}</span>` : ""}</button>`).join("")}</nav>`;
+      return `<nav class="worker-quick-nav" aria-label="Acesso rápido">${items.map(([id, label, symbol]) => {
+        const attention = id === "tasks" ? taskAttentionState() : "";
+        return `<button type="button" data-recruitment="tab" data-id="${id}" ${id === "tasks" ? `data-worker-task-attention aria-label="${taskAttentionLabel(attention)}"` : ""} class="${attention ? `task-attention-${attention}` : ""}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbol)}<span>${label}</span>${id === "chat" && chat.unreadCount() ? `<span class="nav-alert-count" aria-label="${chat.unreadCount()} mensagens não lidas">${chat.unreadCount()}</span>` : ""}</button>`;
+      }).join("")}</nav>`;
     }
 
     function employmentAlert() {
@@ -53,6 +59,14 @@
       return `<section class="employment-confirmation-alert" role="status" aria-live="polite"><div>${icon("bell")}<div><strong>${pending.length === 1 ? "Tem um vínculo de emprego por confirmar" : `Tem ${pending.length} vínculos de emprego por confirmar`}</strong><p>${e(first.companyName)} registou ${e(first.position)}. Confirme ou recuse os dados no seu percurso profissional.</p></div></div><button type="button" class="btn primary" data-recruitment="open-employment">Ver pedido</button></section>`;
     }
     const setbackSeenKey = task => `tratapro_setback_seen:${h.state.data.user.id}:${task.id}`;
+    function taskAttentionState() {
+      if (!h.isWorker()) return "";
+      if ((h.state.data.tasks || []).some(task => task.status === "blocked")) return "active";
+      return resolvedSetbackAlerts().length ? "resolved" : "";
+    }
+    const taskAttentionLabel = attention => attention === "active"
+      ? "Tarefas — contratempo ativo"
+      : attention === "resolved" ? "Tarefas — contratempo resolvido" : "Tarefas";
     function resolvedSetbackAlerts() {
       if (!h.isWorker()) return [];
       return (h.state.data.tasks || []).filter(task => {
@@ -72,6 +86,17 @@
       if (!task?.lastSetbackResolution?.resolvedAt) return;
       try { localStorage.setItem(setbackSeenKey(task), task.lastSetbackResolution.resolvedAt); }
       catch { /* O aviso permanece visível se o armazenamento local estiver indisponível. */ }
+    }
+    function acknowledgeResolvedSetbacks() {
+      resolvedSetbackAlerts().forEach(task => acknowledgeSetback(task.id));
+    }
+    function syncTaskAttention() {
+      const attention = taskAttentionState();
+      document.querySelectorAll("[data-worker-task-attention]").forEach(button => {
+        button.classList.toggle("task-attention-active", attention === "active");
+        button.classList.toggle("task-attention-resolved", attention === "resolved");
+        button.setAttribute("aria-label", taskAttentionLabel(attention));
+      });
     }
     function preferences() {
       const p = h.state.data.user.profile.workerCv?.preferences || {};
@@ -238,6 +263,7 @@
             h.state.view = "marketplace";
             tab = id; if (id === "create") h.state.editJobId = null;
             if (id !== "home") justificationOpen = false;
+            if (id === "tasks") acknowledgeResolvedSetbacks();
             if (id === "chat") await chat.load(undefined,{ useSnapshot:true });
             if (id === "applications" && !h.isWorker()) for (const application of h.state.data.jobApplications.filter(a => !a.recruitment?.viewedAt)) await send("application-view", "POST", { id: application.id });
           }
@@ -342,7 +368,7 @@
     function report(job) {
       return `<details><summary>Denunciar vaga</summary><form class="form-grid" data-recruitment-form="report"><input type="hidden" name="jobId" value="${e(job.id)}">${select("reason", "Motivo", [["fake", "Empresa falsa"], ["fraud", "Fraude"], ["salary", "Salario enganador"], ["discrimination", "Discriminacao"], ["money", "Pedido de dinheiro"], ["closed", "Vaga indisponivel"], ["spam", "Spam"], ["other", "Outro"]])}${area("detail", "Detalhes")}<button class="btn ghost">Enviar denuncia</button></form></details>`;
     }
-    return { tabs, mobileTabs, quickTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, setbackResolutionAlert, acknowledgeSetback, reset: () => { tab = "jobs"; justificationOpen = false; selectedAttendanceTaskId = ""; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
+    return { tabs, mobileTabs, quickTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, setbackResolutionAlert, acknowledgeSetback, acknowledgeResolvedSetbacks, taskAttentionState, syncTaskAttention, reset: () => { tab = "jobs"; justificationOpen = false; selectedAttendanceTaskId = ""; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
       notifications: () => {
         const recruitmentNotifications = r().notifications || [], employmentRequests = pendingEmploymentRequests();
         const count = recruitmentNotifications.length + employmentRequests.length;

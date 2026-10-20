@@ -624,6 +624,7 @@
             slot.innerHTML = recruitmentUI.setbackResolutionAlert();
             slot.querySelectorAll("[data-open-task]").forEach(bindOpenTaskButton);
           }
+          recruitmentUI.syncTaskAttention();
         }
       }
     } catch {

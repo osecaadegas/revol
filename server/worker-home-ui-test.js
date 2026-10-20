@@ -71,6 +71,15 @@ ui.acknowledgeSetback(task.id);
 assert.equal(ui.setbackResolutionAlert(), "", "abrir a tarefa dispensa o aviso desta resolução");
 task.lastSetbackResolution = { text: "Novo material entregue.", resolvedAt: "2026-10-21T10:00:00Z" };
 assert.match(ui.setbackResolutionAlert(), /Novo material entregue/);
+assert.match(ui.quickTabs(), /data-id="tasks"[^>]*task-attention-resolved|task-attention-resolved[^>]*data-id="tasks"/, "a resolução ainda não vista destaca Tarefas a verde");
+assert.equal(ui.taskAttentionState(), "resolved");
+ui.acknowledgeResolvedSetbacks();
+assert.equal(ui.taskAttentionState(), "", "consultar Tarefas limpa o destaque verde");
+assert.doesNotMatch(ui.quickTabs(), /task-attention-(?:active|resolved)/);
+task.status = "blocked";
+assert.equal(ui.taskAttentionState(), "active");
+assert.match(ui.quickTabs(), /data-id="tasks"[^>]*task-attention-active|task-attention-active[^>]*data-id="tasks"/, "um contratempo ativo destaca Tarefas a vermelho");
+task.status = "in_progress";
 
 ui.bind();
 toggle.click();

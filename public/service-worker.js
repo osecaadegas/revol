@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v25-response-time";
+const CACHE_NAME = "tratapro-shell-v26-worker-task-status";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

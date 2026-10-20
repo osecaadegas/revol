@@ -4203,6 +4203,10 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
   .worker-quick-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 25; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; padding: 6px max(8px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)); border-top: 2px solid var(--text-primary); background: var(--surface-primary); box-shadow: 0 -3px 14px rgba(0,0,0,.12); }
   .worker-quick-nav button { position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 3px; min-width: 0; min-height: 54px; border: 1px solid var(--border-subtle); padding: 5px 2px; color: var(--text-primary); background: var(--bg-secondary); font: 700 10px "Courier New", monospace; text-transform: uppercase; cursor: pointer; }
   .worker-quick-nav button[aria-current="page"] { border-color: var(--text-primary); background: var(--brand-primary); }
+  .worker-quick-nav button.task-attention-active,
+  .worker-mobile-menu .recruitment-tabs .btn.task-attention-active { border-color: #8f1f12; color: white; background: #c4301c; }
+  .worker-quick-nav button.task-attention-resolved,
+  .worker-mobile-menu .recruitment-tabs .btn.task-attention-resolved { border-color: #1f5f38; color: white; background: #2f7a4a; }
   .worker-quick-nav button:focus-visible, .worker-mobile-menu > summary:focus-visible { outline: 3px solid var(--text-primary); outline-offset: 2px; }
   .worker-quick-nav .nav-alert-count { position: absolute; top: 2px; right: 2px; }
   .content:has(.worker-quick-nav) { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
