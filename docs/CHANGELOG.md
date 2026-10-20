@@ -2,6 +2,11 @@
 
 ## 2026-10-20
 
+- No telemóvel, a navegação do trabalhador passa para um menu no topo e uma
+  barra fixa com Perfil, Tarefas e Conversas; as outras áreas e a saída ficam
+  no menu, fechado por defeito. O histórico no detalhe da tarefa também fica
+  recolhido por defeito e apresenta acontecimentos em linguagem legível, sem
+  IDs internos nem nomes de campos técnicos. Sem alteração de dados ou API.
 - O Perfil do trabalhador explica a entrada e saída em linguagem simples. Após
   a empresa resolver um contratempo, o trabalhador recebe um aviso contextual
   com acesso direto à tarefa; a página verifica o estado enquanto o trabalhador

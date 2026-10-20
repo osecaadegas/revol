@@ -1575,7 +1575,7 @@
           </div>
         </aside>
         <main class="content" id="main-content" tabindex="-1">
-          <div class="topbar">
+          <div class="topbar ${isWorker() ? "worker-topbar" : ""}">
             <div class="side-brand" style="color: var(--ink)">
               <img class="brand-logo-mark" src="/icon.svg" alt="">
               <div>
@@ -1583,12 +1583,14 @@
                 <span style="color: var(--muted)">${escapeHtml(state.data.company.name)}</span>
               </div>
             </div>
-            <button class="btn ghost" data-action="logout">Sair</button>
+            ${isWorker() ? recruitmentUI.mobileTabs() : ""}
+            <button class="btn ghost topbar-logout" data-action="logout">Sair</button>
           </div>
-          <div data-mobile-recruitment-navigation>${isWorker() || isManager() ? recruitmentUI.mobileTabs() : ""}</div>
+          ${isManager() ? `<div data-mobile-recruitment-navigation>${recruitmentUI.mobileTabs()}</div>` : ""}
           ${noticeHtml()}
           <div data-operational-notice aria-live="assertive">${renderOperationalNotice()}</div>
           ${renderView()}
+          ${isWorker() ? recruitmentUI.quickTabs() : ""}
         </main>
       </div>
       ${renderMobileNav()}
@@ -2704,6 +2706,38 @@
     `;
   }
 
+  function renderTaskHistoryCard(log) {
+    const detail = log.detail || {};
+    const titles = {
+      "task.created": "Tarefa criada",
+      "task.status_changed": "Estado da tarefa alterado",
+      "task.setback_resolved": "Contratempo resolvido",
+      "task.validation_reminder": "Lembrete de validação",
+      "task.approved": "Tarefa aprovada",
+      "task.auto_approved": "Tarefa aprovada automaticamente",
+      "task.rejected": "Tarefa rejeitada",
+      "evidence.created": "Fotografia enviada",
+      "evidence.retention_deleted": "Fotografia eliminada após o prazo de conservação",
+      "evidence.watermarked_downloaded": "Fotografia descarregada"
+    };
+    const taskStates = { planned: "Planeada", assigned: "Atribuída", in_progress: "Em execução", blocked: "Com contratempo", pending_validation: "A aguardar validação", approved: "Aprovada", rejected: "Rejeitada" };
+    const description = [];
+    if (log.action === "task.created") {
+      if (detail.scheduledStartAt) description.push(`Início previsto: ${formatDate(detail.scheduledStartAt)}`);
+      if (detail.dueDate) description.push(`Prazo: ${formatDate(detail.dueDate)}`);
+      if (detail.workAddress) description.push(`Local: ${detail.workAddress}`);
+    } else if (log.action === "task.status_changed") {
+      if (detail.status) description.push(`Novo estado: ${taskStates[detail.status] || "Atualizado"}`);
+      if (detail.blockReason) description.push(`Motivo do contratempo: ${detail.blockReason}`);
+    } else if (log.action === "task.setback_resolved") {
+      if (detail.reportedReason) description.push(`Motivo comunicado: ${detail.reportedReason}`);
+      if (detail.resolution) description.push(`Resolução: ${detail.resolution}`);
+    } else if (detail.reason) {
+      description.push(`Motivo: ${detail.reason}`);
+    }
+    return `<article class="task-history-entry"><strong>${escapeHtml(titles[log.action] || "Atualização da tarefa")}</strong><small>${escapeHtml(log.actorName || "Sistema")} · ${formatDate(log.createdAt)}</small>${description.map(item => `<p>${escapeHtml(item)}</p>`).join("")}</article>`;
+  }
+
   function actionLabel(action) {
     const labels = {
       "setup.completed": "Ambiente criado",
@@ -2776,12 +2810,12 @@
               ${evidence.length ? evidence.map(renderEvidenceCard).join("") : empty("Sem fotografias submetidas.")}
             </div>
           </div>
-          <div class="panel">
-            <div class="panel-header"><h2>Historico da tarefa</h2></div>
-            <div class="list">
-              ${logs.length ? logs.map(renderHistoryCard).join("") : empty("Sem historico nesta tarefa.")}
+          <details class="task-history-disclosure">
+            <summary>Ver histórico da tarefa${logs.length ? ` (${logs.length})` : ""}</summary>
+            <div class="task-history-list">
+              ${logs.length ? logs.map(renderTaskHistoryCard).join("") : empty("Ainda não há acontecimentos registados nesta tarefa.")}
             </div>
-          </div>
+          </details>
         </aside>
       </div>
     `;

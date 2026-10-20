@@ -4176,3 +4176,33 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
     background: #a71919;
   }
 }
+
+/* A task's audit trail is available on demand, without crowding the actions. */
+.task-history-disclosure { margin-top: 16px; border: 1px solid var(--text-primary); background: var(--surface-primary); }
+.task-history-disclosure > summary { padding: 13px 16px; font-family: "Courier New", monospace; font-size: 12px; text-transform: uppercase; }
+.task-history-list { display: grid; gap: 0; border-top: 1px solid var(--border-subtle); }
+.task-history-entry { display: grid; gap: 5px; padding: 14px 16px; min-width: 0; }
+.task-history-entry + .task-history-entry { border-top: 1px solid var(--border-subtle); }
+.task-history-entry small { color: var(--text-secondary); }
+.task-history-entry p { margin: 0; overflow-wrap: anywhere; }
+
+.worker-mobile-menu, .worker-quick-nav { display: none; }
+@media (max-width: 980px) {
+  .worker-topbar .topbar-logout { display: none; }
+  .worker-topbar .worker-mobile-menu { display: block; flex: 0 0 auto; position: relative; border: 0; background: transparent; }
+  .worker-mobile-menu > summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 58px; min-height: 48px; padding: 7px 10px; border: 1px solid var(--text-primary); font-family: "Courier New", monospace; font-size: 11px; text-transform: uppercase; }
+  .worker-mobile-menu > summary::after { display: none; }
+  .worker-mobile-menu[open] > summary { background: var(--brand-primary); }
+  .worker-menu-icon { display: grid; gap: 3px; width: 16px; }
+  .worker-menu-icon i { display: block; height: 2px; background: currentColor; }
+  .worker-mobile-menu-content { position: absolute; top: calc(100% + 9px); right: 0; z-index: 30; width: min(320px, calc(100vw - 24px)); border: 1px solid var(--text-primary); background: var(--surface-primary); box-shadow: 5px 5px 0 var(--text-primary); }
+  .worker-mobile-menu .recruitment-tabs { display: grid; grid-template-columns: minmax(0,1fr); gap: 2px; max-height: min(66dvh, 540px); margin: 0; padding: 8px; overflow-y: auto; border-top: 0; }
+  .worker-mobile-menu .recruitment-tabs .btn { min-height: 44px; }
+  .worker-mobile-logout { display: flex; align-items: center; gap: 8px; width: calc(100% - 16px); min-height: 44px; margin: 0 8px 8px; text-align: left; }
+  .worker-quick-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 25; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; padding: 6px max(8px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)); border-top: 2px solid var(--text-primary); background: var(--surface-primary); box-shadow: 0 -3px 14px rgba(0,0,0,.12); }
+  .worker-quick-nav button { position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 3px; min-width: 0; min-height: 54px; border: 1px solid var(--border-subtle); padding: 5px 2px; color: var(--text-primary); background: var(--bg-secondary); font: 700 10px "Courier New", monospace; text-transform: uppercase; cursor: pointer; }
+  .worker-quick-nav button[aria-current="page"] { border-color: var(--text-primary); background: var(--brand-primary); }
+  .worker-quick-nav button:focus-visible, .worker-mobile-menu > summary:focus-visible { outline: 3px solid var(--text-primary); outline-offset: 2px; }
+  .worker-quick-nav .nav-alert-count { position: absolute; top: 2px; right: 2px; }
+  .content:has(.worker-quick-nav) { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+}

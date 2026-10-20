@@ -23,7 +23,7 @@
       const items = h.isWorker() ? [...(activeEmployments().length ? [["home", "Perfil"]] : []), ["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Correspondência"], ["chat", "Conversas"], ["settings", "Privacidade"]]
         : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Correspondência"], ["chat", "Conversas"]];
       if (h.isWorker() && h.state.data.workOrders?.length) items.splice(4, 0, ["orders", "Ordens"]);
-      if (h.isWorker() && h.state.data.tasks?.length) items.splice(4, 0, ["tasks", "Tarefas"]);
+      if (h.isWorker() && (h.state.data.tasks?.length || activeEmployments().length)) items.splice(4, 0, ["tasks", "Tarefas"]);
       if (r().platformAdmin) items.push(["admin", "Administracao"]);
       return items;
     }
@@ -36,7 +36,13 @@
     }
     function mobileTabs() {
       const label = tabItems().find(([id]) => id === tab)?.[1] || "Vagas";
-      return `<details class="mobile-recruitment-menu"><summary>${icon("menu")}<span>${h.state.view === "marketplace" ? `Área atual: <strong>${e(label)}</strong>` : "Áreas de recrutamento"}</span></summary>${tabs()}</details>`;
+      if (h.isWorker()) return `<details class="mobile-recruitment-menu worker-mobile-menu"><summary aria-label="Menu de navegação"><span class="worker-menu-icon" aria-hidden="true"><i></i><i></i><i></i></span><span>Menu</span></summary><div class="worker-mobile-menu-content">${tabs()}<button class="btn ghost worker-mobile-logout" type="button" data-action="logout">${icon("log-out")}<span>Sair</span></button></div></details>`;
+      return `<details class="mobile-recruitment-menu"><summary><span>${h.state.view === "marketplace" ? `Área atual: <strong>${e(label)}</strong>` : "Áreas de recrutamento"}</span></summary>${tabs()}</details>`;
+    }
+    function quickTabs() {
+      if (!h.isWorker() || !activeEmployments().length) return "";
+      const items = [["home", "Perfil", "user-round"], ["tasks", "Tarefas", "clipboard-list"], ["chat", "Conversas", "message-square"]];
+      return `<nav class="worker-quick-nav" aria-label="Acesso rápido">${items.map(([id, label, symbol]) => `<button type="button" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbol)}<span>${label}</span>${id === "chat" && chat.unreadCount() ? `<span class="nav-alert-count" aria-label="${chat.unreadCount()} mensagens não lidas">${chat.unreadCount()}</span>` : ""}</button>`).join("")}</nav>`;
     }
 
     function employmentAlert() {
@@ -333,7 +339,7 @@
     function report(job) {
       return `<details><summary>Denunciar vaga</summary><form class="form-grid" data-recruitment-form="report"><input type="hidden" name="jobId" value="${e(job.id)}">${select("reason", "Motivo", [["fake", "Empresa falsa"], ["fraud", "Fraude"], ["salary", "Salario enganador"], ["discrimination", "Discriminacao"], ["money", "Pedido de dinheiro"], ["closed", "Vaga indisponivel"], ["spam", "Spam"], ["other", "Outro"]])}${area("detail", "Detalhes")}<button class="btn ghost">Enviar denuncia</button></form></details>`;
     }
-    return { tabs, mobileTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, setbackResolutionAlert, acknowledgeSetback, reset: () => { tab = "jobs"; justificationOpen = false; selectedAttendanceTaskId = ""; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
+    return { tabs, mobileTabs, quickTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, setbackResolutionAlert, acknowledgeSetback, reset: () => { tab = "jobs"; justificationOpen = false; selectedAttendanceTaskId = ""; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
       notifications: () => {
         const recruitmentNotifications = r().notifications || [], employmentRequests = pendingEmploymentRequests();
         const count = recruitmentNotifications.length + employmentRequests.length;
