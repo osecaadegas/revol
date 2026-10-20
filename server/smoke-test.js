@@ -96,7 +96,7 @@ async function run() {
     if (!homeHtml.includes("summary_large_image") || !homeHtml.includes(`${baseUrl}/social-card.svg`)) {
       throw new Error("Home page should expose a large branded social preview image.");
     }
-    if (!homeResponse.headers.get("content-security-policy") || homeResponse.headers.get("x-frame-options") !== "DENY") {
+    if (!homeResponse.headers.get("content-security-policy")?.includes("frame-src https://www.google.com https://maps.google.com") || homeResponse.headers.get("x-frame-options") !== "DENY") {
       throw new Error("Home page should expose baseline security headers.");
     }
 
@@ -322,6 +322,9 @@ async function run() {
       dueDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10)
     }, managerToken);
     const taskId = taskResult.task.id;
+    if (taskResult.task.workAddress !== "Rua de Teste 1" || taskResult.task.workLocation.status !== "not_requested") {
+      throw new Error("Task planning should derive its map from the work address without requiring GPS coordinates.");
+    }
 
     const login = await request(baseUrl, "POST", "/api/auth/login", {
       email: "operador@example.test",

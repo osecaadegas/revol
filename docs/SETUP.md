@@ -21,6 +21,12 @@ production. See `docs/DIGITAL_CV_EMPLOYMENT.md` before enabling the workflows.
 
 The app supports two storage modes:
 
+Task-location previews use the standard Google Maps embed generated from the
+saved work address and require no Google Maps API key. The page CSP permits
+frames only from `www.google.com` and `maps.google.com`. Opening a task with a
+map allows the browser to connect to Google; reflect this third-party processing
+in the production privacy notice as applicable.
+
 - `local`: development/test mode using `data/database.json` and `data/uploads/`.
 - `supabase`: production/test-deployment mode using Supabase Postgres and private Supabase Storage.
 

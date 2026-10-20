@@ -2275,11 +2275,7 @@
           <label>Morada do trabalho</label>
           <input name="workAddress" required maxlength="500" placeholder="Rua, numero, codigo postal e localidade">
         </div>
-        <div class="split-fields task-location-fields">
-          <div class="field"><label>Latitude GPS</label><input name="workLatitude" type="number" min="-90" max="90" step="any" placeholder="Ex: 41.1579"></div>
-          <div class="field"><label>Longitude GPS</label><input name="workLongitude" type="number" min="-180" max="180" step="any" placeholder="Ex: -8.6291"></div>
-        </div>
-        <button class="btn ghost" type="button" data-action="capture-task-location">Usar GPS atual para o local</button>
+        <p class="field-help">Esta morada será apresentada ao trabalhador num mapa Google dentro da tarefa.</p>
         <div class="field">
           <label>Descricao</label>
           <textarea name="description" placeholder="Detalhe do trabalho esperado"></textarea>
@@ -2306,6 +2302,15 @@
     `;
   }
 
+  function renderTaskLocation(task, embedded = false) {
+    if (!task.workAddress) return "";
+    const address = escapeHtml(task.workAddress);
+    const query = encodeURIComponent(task.workAddress);
+    const externalUrl = `https://www.google.com/maps/search/?api=1&amp;query=${query}`;
+    const map = embedded ? `<div class="task-map"><iframe title="Mapa do local de trabalho: ${address}" src="https://www.google.com/maps?q=${query}&amp;output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>` : "";
+    return `<div class="task-work-location"><p>${icon("map-pin")} <strong>Local de trabalho:</strong> ${address}</p>${map}<a class="btn ghost" href="${externalUrl}" target="_blank" rel="noopener noreferrer">Abrir no Google Maps</a></div>`;
+  }
+
   function renderTaskCard(task) {
     const order = orderById(task.workOrderId);
     const evidenceCount = taskEvidence(task.id).length;
@@ -2326,7 +2331,7 @@
         </header>
         ${task.description ? `<p class="muted">${escapeHtml(task.description)}</p>` : ""}
         ${task.planningNotes ? `<p><strong>Notas:</strong> ${escapeHtml(task.planningNotes)}</p>` : ""}
-        ${task.workAddress ? `<p class="task-work-location">${icon("map-pin")} <strong>Local:</strong> ${escapeHtml(task.workAddress)} ${task.workLocation?.status === "granted" ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(`${task.workLocation.latitude},${task.workLocation.longitude}`)}" target="_blank" rel="noopener noreferrer">Abrir no mapa</a>` : ""}</p>` : ""}
+        ${renderTaskLocation(task)}
         <div class="meta-row">
           <span>${acceptedCount}/${finalEvidenceMinimum} provas finais validas</span>
           <span>${evidenceCount} fotos retidas</span>
@@ -2540,7 +2545,7 @@
           </div>
           ${task.description ? `<p class="muted">${escapeHtml(task.description)}</p>` : ""}
           ${task.planningNotes ? `<div class="notice"><strong>Notas de planeamento:</strong> ${escapeHtml(task.planningNotes)}</div>` : ""}
-          ${task.workAddress ? `<p class="task-work-location">${icon("map-pin")} <strong>Local de trabalho:</strong> ${escapeHtml(task.workAddress)} ${task.workLocation?.status === "granted" ? `<a class="btn ghost" href="https://www.google.com/maps?q=${encodeURIComponent(`${task.workLocation.latitude},${task.workLocation.longitude}`)}" target="_blank" rel="noopener noreferrer">Abrir mapa</a>` : ""}</p>` : ""}
+          ${renderTaskLocation(task, true)}
           ${task.blockReason ? `<div class="notice error">Bloqueio: ${escapeHtml(task.blockReason)}</div>` : ""}
           ${task.validationComment ? `<div class="notice success">Decisao: ${escapeHtml(task.validationComment)}</div>` : ""}
           ${renderTaskActions(task)}
@@ -2776,10 +2781,6 @@
     document.querySelectorAll("[data-action='capture-location']").forEach((button) => {
       button.addEventListener("click", captureLocation);
     });
-    document.querySelectorAll("[data-action='capture-task-location']").forEach((button) => {
-      button.addEventListener("click", captureTaskLocation);
-    });
-
     document.querySelectorAll("[data-toggle-user]").forEach((button) => {
       button.addEventListener("click", () => toggleUser(button.dataset.toggleUser));
     });
@@ -2850,13 +2851,7 @@
 
   async function createTask(form) {
     const data = Object.fromEntries(new FormData(form).entries());
-    const latitude = Number(data.workLatitude);
-    const longitude = Number(data.workLongitude);
-    data.workLocation = data.workLatitude !== "" && data.workLongitude !== ""
-      ? { status: "granted", latitude, longitude, capturedAt: new Date().toISOString() }
-      : { status: "not_requested" };
-    delete data.workLatitude;
-    delete data.workLongitude;
+    data.workLocation = { status: "not_requested" };
     const payload = await api("/api/tasks", { method: "POST", body: data });
     state.data = payload.bootstrap;
     state.view = "tasks";
@@ -3105,27 +3100,6 @@
       () => {
         state.locationDraft = { status: "denied" };
         if (status) status.textContent = locationLabel(state.locationDraft);
-      },
-      { enableHighAccuracy: false, timeout: 9000, maximumAge: 0 }
-    );
-  }
-
-  function captureTaskLocation() {
-    const form = document.querySelector('[data-form="create-task"]');
-    if (!form || !navigator.geolocation) {
-      setNotice("O GPS nao esta disponivel neste dispositivo.", "error");
-      renderApp();
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        form.elements.workLatitude.value = position.coords.latitude.toFixed(6);
-        form.elements.workLongitude.value = position.coords.longitude.toFixed(6);
-        setNotice("Coordenadas do local preenchidas. Confirme a morada antes de criar a tarefa.");
-      },
-      () => {
-        setNotice("Nao foi possivel obter o GPS. Pode preencher as coordenadas manualmente.", "error");
-        renderApp();
       },
       { enableHighAccuracy: false, timeout: 9000, maximumAge: 0 }
     );

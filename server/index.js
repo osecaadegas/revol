@@ -95,6 +95,7 @@ const SECURITY_HEADERS = {
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
+    "frame-src https://www.google.com https://maps.google.com",
     "frame-ancestors 'none'",
     "form-action 'self'",
     "img-src 'self' data: blob: https:",

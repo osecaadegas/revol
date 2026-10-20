@@ -102,10 +102,11 @@ async function run() {
     const plannedTask = (await request("/api/tasks","POST",{
       workOrderId:companyOrder.id,title:"Preparar linha",description:"Confirmar equipamento antes do turno.",assigneeId:workerId,
       scheduledStartAt:"2026-11-01T08:00:00.000Z",dueDate:"2026-11-01",planningNotes:"Apresentar-se na portaria principal.",
-      workAddress:"Rua Industrial 10, Braga",workLocation:{ status:"granted",latitude:41.5454,longitude:-8.4265,capturedAt:"2026-10-20T09:00:00.000Z" }
+      workAddress:"Rua Industrial 10, Braga"
     },ct,201)).payload.task;
     assert.equal(plannedTask.employmentId,employment.id,"worker tasks retain the verified relationship that authorises assignment");
-    assert.equal(plannedTask.workLocation.status,"granted");
+    assert.equal(plannedTask.workAddress,"Rua Industrial 10, Braga");
+    assert.equal(plannedTask.workLocation.status,"not_requested","task planning needs only the work address");
     const workerBootstrap = (await request("/api/bootstrap","GET",undefined,wt)).payload;
     assert.ok(workerBootstrap.tasks.some(item => item.id === plannedTask.id),"assigned recruitment workers receive tasks in their own bootstrap");
     assert.ok(workerBootstrap.workOrders.some(item => item.id === companyOrder.id),"the worker sees only the work order needed for the assigned task");
@@ -179,6 +180,11 @@ async function run() {
       const page = await context.newPage(), errors = [];
       page.on("pageerror", error => errors.push(error.message));
       await page.goto(base); await page.evaluate(token => localStorage.setItem("meo_session_token",token),wt); await page.reload();
+      await page.locator('[data-recruitment="tab"][data-id="tasks"]').click();
+      await page.locator('[data-open-task]').first().click();
+      const workMap = page.locator('.task-map iframe'); await workMap.waitFor();
+      assert.ok((await workMap.getAttribute('src')).includes('Rua%20Industrial%2010%2C%20Braga'),"the worker task embeds Google Maps from the stored address");
+      await page.locator('[data-action="close-drawer"]').click();
       await page.locator('[data-recruitment="tab"][data-id="profile"]').click();
       await page.locator('[data-professional-form="cv"]').waitFor();
       for (const step of ["0","1","2","3"]) { await page.locator(`[data-professional="cv-step"][data-step="${step}"]`).click(); await page.locator(`[data-cv-step="${step}"]`).waitFor(); }

@@ -2,6 +2,11 @@
 
 ## 2026-10-20
 
+- Simplificado o planeamento de tarefas para pedir apenas a morada do trabalho,
+  removendo latitude, longitude e captura GPS deste formulário.
+- O detalhe da tarefa apresenta agora ao trabalhador um Google Maps incorporado
+  e uma ligação externa, ambos gerados a partir da morada guardada. O GPS das
+  fotografias de prova permanece separado e inalterado.
 - Corrigido o menu lateral para aplicar o fundo verde-amarelo apenas à secção
   atualmente aberta; `Criar vaga` deixa de aparecer ativo noutras áreas.
 - Simplificadas as respostas das avaliações profissionais para uma classificação

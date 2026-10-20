@@ -352,8 +352,8 @@ Status: implemented locally; production migration pending.
   exist, including active-task count and the established evidence workflow.
 - Allows company managers to assign work to recruitment workers only through
   a verified relationship belonging to that company.
-- Stores the authorising relationship, scheduled start, planning notes, fixed
-  work address and optional GPS coordinates on each task.
+- Stores the authorising relationship, scheduled start, planning notes and work
+  address on each task; the worker sees that address in an embedded Google Map.
 - Keeps task, work-order, evidence and audit visibility scoped to the assigned
   worker and originating company; no continuous location collection exists.
 - See migration `20261020090000_worker_task_planning.sql`.
