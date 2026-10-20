@@ -1321,6 +1321,7 @@
         saveSession(payload.session);
         state.data = payload.bootstrap;
         state.view = defaultViewForUser();
+        recruitmentUI.defaultWorkerHome();
         if (["project", "mvp"].includes(state.view)) {
           try {
             await refreshActivePrivateView();
@@ -1673,7 +1674,7 @@
 
   function renderMarketplaceHero(role, allJobs, jobs, applications) {
     if ((isWorker() || isManager()) && recruitmentUI.current() !== "jobs") {
-      const headings = {profile:"O teu CV Digital", employment:isWorker() ? "Percurso Profissional e Avaliações" : "Trabalhadores e vínculos", tasks:"Tarefas e planeamento", evaluations:"Percurso Profissional e Avaliações", access:"Pedidos de acesso", applications:"As tuas candidaturas", saved:"Oportunidades guardadas", messages:"Correspondência", chat:"Conversas", settings:"Privacidade e dados", company:"A tua empresa", candidates:"Encontrar candidatos", create:state.editJobId ? "Editar vaga" : "Publicar uma vaga", admin:"Administração"};
+      const headings = {home:"O teu perfil", profile:"O teu CV Digital", employment:isWorker() ? "Percurso Profissional e Avaliações" : "Trabalhadores e vínculos", tasks:"Tarefas e planeamento", evaluations:"Percurso Profissional e Avaliações", access:"Pedidos de acesso", applications:"As tuas candidaturas", saved:"Oportunidades guardadas", messages:"Correspondência", chat:"Conversas", settings:"Privacidade e dados", company:"A tua empresa", candidates:"Encontrar candidatos", create:state.editJobId ? "Editar vaga" : "Publicar uma vaga", admin:"Administração"};
       return `<header class="workspace-page-heading"><p class="eyebrow">${isWorker() ? "Area do trabalhador" : "Area da empresa"}</p><h1>${escapeHtml(headings[recruitmentUI.current()] || "Recrutamento")}</h1></header>`;
     }
     const profile = isWorker() ? workerCvProfile() : null;
@@ -2182,6 +2183,8 @@
       .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))
       .slice(0, 6);
     const pending = state.data.tasks.filter((task) => task.status === "pending_validation").slice(0, 5);
+    const attendance = state.data.attendanceEntries || [];
+    const justifications = state.data.attendanceJustifications || [];
 
     return `
       <section class="view-heading">
@@ -2217,6 +2220,12 @@
               </div>
             </div>
           ` : ""}
+          ${isManager() ? `<div class="panel"><div class="panel-header"><h2>Presenças e justificações</h2></div>
+            <p class="muted">Registos factuais; não são classificações de desempenho. Documentos reservados aos responsáveis da empresa.</p>
+            ${state.data.attendanceAvailable === false ? '<p class="notice error">Migração do registo horário ainda pendente.</p>' : ""}
+            <details><summary>Entradas e saídas recentes (${attendance.length})</summary>${attendance.slice(0, 15).map(item => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${formatDate(item.clockedInAt)} — ${item.clockedOutAt ? formatDate(item.clockedOutAt) : "Em curso"}</p>`).join("") || '<p>Sem registos.</p>'}</details>
+            <details><summary>Justificações recebidas (${justifications.length})</summary>${justifications.slice(0, 15).map(item => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${escapeHtml(item.absenceDate)} · ${escapeHtml(item.reason || "Documento entregue")}${item.downloadUrl ? ` · <a href="${escapeHtml(item.downloadUrl)}">Descarregar anexo</a>` : ""}</p>`).join("") || '<p>Sem justificações.</p>'}</details>
+          </div>` : ""}
           <div class="panel">
             <div class="panel-header"><h2>A aguardar validacao</h2></div>
             <div class="list">
@@ -2239,7 +2248,7 @@
       <section class="view-heading">
         <div>
           <h1>Ordens de trabalho</h1>
-          <p>Planeie a obra, atribua a equipa e acompanhe o estado. Crie tarefas apenas quando fizerem falta.</p>
+          <p>Planeie a obra, atribua a equipa e a tarefa inicial num único passo. Depois pode acompanhar cada membro separadamente.</p>
         </div>
       </section>
       <section class="section-grid">
@@ -2283,11 +2292,24 @@
             <label><input type="checkbox" name="assignedUserIds" value="${escapeHtml(user.id)}"><span>${escapeHtml(user.name)} <small>${escapeHtml(roleLabels[user.role] || user.role)}</small></span></label>
           `).join("") : `<p class="muted">Adicione colaboradores ou confirme um vínculo antes de criar a ordem.</p>`}
         </fieldset>
+        <fieldset class="order-task-plan">
+          <legend>Tarefa para a equipa</legend>
+          <p class="field-help">Cria uma tarefa individual para cada pessoa escolhida, ligada a esta ordem.</p>
+          <div class="field"><label for="order-task-title">Título da tarefa</label><input id="order-task-title" name="taskTitle" required maxlength="180" placeholder="Ex.: Preparar a primeira fase da obra"></div>
+          <div class="order-date-fields">
+            <div class="field"><label for="order-task-start">Início planeado</label><input id="order-task-start" name="taskStart" type="datetime-local" required></div>
+            <div class="field"><label for="order-task-deadline">Prazo da tarefa</label><input id="order-task-deadline" name="taskDueDate" type="date" required></div>
+          </div>
+          <div class="field"><label for="order-task-address">Morada do trabalho</label><input id="order-task-address" name="taskAddress" maxlength="500" placeholder="Se for a mesma, deixe em branco"></div>
+          <details><summary>Coordenadas do local (opcional)</summary><p class="field-help">Use apenas as coordenadas fixas da obra, não a localização do trabalhador. Confirme-as no mapa antes de guardar.</p><div class="order-date-fields"><div class="field"><label>Latitude</label><input name="siteLatitude" type="number" step="any" min="-90" max="90"></div><div class="field"><label>Longitude</label><input name="siteLongitude" type="number" step="any" min="-180" max="180"></div></div></details>
+          <div class="field"><label for="order-task-description">Detalhes da tarefa (opcional)</label><textarea id="order-task-description" name="taskDescription" maxlength="2000" rows="2"></textarea></div>
+          <div class="field"><label for="order-task-notes">Notas de planeamento (opcional)</label><textarea id="order-task-notes" name="taskNotes" maxlength="2000" rows="2"></textarea></div>
+        </fieldset>
         <div class="field">
           <label for="order-photos">Fotografias iniciais (opcional)</label>
           <input id="order-photos" name="photos" type="file" accept="image/png,image/jpeg,image/webp" multiple>
         </div>
-        <button class="btn primary full" type="submit" ${people.length ? "" : "disabled"}>Criar ordem</button>
+        <button class="btn primary full" type="submit" ${people.length ? "" : "disabled"}>Criar ordem e tarefas</button>
       </form>
     `;
   }
@@ -3021,6 +3043,10 @@
     data.assignedUserIds = [...form.querySelectorAll('input[name="assignedUserIds"]:checked')].map((input) => input.value);
     if (!data.assignedUserIds.length) throw new Error("Escolha pelo menos uma pessoa para a ordem.");
     if (data.expectedEndDate < data.expectedStartDate) throw new Error("A conclusão prevista não pode ser anterior ao início.");
+    if ((data.siteLatitude && !data.siteLongitude) || (!data.siteLatitude && data.siteLongitude)) throw new Error("Indique ambas as coordenadas do local ou deixe-as em branco.");
+    const siteLocation = data.siteLatitude && data.siteLongitude ? { status: "granted", latitude: Number(data.siteLatitude), longitude: Number(data.siteLongitude), capturedAt: new Date().toISOString() } : { status: "not_requested" };
+    data.task = { title: data.taskTitle, scheduledStartAt: new Date(data.taskStart).toISOString(), scheduledStartDate: data.taskStart.slice(0, 10), dueDate: data.taskDueDate,
+      workAddress: data.taskAddress || data.address, description: data.taskDescription, planningNotes: data.taskNotes, workLocation: siteLocation };
     const input = form.querySelector("input[type='file']");
     const photos = await filesToPhotos(input.files, 4);
     const payload = await api("/api/work-orders", {
@@ -3029,7 +3055,7 @@
     });
     state.data = payload.bootstrap;
     state.view = "orders";
-    setNotice("Ordem criada.");
+    setNotice(`Ordem criada com ${payload.tasks.length} tarefa(s) atribuída(s).`);
   }
 
   async function updateOrderStatus(form) {
@@ -3332,6 +3358,7 @@
         try {
           await refreshData();
           state.view = defaultViewForUser();
+          recruitmentUI.defaultWorkerHome();
           if (["project", "mvp"].includes(state.view)) {
             try {
               await refreshActivePrivateView();

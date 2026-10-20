@@ -17,8 +17,9 @@
     const pendingEmploymentRequests = () => h.isWorker()
       ? (h.state.data?.professional?.employments || []).filter(item => item.verificationStatus === "pending" && !item.workerConfirmedAt)
       : [];
+    const activeEmployments = () => (h.state.data?.professional?.employments || []).filter(item => item.verificationStatus === "verified" && item.employmentStatus === "active");
     function tabItems() {
-      const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Correspondência"], ["chat", "Conversas"], ["settings", "Privacidade"]]
+      const items = h.isWorker() ? [...(activeEmployments().length ? [["home", "Perfil"]] : []), ["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Correspondência"], ["chat", "Conversas"], ["settings", "Privacidade"]]
         : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Correspondência"], ["chat", "Conversas"]];
       if (h.isWorker() && h.state.data.workOrders?.length) items.splice(4, 0, ["orders", "Ordens"]);
       if (h.isWorker() && h.state.data.tasks?.length) items.splice(4, 0, ["tasks", "Tarefas"]);
@@ -27,7 +28,7 @@
     }
     function tabs() {
       const items = tabItems();
-      const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",orders:"folder",tasks:"clipboard-list",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"mail",chat:"message-circle",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
+      const symbols = {home:"user-round",jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",orders:"folder",tasks:"clipboard-list",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"mail",chat:"message-circle",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
       const pendingCount = pendingEmploymentRequests().length;
       const activeTasks = (h.state.data.tasks || []).filter(item => ["assigned", "in_progress", "blocked"].includes(item.status)).length;
       return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ghost" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span>${id === "employment" && pendingCount ? `<span class="nav-alert-count" aria-label="${pendingCount} vinculo pendente">${pendingCount}</span>` : id === "tasks" && activeTasks ? `<span class="nav-alert-count" aria-label="${activeTasks} tarefas ativas">${activeTasks}</span>` : id === "chat" && chat.unreadCount() ? `<span class="nav-alert-count" aria-label="${chat.unreadCount()} mensagens não lidas">${chat.unreadCount()}</span>` : ""}</button>`).join("")}</nav>`;
@@ -121,6 +122,7 @@
       return `<h2>Administracao</h2><p>${adminData.metrics.workers} trabalhadores · ${adminData.metrics.companies} empresas · ${adminData.metrics.applications} candidaturas · ${adminData.metrics.hires} contratacoes</p><h3>Verificacao de empresas</h3>${adminData.companies.map(c => `<form class="form-grid moderation-row" data-recruitment-form="admin"><input type="hidden" name="companyId" value="${e(c.id)}"><strong>${e(c.name)}</strong><span>NIF: ${e(c.recruitment?.nif || "Por preencher")}</span>${select("verification", "Verificacao", [["pending", "Pendente"], ["verified", "Verificada"], ["rejected", "Recusada"], ["suspended", "Suspensa"]], c.recruitment?.verification)}<button class="btn primary">Atualizar</button></form>`).join("")}<h3>Denuncias</h3>${adminData.reports.map(report => `<form class="form-grid moderation-row" data-recruitment-form="admin"><input type="hidden" name="reportId" value="${e(report.id)}"><p>${e(report.jobOfferId)} · ${e(report.reason)} · ${e(report.detail)}</p>${select("status", "Decisao", [["reviewed", "Revista"], ["dismissed", "Arquivada"]], report.status)}<button class="btn primary">Guardar</button></form>`).join("") || '<p>Sem denuncias.</p>'}<h3>Vagas</h3>${adminData.jobs.map(j => `<p>${e(j.title)} ${button("suspend-job", j.recruitment?.suspended ? "Reativar" : "Suspender", j.id, `data-value="${!j.recruitment?.suspended}"`)}</p>`).join("")}<h3>Contas</h3>${adminData.users.map(u => `<p>${e(u.name)} · ${e(u.role)} ${u.id === h.state.data.user.id ? "" : button("suspend-user", u.active ? "Suspender" : "Reativar", u.id, `data-value="${!u.active}"`)}</p>`).join("")}<details><summary>Historico de auditoria</summary>${adminData.audit.map(a => `<p>${e(a.createdAt)} · ${e(a.actorName)} · ${e(a.action)}</p>`).join("")}</details>`;
     }
     function content() {
+      if (tab === "home") return workerHome();
       if (tab === "profile") return professional.cv();
       if (tab === "orders") return h.renderOrders();
       if (tab === "tasks") return h.renderTasks();
@@ -136,6 +138,28 @@
       if (tab === "create") return h.renderJobOfferForm();
       if (tab === "applications") return `<section class="applications-workspace"><h2>Candidaturas</h2>${!h.isWorker() ? `<p>${r().metrics?.applications || 0} candidaturas · ${r().metrics?.applicationToInterview == null ? "Sem dados de conversao" : `${r().metrics.applicationToInterview}% avancaram para entrevista`} · ${r().metrics?.hires || 0} contratacoes</p>` : ""}${(h.state.data.jobApplications || []).map(h.renderApplicationCard).join("") || `<p class="empty">${h.isWorker() ? "Ainda nao te candidataste a nenhuma vaga." : "Ainda nao recebeste candidaturas."}</p>`}</section>`;
       return "";
+    }
+    function workerHome() {
+      const jobs = h.state.data.tasks || [], punches = h.state.data.attendanceEntries || [], justifications = h.state.data.attendanceJustifications || [];
+      const attendanceAvailable = h.state.data.attendanceAvailable !== false;
+      const reports = (h.state.data.professional?.reportSummaries || []).filter(item => ["submitted", "corrected"].includes(item.status));
+      const open = punches.find(item => !item.clockedOutAt);
+      return `<section class="worker-home"><header><p class="eyebrow">Área do trabalhador</p><h2>Olá, ${e(h.state.data.user.name.split(" ")[0])}</h2><p>O teu trabalho, registos de presença e avaliações das empresas num só lugar.</p></header>
+        <section class="panel"><h3>Registo de trabalho</h3>${attendanceAvailable ? "" : '<p class="notice error">Registo horário e justificações indisponíveis até ser aplicada a migração da base de dados.</p>'}<p class="privacy-callout">Entrada e saída registadas à hora do servidor. A verificação de presença por GPS está desativada enquanto não existir avaliação jurídica e de privacidade. Não usamos estes registos para pontuar o teu desempenho.</p>
+          ${jobs.filter(item => !["approved"].includes(item.status)).map(task => {
+            const active = open?.taskId === task.id;
+            return `<article class="worker-shift-card"><div><strong>${e(task.title)}</strong><small>${e(task.workAddress || "Morada não indicada")} · ${e(task.scheduledStartAt ? new Date(task.scheduledStartAt).toLocaleString("pt-PT") : "Horário a combinar")}</small></div>
+              <button class="btn ${active ? "ghost" : "primary"}" type="button" data-attendance="${active ? "clock-out" : "clock-in"}" data-task-id="${e(task.id)}" ${!attendanceAvailable || (open && !active) ? "disabled" : ""}>${active ? "Registar saída" : "Registar entrada"}</button></article>`;
+          }).join("") || '<p class="empty">Ainda não tens tarefas atribuídas.</p>'}
+          ${open ? `<p class="notice">Entrada aberta desde ${e(new Date(open.clockedInAt).toLocaleString("pt-PT"))}.</p>` : ""}
+          <details><summary>Últimos registos</summary>${punches.slice(0, 10).map(item => `<p>${e(new Date(item.clockedInAt).toLocaleString("pt-PT"))} — ${item.clockedOutAt ? e(new Date(item.clockedOutAt).toLocaleString("pt-PT")) : "Em curso"}</p>`).join("") || '<p>Ainda não há registos.</p>'}</details>
+        </section>
+        <section class="panel"><h3>Justificar ausência</h3><p>Indica o dia e escreve um motivo ou anexa um documento. Não incluas diagnósticos ou outros dados de saúde desnecessários; o anexo fica privado.</p>
+          <form class="form-grid" data-recruitment-form="attendance-justification"><label class="field">Empresa<select name="employmentId" required>${activeEmployments().map(item => `<option value="${e(item.id)}">${e(item.companyName)}</option>`).join("")}</select></label><label class="field">Dia de ausência<input type="date" name="absenceDate" required></label><label class="field">Motivo (opcional com documento)<textarea name="reason" maxlength="1200" rows="2"></textarea></label><label class="field">Documento privado (PDF, PNG ou JPEG; até 6 MB)<input type="file" name="document" accept="application/pdf,image/png,image/jpeg"></label><button class="btn primary" type="submit" ${attendanceAvailable ? "" : "disabled"}>Enviar justificação</button></form>
+          <details><summary>Justificações enviadas (${justifications.length})</summary>${justifications.map(item => `<p>${e(item.absenceDate)} · ${e(item.reason || "Documento enviado")}${item.downloadUrl ? ` · <a href="${e(item.downloadUrl)}">Descarregar anexo</a>` : ""}</p>`).join("") || '<p>Ainda não há justificações.</p>'}</details>
+        </section>
+        <section class="panel"><h3>Avaliações profissionais</h3><p>Mostradas por empresa, sem pontuação universal ou decisão automática.</p>${reports.map(report => `<article class="worker-rating-card"><strong>${e(report.companyName)} · ${e(report.workerRole || "Função")}</strong><small>${e(new Date(report.submittedAt || report.createdAt).toLocaleDateString("pt-PT"))}</small><div>${(report.categoryAverages || []).map(category => `<span>${e(category.label)}: <b>${e(category.average)}/10</b> (${category.scoredAnswerCount})</span>`).join("") || "Sem dados suficientes"}</div></article>`).join("") || '<p class="empty">Ainda não existem avaliações submetidas.</p>'}<button class="btn ghost" type="button" data-recruitment="tab" data-id="employment">Ver percurso e responder</button></section>
+      </section>`;
     }
     function jobFields(job = {}) {
       const p = job.recruitment || {};
@@ -205,6 +229,17 @@
         if (submit) submit.disabled = true;
         try {
           const type = form.dataset.recruitmentForm, data = Object.fromEntries(new FormData(form));
+          if (type === "attendance-justification") {
+            const file = form.elements.document.files[0];
+            if (!String(data.reason || "").trim() && !file) throw new Error("Escreva o motivo ou anexe um documento.");
+            if (file) {
+              if (file.size > 6 * 1024 * 1024 || !["application/pdf", "image/png", "image/jpeg"].includes(file.type)) throw new Error("Use PDF, PNG ou JPEG até 6 MB.");
+              data.document = { name: file.name, dataUrl: await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); }) };
+            }
+            const result = await h.api("/api/attendance/justifications", { method: "POST", body: data });
+            h.state.data = result.bootstrap;
+            h.setNotice("Justificação enviada em privado.");
+          }
           if (type === "preferences") {
             data.coordinates = { latitude: data.latitude, longitude: data.longitude };
             for (const key of ["schedules", "workModes", "employmentTypes"]) data[key] = [...form.querySelectorAll(`input[name^='${key}:']:checked`)].map(el => el.name.split(":")[1]);
@@ -240,13 +275,22 @@
           error.textContent = err.message;
         } finally { if (submit) submit.disabled = false; }
       }));
+      document.querySelectorAll("[data-attendance]").forEach(button => button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          const result = await h.api(`/api/attendance/tasks/${encodeURIComponent(button.dataset.taskId)}/${button.dataset.attendance}`, { method: "POST" });
+          h.state.data = result.bootstrap;
+          h.setNotice(button.dataset.attendance === "clock-in" ? "Entrada registada." : "Saída registada.");
+          h.renderApp();
+        } catch (error) { h.setNotice(error.message, "error"); h.renderApp(); }
+      }));
       professional.bind();
       chat.bind();
     }
     function report(job) {
       return `<details><summary>Denunciar vaga</summary><form class="form-grid" data-recruitment-form="report"><input type="hidden" name="jobId" value="${e(job.id)}">${select("reason", "Motivo", [["fake", "Empresa falsa"], ["fraud", "Fraude"], ["salary", "Salario enganador"], ["discrimination", "Discriminacao"], ["money", "Pedido de dinheiro"], ["closed", "Vaga indisponivel"], ["spam", "Spam"], ["other", "Outro"]])}${area("detail", "Detalhes")}<button class="btn ghost">Enviar denuncia</button></form></details>`;
     }
-    return { tabs, mobileTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, employmentAlert, reset: () => { tab = "jobs"; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
+    return { tabs, mobileTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, reset: () => { tab = "jobs"; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
       notifications: () => {
         const recruitmentNotifications = r().notifications || [], employmentRequests = pendingEmploymentRequests();
         const count = recruitmentNotifications.length + employmentRequests.length;

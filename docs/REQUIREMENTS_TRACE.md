@@ -160,6 +160,26 @@ These are documented in the source PDFs as excluded or future-phase concepts and
 
 ## Acceptance Flow
 
+### 2026-10-20 change request: unified planning and attendance
+
+- Order form can create a planned order and one private task per selected member
+  in one request. Server validates team membership or verified worker
+  employment, task dates and optional fixed worksite coordinates.
+- An active, verified worker opens on a private Profile with company-specific
+  evaluations, assigned tasks and factual clock-in/out actions. The server
+  authenticates every punch and rejects other roles, manipulated task IDs,
+  duplicate open shifts and mismatched clock-outs.
+- Absence justifications require a verified relationship and a valid date;
+  PDF/PNG/JPEG attachments use private storage and authorised download routes.
+  Managers see only their company's records. Access and changes are audited.
+- Production acceptance is conditional on migration
+  `20261020180000_work_attendance_and_justifications.sql` in the actual
+  TrataPro database. Without it the new actions fail closed but recruitment,
+  orders and existing tasks remain available.
+- Precise worker GPS attendance verification is explicitly not delivered.
+  Fixed worksite coordinates are planning data only. This requires a separate
+  lawful-basis/DPIA review, accuracy and dispute rules before implementation.
+
 1. Manager creates or invites an authorized user.
 2. Manager creates a work order with team and expected dates; assigned people can see it without a separate task.
 3. Manager creates an optional task with responsible user, planned start, work location, notes and deadline; an external worker must have a verified relationship with that company.

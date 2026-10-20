@@ -134,6 +134,37 @@ async function run() {
     assert.ok(workerBootstrap.tasks.some(item => item.id === plannedTask.id),"assigned recruitment workers receive tasks in their own bootstrap");
     assert.ok(workerBootstrap.workOrders.some(item => item.id === companyOrder.id),"the worker sees only the work order needed for the assigned task");
     assert.ok(!workerBootstrap.workOrders.some(item => item.id === otherOrder.id),"an unrelated company order remains private");
+    const combined = (await request("/api/work-orders", "POST", {
+      title:"Renovação de ensaio", address:"Rua da Obra 5, Braga", description:"Preparar a renovação com a equipa.",
+      assignedUserIds:[workerId], expectedStartDate:"2026-11-03", expectedEndDate:"2026-11-05",
+      task:{ title:"Preparar materiais", scheduledStartAt:"2026-11-03T08:00:00.000Z", dueDate:"2026-11-04",
+        workAddress:"Rua da Obra 5, Braga", workLocation:{ status:"granted", latitude:41.5454, longitude:-8.4265 } }
+    }, ct, 201)).payload;
+    assert.equal(combined.tasks.length, 1, "one-step creation assigns a task for each selected worker");
+    assert.equal(combined.tasks[0].employmentId, employment.id);
+    assert.equal(combined.tasks[0].workLocation.latitude, 41.5454);
+    const combinedTaskId = combined.tasks[0].id;
+    await request(`/api/attendance/tasks/${combinedTaskId}/clock-in`,"POST",{},ot,403);
+    await request(`/api/attendance/tasks/${combinedTaskId}/clock-in`,"POST",{},undefined,401);
+    const punched = (await request(`/api/attendance/tasks/${combinedTaskId}/clock-in`,"POST",{},wt)).payload.bootstrap;
+    assert.equal(punched.attendanceEntries[0].taskId,combinedTaskId);
+    assert.equal(punched.attendanceEntries[0].clockedOutAt,null);
+    await request(`/api/attendance/tasks/${combinedTaskId}/clock-in`,"POST",{},wt,409);
+    await request(`/api/attendance/tasks/${plannedTask.id}/clock-out`,"POST",{},wt,409);
+    const ended = (await request(`/api/attendance/tasks/${combinedTaskId}/clock-out`,"POST",{},wt)).payload.bootstrap;
+    assert.ok(ended.attendanceEntries[0].clockedOutAt);
+    assert.ok(!(await request("/api/bootstrap","GET",undefined,ot)).payload.attendanceEntries.some(item => item.taskId === combinedTaskId));
+    const absencePdf = Buffer.from("%PDF-1.4\n%%EOF");
+    const justification = (await request("/api/attendance/justifications","POST",{
+      employmentId:employment.id, absenceDate:"2024-12-31", reason:"Impossibilidade de comparecer.",
+      document:{ name:"justificacao.pdf", dataUrl:`data:application/pdf;base64,${absencePdf.toString("base64")}` }
+    },wt,201)).payload.bootstrap.attendanceJustifications[0];
+    assert.equal(justification.absenceDate,"2024-12-31");
+    assert.ok(!("storedName" in justification), "private storage path never reaches the browser");
+    await request(justification.downloadUrl,"GET",undefined,ot,404);
+    await request(justification.downloadUrl,"GET",undefined,wt);
+    await request(justification.downloadUrl,"GET",undefined,ct);
+    await request("/api/attendance/justifications","POST",{ employmentId:employment.id,absenceDate:"2026-11-05" },wt,400);
     const startedTask = (await request(`/api/tasks/${plannedTask.id}/status`,"PATCH",{ status:"in_progress" },wt)).payload.task;
     assert.equal(startedTask.status,"in_progress","the assigned worker can operate the relationship-bound task");
     const setbackReason = "A linha está parada por falta de material.";

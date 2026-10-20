@@ -261,6 +261,18 @@ const TABLES = [
     }
   },
   {
+    key: "attendanceEntries",
+    table: "meo_attendance_entries",
+    idKey: "id",
+    fields: { id: "id", companyId: "company_id", workerId: "worker_id", taskId: "task_id", workOrderId: "work_order_id", clockedInAt: "clocked_in_at", clockedOutAt: "clocked_out_at", createdAt: "created_at" }
+  },
+  {
+    key: "attendanceJustifications",
+    table: "meo_attendance_justifications",
+    idKey: "id",
+    fields: { id: "id", companyId: "company_id", workerId: "worker_id", employmentId: "employment_id", absenceDate: "absence_date", reason: "reason", originalName: "original_name", mimeType: "mime_type", storedName: "stored_name", createdAt: "created_at" }
+  },
+  {
     key: "auditLogs",
     table: "meo_audit_logs",
     idKey: "id",
@@ -562,6 +574,7 @@ function verifyGoogleState(value) {
 
 function createEmptyDb() {
   return {
+    attendanceSchemaReady: true,
     meta: {
       version: 1,
       createdAt: now(),
@@ -584,6 +597,8 @@ function createEmptyDb() {
     workOrders: [],
     tasks: [],
     evidences: [],
+    attendanceEntries: [],
+    attendanceJustifications: [],
     auditLogs: [],
     jobOffers: [],
     jobApplications: [],
@@ -608,6 +623,8 @@ function ensureShape(db) {
     "workOrders",
     "tasks",
     "evidences",
+    "attendanceEntries",
+    "attendanceJustifications",
     "auditLogs",
     "jobOffers",
     "jobApplications",
@@ -774,7 +791,16 @@ async function readSupabaseDb() {
   await Promise.all(TABLES.map(async (definition) => {
     const rows = [];
     for (let offset = 0; ; offset += 500) {
-      const page = await supabaseRest(`${definition.table}?select=*&order=${definition.fields[definition.idKey]}.asc&limit=500&offset=${offset}`);
+      let page;
+      try {
+        page = await supabaseRest(`${definition.table}?select=*&order=${definition.fields[definition.idKey]}.asc&limit=500&offset=${offset}`);
+      } catch (error) {
+        if (["attendanceEntries", "attendanceJustifications"].includes(definition.key) && /PGRST205|42P01/.test(error.message)) {
+          db.attendanceSchemaReady = false;
+          break;
+        }
+        throw error;
+      }
       rows.push(...page);
       if (page.length < 500) break;
     }
@@ -1386,6 +1412,11 @@ function workOrderDate(value) {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === text ? text : "";
 }
 
+function portugalToday() {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date()).map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
 function validatedWorkOrderAssignees(db, companyId, value) {
   if (!Array.isArray(value) || value.length < 1 || value.length > 20) {
     const error = new Error("Escolha entre 1 e 20 pessoas para a ordem.");
@@ -1572,6 +1603,9 @@ function buildBootstrap(db, auth) {
     users: isManager ? companyUsers : companyUsers.filter((user) => user.id === auth.user.id),
     workOrders: workOrders.map((order) => publicWorkOrder(order, auth)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     tasks: tasks.map(publicTask).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    attendanceAvailable: db.attendanceSchemaReady !== false,
+    attendanceEntries: db.attendanceEntries.filter((entry) => isManager ? entry.companyId === auth.company.id : entry.workerId === auth.user.id).sort((a, b) => b.clockedInAt.localeCompare(a.clockedInAt)).slice(0, 100),
+    attendanceJustifications: db.attendanceJustifications.filter((item) => isManager ? item.companyId === auth.company.id : item.workerId === auth.user.id).map(({ storedName, ...item }) => ({ ...item, downloadUrl: storedName ? `/api/attendance/justifications/${encodeURIComponent(item.id)}/file` : null })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 100),
     evidences: evidences.map(publicEvidence).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     auditLogs: logs.slice(0, 250),
     invites,
@@ -3427,6 +3461,102 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  const clockMatch = pathname.match(/^\/api\/attendance\/tasks\/([^/]+)\/(clock-in|clock-out)$/);
+  if (req.method === "POST" && clockMatch) {
+    const taskId = decodeURIComponent(clockMatch[1]);
+    const action = clockMatch[2];
+    const result = await mutateDb((db) => {
+      const auth = requireAuth(db, req);
+      requireWorker(auth);
+      if (db.attendanceSchemaReady === false) throw Object.assign(new Error("O registo horário ainda não está disponível. A migração da base de dados está pendente."), { status: 503 });
+      const task = db.tasks.find((item) => item.id === taskId);
+      const employment = task ? verifiedTaskEmployment(db, task.companyId, auth.user.id, task.employmentId) : null;
+      if (!task || !canAccessTask(auth, task, db) || !employment) {
+        throw Object.assign(new Error("Tarefa não encontrada ou vínculo não confirmado."), { status: 404 });
+      }
+      const open = db.attendanceEntries.find((entry) => entry.workerId === auth.user.id && !entry.clockedOutAt);
+      if (action === "clock-in") {
+        if (employment.employmentStatus !== "active" || employment.startDate > portugalToday() || (employment.endDate && employment.endDate < portugalToday())) {
+          throw Object.assign(new Error("O vínculo não está ativo nesta data."), { status: 403 });
+        }
+        if (open) throw Object.assign(new Error("Já existe uma entrada aberta. Registe primeiro a saída."), { status: 409 });
+        if (["approved", "pending_validation"].includes(task.status)) throw Object.assign(new Error("Esta tarefa já não aceita entradas."), { status: 409 });
+        const entry = { id: nextId(db, "attendanceEntries", "att"), companyId: task.companyId, workerId: auth.user.id,
+          taskId: task.id, workOrderId: task.workOrderId, clockedInAt: now(), clockedOutAt: null, createdAt: now() };
+        db.attendanceEntries.push(entry);
+        audit(db, taskScopedAuth(auth, task), "attendance", entry.id, "attendance.clocked_in", { taskId }, req);
+      } else {
+        if (!open || open.taskId !== taskId) throw Object.assign(new Error("Não existe uma entrada aberta para esta tarefa."), { status: 409 });
+        open.clockedOutAt = now();
+        audit(db, taskScopedAuth(auth, task), "attendance", open.id, "attendance.clocked_out", { taskId }, req);
+      }
+      return { bootstrap: buildBootstrap(db, auth) };
+    });
+    sendJson(res, 200, result);
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/attendance/justifications") {
+    const body = await readBody(req, MAX_UPLOAD_BYTES * 2);
+    const result = await mutateDb(async (db) => {
+      const auth = requireAuth(db, req);
+      requireWorker(auth);
+      if (db.attendanceSchemaReady === false) throw Object.assign(new Error("As justificações ainda não estão disponíveis. A migração da base de dados está pendente."), { status: 503 });
+      const employment = db.employmentRelationships.find((item) => item.id === body.employmentId && item.workerId === auth.user.id && item.verificationStatus === "verified");
+      if (!employment) throw Object.assign(new Error("Vínculo de emprego não encontrado."), { status: 404 });
+      const absenceDate = workOrderDate(body.absenceDate);
+      const reason = cleanString(body.reason, 1200);
+      const todayPortugal = portugalToday();
+      if (!absenceDate || absenceDate > todayPortugal || absenceDate < employment.startDate || (employment.endDate && absenceDate > employment.endDate)) {
+        throw Object.assign(new Error("A data deve pertencer ao período do vínculo confirmado."), { status: 400 });
+      }
+      let upload = null;
+      if (body.document) {
+        const match = String(body.document.dataUrl || "").match(/^data:(application\/pdf|image\/png|image\/jpeg);base64,([A-Za-z0-9+/=]+)$/);
+        if (!match) throw Object.assign(new Error("Anexe apenas PDF, PNG ou JPEG."), { status: 400 });
+        const buffer = Buffer.from(match[2], "base64");
+        const valid = match[1] === "application/pdf" ? buffer.subarray(0, 5).toString() === "%PDF-" :
+          match[1] === "image/png" ? buffer.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) :
+            buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255;
+        if (!valid || !buffer.length || buffer.length > MAX_UPLOAD_BYTES) throw Object.assign(new Error("O documento é inválido ou excede o limite de tamanho."), { status: 400 });
+        upload = { buffer, mimeType: match[1], name: cleanString(body.document.name, 160) || "documento" };
+      }
+      if (!reason && !upload) throw Object.assign(new Error("Escreva o motivo ou anexe um documento."), { status: 400 });
+      const id = nextId(db, "attendanceJustifications", "just");
+      const storedName = upload ? `attendance/${id}.${upload.mimeType === "application/pdf" ? "pdf" : upload.mimeType === "image/png" ? "png" : "jpg"}` : null;
+      if (upload) await savePrivateUploadFile(storedName, upload.mimeType, upload.buffer);
+      const item = { id, companyId: employment.companyId, workerId: auth.user.id, employmentId: employment.id,
+        absenceDate, reason, originalName: upload?.name || "", mimeType: upload?.mimeType || "", storedName, createdAt: now() };
+      db.attendanceJustifications.push(item);
+      audit(db, { ...auth, company: { ...auth.company, id: employment.companyId } }, "attendance_justification", id, "attendance.justification_submitted", { absenceDate, hasDocument: Boolean(upload) }, req);
+      return { bootstrap: buildBootstrap(db, auth) };
+    });
+    sendJson(res, 201, result);
+    return;
+  }
+
+  const justificationFileMatch = pathname.match(/^\/api\/attendance\/justifications\/([^/]+)\/file$/);
+  if (req.method === "GET" && justificationFileMatch) {
+    const db = await readDb();
+    const auth = requireAuth(db, req);
+    const item = db.attendanceJustifications.find((record) => record.id === decodeURIComponent(justificationFileMatch[1]));
+    if (!item || !item.storedName || !(item.workerId === auth.user.id || (isCompanyAdmin(auth.user) && item.companyId === auth.company.id))) {
+      throw Object.assign(new Error("Documento não encontrado."), { status: 404 });
+    }
+    const buffer = await readPrivateUploadFile(item.storedName);
+    await mutateDb((latest) => {
+      const viewer = requireAuth(latest, req);
+      const current = latest.attendanceJustifications.find((record) => record.id === item.id);
+      if (!current || !(current.workerId === viewer.user.id || (isCompanyAdmin(viewer.user) && current.companyId === viewer.company.id))) {
+        throw Object.assign(new Error("Documento não encontrado."), { status: 404 });
+      }
+      audit(latest, { ...viewer, company: { ...viewer.company, id: current.companyId } }, "attendance_justification", current.id, "attendance.justification_file_viewed", {}, req);
+    });
+    res.writeHead(200, { "Content-Type": item.mimeType, "Content-Disposition": "attachment; filename=documento-justificacao", "Cache-Control": "private, no-store", "Content-Length": buffer.length, "X-Content-Type-Options": "nosniff" });
+    res.end(buffer);
+    return;
+  }
+
   if (req.method === "POST" && pathname === "/api/work-orders") {
     const body = await readBody(req, MULTI_UPLOAD_BODY_BYTES);
     const result = await mutateDb(async (db) => {
@@ -3443,6 +3573,25 @@ async function handleApi(req, res, pathname) {
         throw error;
       }
       const assignedUserIds = validatedWorkOrderAssignees(db, auth.company.id, body.assignedUserIds);
+      const requestedTask = body.task && typeof body.task === "object" ? body.task : null;
+      let taskPlan = null;
+      if (requestedTask) {
+        const taskTitle = cleanString(requestedTask.title, 180);
+        const dueDate = workOrderDate(requestedTask.dueDate);
+        const scheduledStartAt = normalizeTimestamp(requestedTask.scheduledStartAt).value;
+        const scheduledStartDate = requestedTask.scheduledStartDate ? workOrderDate(requestedTask.scheduledStartDate) : scheduledStartAt?.slice(0, 10);
+        const workAddress = cleanString(requestedTask.workAddress || address, 500);
+        const workLocation = normalizeLocation(requestedTask.workLocation);
+        if (!taskTitle || !dueDate || !scheduledStartAt || !scheduledStartDate || !workAddress || dueDate < expectedStartDate || dueDate > expectedEndDate ||
+          scheduledStartDate < expectedStartDate || scheduledStartDate > dueDate ||
+          (requestedTask.workLocation?.status === "granted" && workLocation.status !== "granted")) {
+          const error = new Error("Preencha o título, início, prazo e morada da tarefa com datas e coordenadas válidas.");
+          error.status = 400;
+          throw error;
+        }
+        taskPlan = { title: taskTitle, dueDate, scheduledStartAt, workAddress, workLocation,
+          description: cleanString(requestedTask.description, 2000), planningNotes: cleanString(requestedTask.planningNotes, 2000) };
+      }
       const order = {
         id: nextId(db, "workOrders", "wo"),
         companyId: auth.company.id,
@@ -3461,6 +3610,20 @@ async function handleApi(req, res, pathname) {
         updatedAt: now()
       };
       db.workOrders.push(order);
+      const createdTasks = [];
+      if (taskPlan) {
+        for (const assigneeId of assignedUserIds) {
+          const assignee = db.users.find((item) => item.id === assigneeId);
+          const employment = assignee.role === "worker" ? verifiedTaskEmployment(db, auth.company.id, assigneeId) : null;
+          const task = { id: nextId(db, "tasks", "task"), companyId: auth.company.id, workOrderId: order.id,
+            ...taskPlan, assigneeId, assigneeName: assignee.name, employmentId: employment?.id || null,
+            status: "assigned", blockReason: "", validationComment: "", createdBy: auth.user.id,
+            createdAt: now(), updatedAt: now(), startedAt: null, completedAt: null, validationDueAt: null, approvedAt: null, rejectedAt: null };
+          db.tasks.push(task);
+          createdTasks.push(task);
+          audit(db, auth, "task", task.id, "task.created", { workOrderId: order.id, assigneeId, dueDate: task.dueDate }, req);
+        }
+      }
       const photos = Array.isArray(body.photos) ? body.photos.slice(0, 4) : [];
       for (const photo of photos) {
         await storePhoto(db, auth, { photo, note: "Initial work order photo" }, {
@@ -3471,7 +3634,7 @@ async function handleApi(req, res, pathname) {
         });
       }
       audit(db, auth, "work_order", order.id, "work_order.created", { title, address, assignedUserIds, expectedStartDate, expectedEndDate }, req);
-      return { workOrder: publicWorkOrder(order), bootstrap: buildBootstrap(db, auth) };
+      return { workOrder: publicWorkOrder(order), tasks: createdTasks.map(publicTask), bootstrap: buildBootstrap(db, auth) };
     });
     sendJson(res, 201, result);
     return;

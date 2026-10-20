@@ -368,6 +368,24 @@ async function run() {
     if (unassignedBootstrap.workOrders.some((order) => order.id === workOrderId)) {
       throw new Error("An unrelated employee must not see the team's work order.");
     }
+    const combinedOrder = await request(baseUrl, "POST", "/api/work-orders", {
+      title: "Renovação de equipa", address: "Rua de Teste 2", description: "Preparar obra num único passo.",
+      assignedUserIds: [employeeId, secondEmployee.user.id, contractor.user.id],
+      expectedStartDate: plannedStart, expectedEndDate: plannedEnd,
+      task: { title: "Preparar obra", scheduledStartAt: `${plannedStart}T08:00:00.000Z`,
+        scheduledStartDate: plannedStart, dueDate: plannedEnd, workAddress: "Rua de Teste 2",
+        workLocation: { status: "granted", latitude: 41.5454, longitude: -8.4265 } }
+    }, managerToken);
+    if (combinedOrder.tasks.length !== 3 || new Set(combinedOrder.tasks.map((task) => task.assigneeId)).size !== 3 ||
+      combinedOrder.tasks.some((task) => task.workOrderId !== combinedOrder.workOrder.id)) {
+      throw new Error("One-step order creation should give each selected team member a separate task.");
+    }
+    const invalidCombined = await requestRaw(baseUrl, "POST", "/api/work-orders", {
+      title: "Ordem inválida", address: "Rua de Teste 2", description: "Datas impossíveis.", assignedUserIds: [employeeId],
+      expectedStartDate: plannedStart, expectedEndDate: plannedEnd,
+      task: { title: "Tarefa", scheduledStartAt: `${plannedStart}T08:00:00.000Z`, dueDate: "2020-01-01" }
+    }, managerToken);
+    if (invalidCombined.status !== 400) throw new Error("Invalid task dates must reject the entire one-step creation.");
     const workerStatusChange = await requestRaw(baseUrl, "PATCH", `/api/work-orders/${workOrderId}/status`, {
       status: "in_progress"
     }, employeeToken);

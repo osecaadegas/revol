@@ -4110,3 +4110,18 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
   .order-date-fields { grid-template-columns: 1fr; }
   .order-status-form .btn { width: 100%; }
 }
+.order-task-plan { min-width: 0; display: grid; gap: 12px; border: 1px solid var(--border, #302d28); padding: 16px; }
+.order-task-plan legend { padding: 0 8px; }
+.order-task-plan details { min-width: 0; }
+.worker-home { display: grid; gap: 16px; min-width: 0; }
+.worker-home .panel { min-width: 0; }
+.worker-shift-card, .worker-rating-card { border: 1px solid currentColor; padding: 14px; margin: 12px 0; display: flex; gap: 16px; align-items: center; justify-content: space-between; }
+.worker-shift-card div, .worker-rating-card { min-width: 0; }
+.worker-shift-card small, .worker-rating-card small { display: block; margin-top: 5px; }
+.worker-rating-card { display: grid; }
+.worker-rating-card div { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+@media (max-width: 700px) {
+  .order-task-plan { padding: 12px; }
+  .worker-shift-card { flex-direction: column; align-items: stretch; }
+  .worker-shift-card .btn { min-height: 48px; width: 100%; }
+}

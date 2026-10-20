@@ -189,8 +189,9 @@ For a dirty Supabase project that already contains old prototype tables, run the
 14. Run `supabase/migrations/20261020123000_evaluation_rating_scale_0_10.sql`.
 15. Run `supabase/migrations/20261020160000_direct_worker_company_chat.sql`.
 16. Run `supabase/migrations/20261020170000_merit_work_order_core.sql` before deploying the Cliente Zero work-order UI/API.
-17. Confirm the private storage bucket `meo-evidence` exists and remains private.
-18. Set these environment variables on the host:
+17. Run `supabase/migrations/20261020180000_work_attendance_and_justifications.sql` for factual clock-in/out and private absence justifications. This migration was not applied by this development turn: the Supabase projects connected to Codex did not contain the TrataPro `meo_*` schema. Apply it in the actual TrataPro project, never in an unrelated project. Until then the new attendance actions are disabled while existing routes continue to load.
+18. Confirm the private storage bucket `meo-evidence` exists and remains private.
+19. Set these environment variables on the host:
 
 ```text
 APP_STORAGE_DRIVER=supabase
@@ -199,7 +200,24 @@ SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 SUPABASE_EVIDENCE_BUCKET=meo-evidence
 ```
 
-19. Start or redeploy the Node app.
+20. Start or redeploy the Node app.
+
+The unified order form uses the existing `POST /api/work-orders` endpoint with
+an optional `task` plan. It atomically creates one task per selected team member,
+retaining the existing one-assignee-per-task permissions. The fixed worksite
+coordinates are optional and must be checked by the manager; an address alone
+is not a precision GPS point. Attendance uses server timestamps and stores no
+worker coordinates. GPS-based attendance checks remain disabled pending a
+specific Portuguese labour-law assessment, DPIA, proportionality decision,
+worker information and an approved correction/appeal policy. Geolocation is
+not a reliable proof of presence by itself (device error and spoofing).
+
+Absence documents are private PDFs or PNG/JPEG images (maximum `MAX_UPLOAD_MB`),
+served only to the worker or a company manager with the same verified
+employment relationship. Configure a documented retention and deletion policy
+and malware-screening procedure before processing real medical certificates;
+workers should not type diagnoses into the optional reason. Existing
+employment-report retention settings do not yet cover attendance records.
 
 The app still uses its own Phase 1 email/password/session system. Supabase Auth is not used in this phase, because the existing server already enforces roles, task visibility, and private evidence access.
 

@@ -2,6 +2,16 @@
 
 ## 2026-10-20
 
+- As ordens podem agora ser criadas juntamente com uma tarefa, equipa,
+  início, prazo e morada. A operação gera uma tarefa individual por membro;
+  coordenadas fixas da obra são opcionais. O trabalhador com vínculo ativo
+  confirmado abre num novo Perfil, onde consulta tarefas e avaliações por
+  empresa, marca entradas/saídas factuais e envia justificações privadas em
+  PDF, PNG ou JPEG. Responsáveis consultam registos e justificações no painel.
+  A verificação de assiduidade por GPS permanece desativada até validação
+  jurídica e DPIA. A migração `20261020180000_work_attendance_and_justifications.sql`
+  é necessária para os novos registos; até lá o resto do site mantém-se
+  operacional e as novas ações aparecem indisponíveis.
 - Os contratempos ativos passaram a alertas operacionais de prioridade alta no
   painel da empresa: faixa vermelha persistente em todas as áreas, contador na
   navegação de tarefas (também em telemóvel), título do separador com aviso,

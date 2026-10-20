@@ -418,6 +418,19 @@ empresas sem revisão de privacidade e base legal.
 17. Add browser-driven regression coverage for public routes, public filtering and trabalhador application.
 18. Apply `20261020160000_direct_worker_company_chat.sql` before deploying the direct-conversation release.
 
+## Change request: unified planning and factual attendance (2026-10-20)
+
+- Implemented in the existing operational app: one-step order and per-member
+  task creation, a worker home for verified active employment, factual server-
+  timestamped clock-in/out, private absence justifications and company review.
+- The additive attendance migration must be applied to the actual TrataPro
+  Supabase project before these new actions become available in production.
+- GPS attendance verification is not enabled. Legal review, DPIA, accuracy
+  thresholds, fraud/error handling and worker correction rights are required
+  before a separate written change request can activate it.
+- Next acceptance work: apply migration, test with real worker/company roles,
+  confirm retention/deletion and document malware handling for attachments.
+
 ## Agent Update Protocol
 
 For every future build turn:
