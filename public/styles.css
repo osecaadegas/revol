@@ -3811,7 +3811,8 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
 
 /* Desktop vacancy filters sit above the results instead of consuming a side column. */
 @media (min-width: 981px) {
-  .marketplace-workspace .search-results {
+  .marketplace-workspace .search-results,
+  .market-home .search-results {
     grid-template-columns: minmax(0, 1fr);
     gap: 24px;
   }

@@ -56,6 +56,11 @@ async function reviewDesign(browser, base, accounts, jobPath, companyPath) {
   for (const width of [1440, 768, 360, 390, 430]) {
     await page.setViewportSize({ width, height: 900 });
     await signIn(null);
+    if (width >= 981) {
+      const filterBox = await page.locator('.market-home .filter-panel').boundingBox();
+      const jobsBox = await page.locator('.market-home .market-job-list').boundingBox();
+      assert.ok(filterBox && jobsBox && filterBox.y + filterBox.height <= jobsBox.y + 1, 'Landing filters must sit above vacancy results without overlap');
+    }
     await capture('home', width);
     if (width < 981) {
       await page.locator('[data-filter-open]').click();

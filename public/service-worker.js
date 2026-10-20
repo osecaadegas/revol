@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v9-worker-task-planning";
+const CACHE_NAME = "tratapro-shell-v10-landing-filter-layout";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

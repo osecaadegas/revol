@@ -2,6 +2,11 @@
 
 ## 2026-10-20
 
+- Corrigida a landing page pública para apresentar os filtros de vagas numa
+  barra horizontal acima dos resultados em desktop, eliminando a sobreposição
+  entre os campos e o primeiro cartão de vaga.
+- Adicionada uma verificação visual da ordem e separação entre filtros e vagas
+  na landing page desktop.
 - Adicionado o separador `Tarefas` ao perfil do trabalhador quando recebe uma
   tarefa, com contador de tarefas ativas e acesso ao fluxo existente de
   execução, provas e validação.
