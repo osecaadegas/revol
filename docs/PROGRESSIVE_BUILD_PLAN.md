@@ -336,12 +336,13 @@ Status: implemented locally; production migration pending.
 Status: implemented locally; production migration and legal/privacy validation pending.
 
 - Expanded employer reports to the 25 standard observable professional
-  questions with 1-5/non-observed/non-applicable answers and category averages.
+  questions with integer 0-10 ratings, optional comments and category averages.
 - Added private drafts, assessment periods, duplicate prevention, company
   questions, immutable wording snapshots and audited correction versions.
 - Preserved originating-company isolation, worker disputes/data access,
   retention redaction and the disabled-by-default cross-company sharing gate.
-- See migration `20261017073331_professional_evaluation_history.sql`.
+- See migrations `20261017073331_professional_evaluation_history.sql` and
+  `20261020123000_evaluation_rating_scale_0_10.sql`.
 
 ### M33 - Tarefas e planeamento para trabalhadores contratados
 

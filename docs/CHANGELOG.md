@@ -2,6 +2,12 @@
 
 ## 2026-10-20
 
+- Simplificadas as respostas das avaliações profissionais para uma classificação
+  inteira de 0 a 10 e um comentário sempre opcional, sem valor pré-selecionado.
+- Mantida a definição de escala guardada nas avaliações antigas, para que o
+  histórico 1-5 continue a ser apresentado com o significado original.
+- Adicionada a migração `20261020123000_evaluation_rating_scale_0_10.sql` e
+  testes para zero, limite superior, comentários vazios e médias padrão.
 - Corrigida a landing page pública para apresentar os filtros de vagas numa
   barra horizontal acima dos resultados em desktop, eliminando a sobreposição
   entre os campos e o primeiro cartão de vaga.

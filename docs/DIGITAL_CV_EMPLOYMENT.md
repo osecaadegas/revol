@@ -37,9 +37,9 @@ vanilla JavaScript, local JSON and Supabase architecture.
 - Company workspaces for employment confirmation, structured evaluations,
   worker requests and documented access requests.
 - A complete `Percurso Profissional e Avaliações` workflow with the 25 standard
-  observable-behaviour questions grouped into seven categories. Answers support
-  scores 1-5, `Não observado` and `Não aplicável`; low scores require factual
-  context and non-scored answers never enter category averages.
+  observable-behaviour questions grouped into seven categories. Each answer
+  uses an integer classification from 0 to 10 plus an optional work-related
+  comment. Unanswered draft fields never enter category averages.
 - Company-specific questions with editable active definitions and immutable
   per-assessment wording/scoring snapshots. Custom answers are labelled and do
   not affect the shared standard-question averages.
@@ -106,6 +106,11 @@ All four tables enable RLS, revoke `anon`/`authenticated` access, and remain
 reachable only by the server-side service role after the Node authorization
 checks. Cross-company report reads remain disabled.
 
+Then apply `supabase/migrations/20261020123000_evaluation_rating_scale_0_10.sql`.
+It changes the database rating constraints from 1-5 to 0-10 and removes the
+former mandatory-comment rule for low scores. Existing submitted answers and
+their immutable scoring-definition snapshots remain unchanged.
+
 Optional configuration with production defaults:
 
 ```text
@@ -131,7 +136,8 @@ npm run smoke
 
 `test:professional` covers CV versions, review-only DOCX extraction, private
 downloads, PDF exclusion of evaluations, company verification, bilateral
-employment confirmation, all 25 questions, low-score evidence, draft privacy,
+employment confirmation, all 25 questions, integer 0-10 bounds, optional
+comments, zero ratings, draft privacy and draft no-data handling,
 duplicate periods, immutable custom-question wording, category averages,
 no-data handling, immutable corrections, evaluation ownership, cross-company
 denial, protected context rejection, disputes, access logs and the DPIA gate.

@@ -118,7 +118,7 @@ The app must first behave like a public labor-market board:
 | Secure private documents | Authenticated `/api/professional/documents/:id/file`, private local/Supabase storage, hashes and access logs |
 | Verified employment history | `meo_employment_relationships` with worker/company confirmations and verified chronological CV display |
 | Employer eligibility | Verified company plus verified own employment relationship; company-created relationships require accepted/hired application evidence |
-| Structured professional evaluation | 25 standard observable-behaviour questions in seven categories, 1-5/non-observed/non-applicable answers, factual low-score context, standard-only category averages and an explicit no-data state |
+| Structured professional evaluation | 25 standard observable-behaviour questions in seven categories, integer 0-10 ratings, optional work-related comments, standard-only category averages and an explicit draft no-data state |
 | Company-specific questions and historical integrity | Company question catalogue plus immutable question/scoring snapshots in each assessment; later edits or archiving cannot alter submitted history |
 | Drafts, periods and revisions | Private company drafts, explicit assessed dates, duplicate-period protection and correction versions linked through immutable revision records |
 | Separate facts and opinion | Employment and evaluation tables/routes/UI remain separate; evaluations never enter CV/PDF/public discovery |

@@ -351,7 +351,7 @@ create table public.meo_employer_evaluation_reports (
 create table public.meo_evaluation_criteria (
   id text primary key, report_id text not null references public.meo_employer_evaluation_reports(id) on delete cascade,
   criterion text not null check (criterion in ('reliability','quality','teamwork','adaptability','safety')),
-  rating integer not null check (rating between 1 and 5), context text not null default '',
+  rating integer not null check (rating between 0 and 10), context text not null default '',
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(), unique (report_id,criterion)
 );
 create table public.meo_custom_evaluation_questions (
@@ -372,9 +372,8 @@ create table public.meo_evaluation_answers (
   id text primary key, report_id text not null references public.meo_employer_evaluation_reports(id) on delete cascade,
   question_version_id text not null references public.meo_evaluation_question_versions(id) on delete restrict,
   source text not null check (source in ('standard','custom')), answer_state text not null check (answer_state in ('score','not_observed','not_applicable','unanswered')),
-  score integer check (score between 1 and 5), comment text not null default '', created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
-  unique (report_id,question_version_id), check ((answer_state = 'score' and score is not null) or (answer_state <> 'score' and score is null)),
-  check (not (answer_state = 'score' and score in (1,2) and btrim(comment) = ''))
+  score integer check (score between 0 and 10), comment text not null default '', created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+  unique (report_id,question_version_id), check ((answer_state = 'score' and score is not null) or (answer_state <> 'score' and score is null))
 );
 create table public.meo_evaluation_revisions (
   id text primary key, report_id text not null references public.meo_employer_evaluation_reports(id) on delete restrict,

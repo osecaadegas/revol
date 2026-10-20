@@ -370,20 +370,16 @@ function evaluationContext(value, max = 1200) {
   return result;
 }
 
-const SCORING_DEFINITION = {
-  1:"Muito abaixo do esperado", 2:"Abaixo do esperado", 3:"Corresponde ao esperado",
-  4:"Acima do esperado", 5:"Muito acima do esperado",
-  not_observed:"Não observado", not_applicable:"Não aplicável"
-};
+const SCORING_DEFINITION = Object.fromEntries(Array.from({ length:11 }, (_,score) => [score, `${score}/10`]));
 
 function normalizeAnswer(item, required) {
-  const rawState = text(item?.answerState || (item?.rating || item?.score ? "score" : "unanswered"), 30);
+  const hasScore = (item?.score !== null && item?.score !== undefined && item?.score !== "") || (item?.rating !== null && item?.rating !== undefined && item?.rating !== "");
+  const rawState = text(item?.answerState || (hasScore ? "score" : "unanswered"), 30);
   const answerState = ANSWER_STATES.has(rawState) ? rawState : "unanswered";
   const score = answerState === "score" ? Number(item?.score ?? item?.rating) : null;
-  if (answerState === "score" && (!Number.isInteger(score) || score < 1 || score > 5)) fail("A classificação deve estar entre 1 e 5.");
-  if (required && answerState === "unanswered") fail("Responda a todas as perguntas padrão ou indique “Não observado” ou “Não aplicável”.");
+  if (answerState === "score" && (!hasScore || !Number.isInteger(score) || score < 0 || score > 10)) fail("A classificação deve ser um número inteiro entre 0 e 10.");
+  if (required && answerState === "unanswered") fail("Atribua uma classificação de 0 a 10 a todas as perguntas.");
   const comment = evaluationContext(item?.comment ?? item?.context, 900);
-  if (answerState === "score" && score <= 2 && !comment) fail("As classificações 1 e 2 exigem uma explicação factual relacionada com o trabalho.");
   return { answerState, score, comment };
 }
 
