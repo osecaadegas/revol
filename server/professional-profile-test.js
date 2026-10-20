@@ -242,6 +242,9 @@ async function run() {
           await page.getByRole("heading",{ name:"Percurso Profissional e Avaliações",level:2,exact:true }).hover();
           assert.equal(await swatch.evaluate(node => getComputedStyle(node).backgroundColor),hoverBackground,"selected rating keeps its colour after hover ends");
           await scale.getByText("7 em 10").waitFor();
+          const question = page.locator(".evaluation-question").first(), copyBox = await question.locator(".evaluation-question-copy").boundingBox(), scaleBox = await scale.boundingBox(), commentBox = await question.locator(".evaluation-comment textarea").boundingBox();
+          assert.ok(copyBox && scaleBox && commentBox && copyBox.y < scaleBox.y && scaleBox.y < commentBox.y,"question, rating and comment follow a clean vertical order");
+          assert.ok(commentBox.height <= 70,"the optional comment starts as a compact field");
         }
       }
       assert.equal(await page.locator('[data-recruitment="tab"][data-id="access"]').count(),0,"cross-company access is not presented as a normal company action while sharing is disabled");
