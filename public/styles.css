@@ -3524,13 +3524,13 @@ input::file-selector-button { background: var(--surface-elevated); color: var(--
   --border-subtle: #cbc2b0;
   --text-primary: #15130f;
   --text-secondary: #4e493f;
-  --text-muted: #6e6759;
+  --text-muted: #5c554a;
   --brand-primary: #d9f121;
   --brand-hover: #e5fa45;
   --brand-link: #15130f;
   --brand-subtle: #f2f8c4;
   --success: #2e6b41;
-  --warning: #8b6500;
+  --warning: #805c00;
   --danger: #c4301c;
   --success-subtle: #e1eee2;
   --warning-subtle: #f6e9bc;
@@ -3723,8 +3723,17 @@ input::file-selector-button { border: 1px solid var(--text-primary); border-radi
 .skeleton { border-radius: 1px; background: var(--border-subtle); }
 
 @media (max-width: 980px) {
+  /* The workshop desktop grid is declared after earlier breakpoints. Reset it
+     here so hiding the sidebar also releases its 258px track. */
+  .main-layout { grid-template-columns: minmax(0, 1fr); width: 100%; }
   .sidebar { display: none; }
+  .content { width: 100%; max-width: none; min-width: 0; padding: 24px 24px 48px; }
+  .main-layout:has(+ .mobile-workspace-menu) .content { padding-bottom: 104px; }
   .topbar { border-bottom: 2px solid var(--text-primary); background: var(--surface-primary); }
+  .topbar .side-brand { flex: 1 1 auto; min-width: 0; }
+  .topbar .side-brand > div { min-width: 0; }
+  .topbar .side-brand span { overflow-wrap: anywhere; }
+  .topbar .btn { flex: 0 0 auto; min-height: 44px; }
   .public-nav { border: 2px solid var(--text-primary); background: var(--surface-primary); box-shadow: 5px 5px 0 var(--text-primary); }
   .mobile-nav, .mobile-workspace-menu { border-top: 2px solid var(--text-primary); background: var(--text-primary); }
   .mobile-nav button { color: #c9c4b9; font-family: "Courier New", monospace; font-size: 10px; font-weight: 700; text-transform: uppercase; }
@@ -3735,6 +3744,16 @@ input::file-selector-button { border: 1px solid var(--text-primary); border-radi
   .evaluation-comment { grid-column: 1; }
 }
 @media (max-width: 640px) {
+  .content { padding: 16px 16px 40px; }
+  .main-layout:has(+ .mobile-workspace-menu) .content { padding-bottom: 100px; }
+  .topbar { margin: -16px -16px 20px; padding: 10px 16px; }
+  .topbar .side-brand { gap: 8px; }
+  .topbar .brand-logo-mark { width: 42px; height: 42px; flex: 0 0 42px; }
+  .topbar .side-brand strong { font-size: 18px; }
+  .topbar .side-brand span { font-size: 12px; }
+  .topbar .btn { min-width: 58px; padding: 8px; }
+  .employment-confirmation-alert > div > div { min-width: 0; overflow-wrap: anywhere; }
+  .mobile-recruitment-menu > summary { width: 100%; }
   .public-topbar { min-height: 70px; padding: 8px 14px; }
   .brand-logo-wordmark { width: 184px; }
   .market-home, .seo-job-page { padding: 42px 16px 56px; }
@@ -3743,7 +3762,14 @@ input::file-selector-button { border: 1px solid var(--text-primary); border-radi
   .market-hero h1, .hero-copy h1 { font-size: clamp(54px,18vw,76px); line-height: .88; }
   .market-search-panel { grid-template-columns: 1fr; }
   .market-search-panel .field { border-right: 0; border-bottom: 1px solid var(--text-primary); }
-  .market-trust-strip div { min-width: calc(50% - 10px); padding: 15px 10px 15px 0; margin-right: 10px; }
+  .market-trust-strip,
+  .marketplace-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+  .market-trust-strip div,
+  .marketplace-workspace .marketplace-stat { min-width: 0; margin: 0; padding: 12px 10px 12px 0; border-right: 0; border-bottom: 1px solid var(--border-subtle); }
+  .market-trust-strip div:nth-child(odd),
+  .marketplace-workspace .marketplace-stat:nth-child(odd) { border-right: 1px solid var(--border-subtle); }
+  .market-trust-strip div:last-child:nth-child(odd),
+  .marketplace-workspace .marketplace-stat:last-child:nth-child(odd) { grid-column: 1 / -1; border-right: 0; }
   .market-split-section { grid-template-columns: 1fr; }
   .market-plain-panel + .market-plain-panel { border-top: 2px solid var(--text-primary); border-left: 0; }
   .market-account-strip { padding: 24px 20px; }
@@ -4013,6 +4039,8 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
   .mobile-recruitment-menu { border: 1px solid var(--text-primary); background: var(--surface-primary); }
   .mobile-recruitment-menu > summary { gap: 10px; min-height: 52px; border: 0; font-size: 13px; }
   .mobile-recruitment-menu > summary .ui-icon { flex: 0 0 auto; }
+  .mobile-recruitment-menu:not([open]) > .recruitment-tabs,
+  .mobile-workspace-menu:not([open]) > .mobile-nav { display: none; }
   .mobile-recruitment-menu .recruitment-tabs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px; max-height: min(58dvh,460px); margin: 0; padding: 10px; overflow-y: auto; border-top: 1px solid var(--text-primary); }
   .mobile-recruitment-menu .recruitment-tabs .btn { display: flex; justify-content: flex-start; gap: 6px; min-width: 0; min-height: 48px; padding: 9px 8px; border: 1px solid var(--border-subtle); color: var(--text-primary); background: var(--bg-secondary); text-align: left; }
   .mobile-recruitment-menu .recruitment-tabs .btn > span:not(.nav-alert-count) { min-width: 0; overflow-wrap: anywhere; }

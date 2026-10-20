@@ -2,6 +2,12 @@
 
 ## 2026-10-20
 
+- Corrigida a apresentação em telemóveis: o painel ocupa agora a largura toda
+  quando a barra lateral desaparece, a navegação de recrutamento fica contida
+  num único menu recolhível sem duplicações, e o cabeçalho e os avisos adaptam-se
+  a ecrãs estreitos. Indicadores dispostos em duas colunas e contraste de textos
+  secundários melhorado. Atualizada a versão dos recursos e da cache offline
+  para disponibilizar as correções aos dispositivos já instalados.
 - Iniciada a Fase 1 do Cliente Zero nas ordens existentes: criação com equipa
   atribuída e datas previstas, consulta direta pela equipa mesmo sem tarefas,
   estados próprios com motivos obrigatórios para contratempos/rejeições, datas

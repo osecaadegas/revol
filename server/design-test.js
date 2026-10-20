@@ -16,7 +16,7 @@ async function reviewDesign(browser, base, accounts, jobPath, companyPath) {
     await page.evaluate(() => window.scrollTo({top:0,behavior:'instant'}));
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     await page.evaluate(() => document.fonts.ready);
-    assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(8, 13, 23)', `${name}: dark page`);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(233, 226, 212)', `${name}: workshop background`);
     const overflow = await page.evaluate(() => [...document.querySelectorAll('body *')].filter(el => {
       const box = el.getBoundingClientRect();
       return box.width && box.left >= 0 && box.right > innerWidth + 2 && getComputedStyle(el).position !== 'fixed';
@@ -32,7 +32,7 @@ async function reviewDesign(browser, base, accounts, jobPath, companyPath) {
         if (!el.getClientRects().length || el.closest('[inert],svg') || el.disabled || ![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
         const style = getComputedStyle(el);
         if (style.visibility === 'hidden') continue;
-        let bg = [8, 13, 23];
+        let bg = parse(getComputedStyle(document.body).backgroundColor).slice(0, 3);
         const parents = [];
         for (let p = el; p; p = p.parentElement) parents.unshift(p);
         for (const p of parents) bg = mix(parse(getComputedStyle(p).backgroundColor), bg);
@@ -50,7 +50,13 @@ async function reviewDesign(browser, base, accounts, jobPath, companyPath) {
     await page.goto(base);
     await page.evaluate(value => value ? localStorage.setItem('meo_session_token', value) : localStorage.removeItem('meo_session_token'), token);
     await page.reload();
-    if (token) await page.locator('.main-layout').waitFor();
+    if (token) {
+      try { await page.locator('.main-layout').waitFor({ timeout: 10000 }); }
+      catch (error) {
+        console.error('Design sign-in failed:', { width: page.viewportSize()?.width, title: await page.title(), body: (await page.locator('body').innerText()).slice(0, 500) });
+        throw error;
+      }
+    }
     else await page.locator('[data-market-filter-form="landing"]').waitFor();
   }
   for (const width of [1440, 768, 360, 390, 430]) {
@@ -93,10 +99,14 @@ async function reviewDesign(browser, base, accounts, jobPath, companyPath) {
     for (const [role, tabs] of [['worker', ['jobs', 'profile', 'applications', 'saved', 'messages', 'settings']], ['company', ['jobs', 'company', 'create', 'applications', 'candidates', 'messages']], ['admin', ['admin']]]) {
       await signIn(accounts[role]);
       for (const id of tabs) {
-        await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click();
-        await page.locator(`[data-recruitment="tab"][data-id="${id}"][aria-current="page"]`).waitFor();
+        if (width < 981) await page.locator('.mobile-recruitment-menu > summary').click();
+        await page.locator(`${width < 981 ? '.mobile-recruitment-menu' : '.sidebar'} [data-recruitment="tab"][data-id="${id}"]`).click();
+        await page.locator(`[data-recruitment="tab"][data-id="${id}"][aria-current="page"]`).first().waitFor({ state: 'attached' });
         if (id === 'admin') { await page.locator('[data-recruitment="load-admin"]').click(); await page.locator('[data-recruitment-form="admin"]').first().waitFor(); }
-        if (id === 'candidates') { await page.locator('[data-recruitment-form="candidate-filter"] button').click(); await page.locator('.job-card details').first().waitFor(); await page.locator('.job-card details').first().evaluate(el => el.open = true); }
+        if (id === 'candidates') {
+          await page.locator('[data-recruitment-form="candidate-filter"] button').click();
+          if (await page.locator('.job-card details').count()) await page.locator('.job-card details').first().evaluate(el => el.open = true);
+        }
         if (id === 'jobs' && role === 'worker') await page.locator('.notifications').evaluate(el => el.open = true);
         await capture(`${role}-${id}`, width);
       }

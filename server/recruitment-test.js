@@ -113,6 +113,23 @@ async function run() {
       assert.equal(await page.locator('.sidebar [data-recruitment="tab"]:not([aria-current="page"])').first().evaluate(element => getComputedStyle(element).color), "rgb(21, 19, 15)", "Sidebar categories must use high-contrast black text");
       const screenshotDir = path.join(__dirname, "..", "tmp", "recruitment-qa"); fs.mkdirSync(screenshotDir, { recursive: true });
       await page.screenshot({ path: path.join(screenshotDir, "worker-desktop.png"), fullPage: true });
+      for (const width of [320, 390, 768]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.reload();
+        await page.locator('.content').waitFor();
+        const mobileLayout = await page.evaluate(() => ({
+          viewport: document.documentElement.clientWidth,
+          content: document.querySelector('.content').getBoundingClientRect().width,
+          navigation: document.querySelectorAll('.mobile-recruitment-menu > .recruitment-tabs').length,
+          visibleTabs: [...document.querySelectorAll('.recruitment-tabs')].filter(element => element.getClientRects().length).length,
+          navParents: [...document.querySelectorAll('.recruitment-tabs')].map(element => element.parentElement?.className),
+          overflow: document.documentElement.scrollWidth > innerWidth + 1
+        }));
+        assert.ok(mobileLayout.content >= mobileLayout.viewport - 2, `${width}px: workspace must use the full viewport`);
+        assert.equal(mobileLayout.navigation, 1, `${width}px: recruitment menu must stay inside its disclosure`);
+        assert.equal(mobileLayout.visibleTabs, 0, `${width}px: closed recruitment menu must not expose duplicate tabs: ${JSON.stringify(mobileLayout)}`);
+        assert.equal(mobileLayout.overflow, false, `${width}px: page must not scroll horizontally`);
+      }
       await page.setViewportSize({ width: 390, height: 844 });
       await page.reload();
       const selectMobileTab = async id => {

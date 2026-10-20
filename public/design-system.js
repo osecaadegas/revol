@@ -1,13 +1,6 @@
 (function () {
   const icons = new Set(['search', 'sliders-horizontal', 'briefcase-business', 'map-pin', 'bookmark', 'file-text', 'user-round', 'building-2', 'message-square', 'shield-check', 'settings-2', 'plus', 'x', 'log-out', 'arrow-left', 'arrow-right', 'layout-dashboard', 'clipboard-list', 'users', 'history', 'folder', 'bell', 'check']);
   let modalTrigger = null;
-  const desktopNavigation = matchMedia('(min-width: 981px)');
-  function placeNavigation() {
-    const nav = document.querySelector('.recruitment-tabs');
-    const slot = document.querySelector(desktopNavigation.matches ? '[data-recruitment-navigation]' : '[data-mobile-recruitment-navigation]');
-    if (nav && slot) slot.append(nav);
-  }
-  desktopNavigation.addEventListener('change', placeNavigation);
   const icon = name => icons.has(name) ? `<svg class="ui-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><use href="/vendor/lucide.svg#${name}"></use></svg>` : '';
   function labelFields() {
     document.querySelectorAll('.field').forEach((field, i) => {
@@ -20,7 +13,8 @@
     });
   }
   function enhance() {
-    placeNavigation();
+    // Desktop and mobile render their own navigation. Moving the first matching
+    // nav detached it from the mobile <details> and duplicated the menu.
     labelFields();
     const modal = document.querySelector('.auth-modal, .detail-panel[role="dialog"]');
     document.querySelectorAll('.manifesto-shell > *, .main-layout, .mobile-workspace-menu, .skip-link').forEach(el => {
