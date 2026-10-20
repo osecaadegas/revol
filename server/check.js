@@ -9,6 +9,7 @@ const files = [
   "server/professional-profile.js",
   "server/direct-chat.js",
   "server/professional-profile-test.js",
+  "server/professional-profile-ui-test.js",
   "server/recruitment-test.js",
   "server/design-test.js",
   "server/worker-home-ui-test.js",

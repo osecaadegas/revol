@@ -35,6 +35,8 @@
 .document-grid span, .report-list span, .access-request span, .compact-list span { color: var(--text-muted); font-size: 13px; }
 .compact-list { display: grid; }
 .compact-list > div { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border-subtle); }
+.access-history-disclosure { min-width: 0; }
+.access-history-disclosure .compact-list span { overflow-wrap: anywhere; }
 .employment-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 14px; }
 .employment-card { display: grid; gap: 14px; padding: 20px; border: 1px solid var(--border-primary); border-radius: var(--radius); background: var(--surface-primary); }
 .employment-card header, .evaluation-detail header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }

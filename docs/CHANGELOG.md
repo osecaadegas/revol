@@ -2,6 +2,9 @@
 
 ## 2026-10-20
 
+- O histórico de acessos no percurso do trabalhador fica recolhido por defeito,
+  mas continua disponível para consulta e exercício de direitos. Ao abrir, as
+  ações e finalidades aparecem em português em vez de códigos internos.
 - O Perfil do trabalhador apresenta agora entrada, justificação e saída em
   três botões numa linha, com cores e estados distintos. A justificação
   privada só abre quando é pedida; a escolha de tarefa, os registos recentes,

@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v20-worker-attendance";
+const CACHE_NAME = "tratapro-shell-v21-access-history";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
