@@ -2,6 +2,18 @@
 
 ## 2026-10-20
 
+- Adicionado o separador `Tarefas` ao perfil do trabalhador quando recebe uma
+  tarefa, com contador de tarefas ativas e acesso ao fluxo existente de
+  execução, provas e validação.
+- Empresas podem atribuir tarefas a trabalhadores externos apenas quando
+  existe um vínculo verificado com a própria empresa; a tarefa conserva o ID
+  desse vínculo e continua isolada de empresas não relacionadas.
+- O planeamento de tarefas passa a guardar início previsto, notas, morada e
+  coordenadas GPS fixas, visíveis no cartão e detalhe da tarefa com ligação ao
+  mapa. Não foi adicionado rastreamento contínuo.
+- Adicionada a migração `20261020090000_worker_task_planning.sql` e cobertura
+  de autorização para atribuição válida, tentativa por empresa sem vínculo e
+  visibilidade restrita do trabalhador.
 - Removido o overflow horizontal do sidebar autenticado, incluindo o elemento
   decorativo que podia alargar a área rolável; os botões passam a respeitar a
   largura disponível mesmo com títulos maiores.

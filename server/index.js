@@ -206,6 +206,11 @@ const TABLES = [
       description: "description",
       assigneeId: "assignee_id",
       assigneeName: "assignee_name",
+      employmentId: "employment_id",
+      scheduledStartAt: "scheduled_start_at",
+      planningNotes: "planning_notes",
+      workAddress: "work_address",
+      workLocation: "work_location",
       dueDate: "due_date",
       status: "status",
       blockReason: "block_reason",
@@ -1332,18 +1337,40 @@ function assertSameCompany(auth, record) {
   }
 }
 
-function canAccessTask(auth, task) {
-  if (!task || task.companyId !== auth.company.id) return false;
+function verifiedTaskEmployment(db, companyId, workerId, employmentId = "") {
+  return db.employmentRelationships.find((item) =>
+    item.companyId === companyId &&
+    item.workerId === workerId &&
+    item.verificationStatus === "verified" &&
+    (!employmentId || item.id === employmentId)
+  ) || null;
+}
+
+function canAccessTask(auth, task, db) {
+  if (!task) return false;
+  if (auth.user.role === "worker") {
+    return task.assigneeId === auth.user.id && Boolean(verifiedTaskEmployment(db, task.companyId, auth.user.id, task.employmentId));
+  }
+  if (task.companyId !== auth.company.id) return false;
   if (isCompanyAdmin(auth.user)) return true;
   if (!isOperationalUser(auth.user)) return false;
   return task.assigneeId === auth.user.id;
 }
 
 function canAccessWorkOrder(auth, db, order) {
-  if (!order || order.companyId !== auth.company.id) return false;
+  if (!order) return false;
+  if (auth.user.role === "worker") {
+    return db.tasks.some((task) => task.workOrderId === order.id && canAccessTask(auth, task, db));
+  }
+  if (order.companyId !== auth.company.id) return false;
   if (isCompanyAdmin(auth.user)) return true;
   if (!isOperationalUser(auth.user)) return false;
   return db.tasks.some((task) => task.workOrderId === order.id && task.assigneeId === auth.user.id);
+}
+
+function taskScopedAuth(auth, task) {
+  if (!task || auth.company.id === task.companyId) return auth;
+  return { ...auth, company: { ...auth.company, id: task.companyId } };
 }
 
 function validationAlertStatus(task, reference = Date.now()) {
@@ -1383,12 +1410,15 @@ function buildValidationAlerts(db, companyId, reference = Date.now()) {
 
 function buildBootstrap(db, auth) {
   const isManager = isCompanyAdmin(auth.user);
+  const linkedWorkerIds = new Set(isManager ? db.employmentRelationships
+    .filter((item) => item.companyId === auth.company.id && item.verificationStatus === "verified")
+    .map((item) => item.workerId) : []);
   const companyUsers = db.users
-    .filter((user) => user.companyId === auth.company.id)
+    .filter((user) => user.companyId === auth.company.id || linkedWorkerIds.has(user.id))
     .map(publicUser)
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const tasks = db.tasks.filter((task) => canAccessTask(auth, task));
+  const tasks = db.tasks.filter((task) => canAccessTask(auth, task, db));
   const taskIds = new Set(tasks.map((task) => task.id));
   const workOrderIds = new Set(tasks.map((task) => task.workOrderId));
 
@@ -1401,13 +1431,13 @@ function buildBootstrap(db, auth) {
 
   const visibleOrderIds = new Set(workOrders.map((order) => order.id));
   const evidences = db.evidences.filter((evidence) => {
-    if (evidence.companyId !== auth.company.id) return false;
     if (evidence.taskId && taskIds.has(evidence.taskId)) return true;
+    if (evidence.companyId !== auth.company.id) return false;
     return !evidence.taskId && visibleOrderIds.has(evidence.workOrderId);
   });
 
   const logs = db.auditLogs.filter((entry) => {
-    if (entry.companyId !== auth.company.id) return false;
+    if (auth.user.role !== "worker" && entry.companyId !== auth.company.id) return false;
     if (isManager) return true;
     if (entry.entityType === "task" && taskIds.has(entry.entityId)) return true;
     if (entry.entityType === "evidence") {
@@ -1653,7 +1683,7 @@ async function storePhoto(db, auth, body, options) {
   const fileHash = crypto.createHash("sha256").update(parsed.buffer).digest("hex");
   const evidence = {
     id: nextId(db, "evidences", "ev"),
-    companyId: auth.company.id,
+    companyId: options.companyId || auth.company.id,
     taskId: options.taskId || null,
     workOrderId: options.workOrderId || null,
     userId: auth.user.id,
@@ -3345,15 +3375,44 @@ async function handleApi(req, res, pathname) {
       const workOrder = db.workOrders.find((item) => item.id === body.workOrderId);
       assertSameCompany(auth, workOrder);
       const assignee = db.users.find((item) => item.id === body.assigneeId && item.active !== false);
-      assertSameCompany(auth, assignee);
-      if (!["employee", "contractor"].includes(assignee.role)) {
-        const error = new Error("Tasks must be assigned to an employee or contractor.");
+      if (!assignee) {
+        const error = new Error("Trabalhador nao encontrado.");
+        error.status = 404;
+        throw error;
+      }
+      let employment = null;
+      if (assignee.role === "worker") {
+        employment = verifiedTaskEmployment(db, auth.company.id, assignee.id);
+        if (!employment) {
+          const error = new Error("A empresa so pode atribuir tarefas a trabalhadores com vinculo verificado.");
+          error.status = 403;
+          throw error;
+        }
+      } else {
+        assertSameCompany(auth, assignee);
+      }
+      if (!["employee", "contractor", "worker"].includes(assignee.role)) {
+        const error = new Error("A tarefa tem de ser atribuida a um trabalhador autorizado.");
         error.status = 400;
         throw error;
       }
       const title = cleanString(body.title, 180);
       const description = cleanString(body.description, 2000);
       const dueDate = cleanString(body.dueDate, 40);
+      const scheduledStartAt = body.scheduledStartAt ? normalizeTimestamp(body.scheduledStartAt).value : null;
+      const planningNotes = cleanString(body.planningNotes, 2000);
+      const workAddress = cleanString(body.workAddress || workOrder.address, 500);
+      const workLocation = normalizeLocation(body.workLocation);
+      if (body.scheduledStartAt && !scheduledStartAt) {
+        const error = new Error("A data e hora de inicio nao sao validas.");
+        error.status = 400;
+        throw error;
+      }
+      if (workLocation.status === "unavailable" && body.workLocation?.status === "granted") {
+        const error = new Error("As coordenadas GPS do local de trabalho nao sao validas.");
+        error.status = 400;
+        throw error;
+      }
       if (!title || !dueDate) {
         const error = new Error("Task title, assignee, and deadline are required.");
         error.status = 400;
@@ -3367,6 +3426,11 @@ async function handleApi(req, res, pathname) {
         description,
         assigneeId: assignee.id,
         assigneeName: assignee.name,
+        employmentId: employment?.id || null,
+        scheduledStartAt,
+        planningNotes,
+        workAddress,
+        workLocation,
         dueDate,
         status: "assigned",
         blockReason: "",
@@ -3385,6 +3449,9 @@ async function handleApi(req, res, pathname) {
       audit(db, auth, "task", task.id, "task.created", {
         title,
         assigneeId: assignee.id,
+        employmentId: employment?.id || null,
+        scheduledStartAt,
+        workAddress,
         dueDate
       }, req);
       return { task: publicTask(task), bootstrap: buildBootstrap(db, auth) };
@@ -3401,7 +3468,7 @@ async function handleApi(req, res, pathname) {
       await maintainOperationalEvidence(db, req);
       const auth = requireAuth(db, req);
       const task = db.tasks.find((item) => item.id === taskId);
-      if (!canAccessTask(auth, task)) {
+      if (!canAccessTask(auth, task, db)) {
         const error = new Error("Task not found.");
         error.status = 404;
         throw error;
@@ -3423,11 +3490,12 @@ async function handleApi(req, res, pathname) {
           kind: "task_evidence",
           taskId: task.id,
           workOrderId: task.workOrderId,
+          companyId: task.companyId,
           requireGps: true,
           req
         });
         stored.push(evidence);
-        audit(db, auth, "evidence", evidence.id, "evidence.created", {
+        audit(db, taskScopedAuth(auth, task), "evidence", evidence.id, "evidence.created", {
           taskId: task.id,
           locationStatus: evidence.location.status,
           expiresAt: evidence.expiresAt,
@@ -3453,7 +3521,7 @@ async function handleApi(req, res, pathname) {
       await maintainOperationalEvidence(db, req);
       const auth = requireAuth(db, req);
       const task = db.tasks.find((item) => item.id === taskId);
-      if (!canAccessTask(auth, task)) {
+      if (!canAccessTask(auth, task, db)) {
         const error = new Error("Task not found.");
         error.status = 404;
         throw error;
@@ -3503,7 +3571,7 @@ async function handleApi(req, res, pathname) {
       }
       task.status = nextStatus;
       task.updatedAt = now();
-      audit(db, auth, "task", task.id, "task.status_changed", {
+      audit(db, taskScopedAuth(auth, task), "task", task.id, "task.status_changed", {
         status: nextStatus,
         blockReason: nextStatus === "blocked" ? task.blockReason : ""
       }, req);
@@ -3557,11 +3625,15 @@ async function handleApi(req, res, pathname) {
     const evidenceId = decodeURIComponent(fileMatch[1]);
     const { evidence } = await withMaintainedAuth(req, (db, auth) => {
       const evidence = db.evidences.find((item) => item.id === evidenceId);
-      assertSameCompany(auth, evidence);
+      if (!evidence) {
+        const error = new Error("Evidence not found.");
+        error.status = 404;
+        throw error;
+      }
       let allowed = false;
       if (evidence.taskId) {
         const task = db.tasks.find((item) => item.id === evidence.taskId);
-        allowed = canAccessTask(auth, task);
+        allowed = canAccessTask(auth, task, db);
       } else {
         const order = db.workOrders.find((item) => item.id === evidence.workOrderId);
         allowed = canAccessWorkOrder(auth, db, order);
@@ -3590,16 +3662,20 @@ async function handleApi(req, res, pathname) {
       const auth = requireAuth(db, req);
       await maintainOperationalEvidence(db, req);
       const evidence = db.evidences.find((item) => item.id === evidenceId);
-      assertSameCompany(auth, evidence);
+      if (!evidence) {
+        const error = new Error("Evidence not found.");
+        error.status = 404;
+        throw error;
+      }
       const task = evidence.taskId ? db.tasks.find((item) => item.id === evidence.taskId) : null;
       const order = db.workOrders.find((item) => item.id === evidence.workOrderId);
-      const allowed = evidence.taskId ? canAccessTask(auth, task) : canAccessWorkOrder(auth, db, order);
+      const allowed = evidence.taskId ? canAccessTask(auth, task, db) : canAccessWorkOrder(auth, db, order);
       if (!allowed) {
         const error = new Error("Evidence not found.");
         error.status = 404;
         throw error;
       }
-      audit(db, auth, "evidence", evidence.id, "evidence.watermarked_downloaded", {
+      audit(db, taskScopedAuth(auth, task), "evidence", evidence.id, "evidence.watermarked_downloaded", {
         taskId: evidence.taskId || null,
         workOrderId: evidence.workOrderId || null
       }, req);

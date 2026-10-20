@@ -343,6 +343,20 @@ Status: implemented locally; production migration and legal/privacy validation p
   retention redaction and the disabled-by-default cross-company sharing gate.
 - See migration `20261017073331_professional_evaluation_history.sql`.
 
+### M33 - Tarefas e planeamento para trabalhadores contratados
+
+Status: implemented locally; production migration pending.
+
+- Exposes an assigned-task category in the worker workspace only after tasks
+  exist, including active-task count and the established evidence workflow.
+- Allows company managers to assign work to recruitment workers only through
+  a verified relationship belonging to that company.
+- Stores the authorising relationship, scheduled start, planning notes, fixed
+  work address and optional GPS coordinates on each task.
+- Keeps task, work-order, evidence and audit visibility scoped to the assigned
+  worker and originating company; no continuous location collection exists.
+- See migration `20261020090000_worker_task_planning.sql`.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.

@@ -92,7 +92,8 @@ The app must first behave like a public labor-market board:
 | Manager manages users | Direct user creation, activation toggle, invite links |
 | Secure invite associated to company and role | `/api/invites`, token-bound company/role acceptance |
 | Work orders with address/location text, description, optional initial photos | `/api/work-orders`, UI work order form, private evidence records |
-| Task creation with assignee and deadline | `/api/tasks`, manager task form |
+| Task creation with assignee and deadline | `/api/tasks`, manager task form; recruited workers require a verified relationship with the assigning company |
+| Worker planning and task access | Conditional `Tarefas` worker navigation; scheduled start, planning notes, fixed work address/GPS and relationship-bound authorization |
 | Operational states | `planned`, `assigned`, `in_progress`, `blocked`, `pending_validation`, `approved`, `rejected` |
 | Block justification | Status change to `blocked` requires reason |
 | Photo evidence | `/api/tasks/:id/evidence`, stored privately in local uploads or Supabase Storage; final task validation requires at least three GPS-authenticated photos |
@@ -156,7 +157,7 @@ These are documented in the source PDFs as excluded or future-phase concepts and
 
 1. Manager creates or invites an authorized user.
 2. Manager creates a work order.
-3. Manager creates a task with responsible user and deadline.
+3. Manager creates a task with responsible user, planned start, work location, notes and deadline; an external worker must have a verified relationship with that company.
 4. Responsible user logs in and sees only assigned tasks.
 5. Responsible user starts task.
 6. Responsible user can block task only with justification.

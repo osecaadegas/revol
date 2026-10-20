@@ -173,6 +173,11 @@ create table public.meo_tasks (
   description text,
   assignee_id text not null references public.meo_users(id) on delete restrict,
   assignee_name text not null,
+  employment_id text,
+  scheduled_start_at timestamptz,
+  planning_notes text not null default '',
+  work_address text not null default '',
+  work_location jsonb not null default '{"status":"not_requested"}'::jsonb,
   due_date text not null,
   status text not null check (
     status in (
@@ -331,6 +336,7 @@ create table public.meo_employment_relationships (
   created_by_role text not null check (created_by_role in ('worker','company')), retention_until timestamptz not null,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(), check (end_date is null or end_date >= start_date)
 );
+alter table public.meo_tasks add constraint meo_tasks_employment_fk foreign key (employment_id) references public.meo_employment_relationships(id) on delete restrict;
 create table public.meo_employer_evaluation_reports (
   id text primary key, employment_id text not null references public.meo_employment_relationships(id) on delete restrict,
   worker_id text not null references public.meo_users(id) on delete restrict, company_id text not null references public.meo_companies(id) on delete restrict,
@@ -415,6 +421,8 @@ create index meo_work_orders_company_idx on public.meo_work_orders(company_id);
 create index meo_tasks_company_idx on public.meo_tasks(company_id);
 create index meo_tasks_assignee_idx on public.meo_tasks(assignee_id);
 create index meo_tasks_work_order_idx on public.meo_tasks(work_order_id);
+create index meo_tasks_employment_idx on public.meo_tasks(employment_id) where employment_id is not null;
+create index meo_tasks_scheduled_start_idx on public.meo_tasks(company_id,scheduled_start_at) where scheduled_start_at is not null;
 create index meo_evidences_company_idx on public.meo_evidences(company_id);
 create index meo_evidences_task_idx on public.meo_evidences(task_id);
 create index meo_evidences_expires_idx on public.meo_evidences(expires_at);

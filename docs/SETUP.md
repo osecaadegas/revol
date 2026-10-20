@@ -212,6 +212,12 @@ Do not expose `data/uploads/` through a static web server. Images must be served
 
 In `APP_STORAGE_DRIVER=supabase`, operational records are stored in Supabase tables prefixed with `meo_`, and photos are stored in the private Supabase bucket. Evidence photos are retained for seven days from upload, then deleted by the app during authenticated maintenance passes or the protected scheduled maintenance endpoint. Trabalhador CV profile photos remain private profile assets and are not part of the seven-day evidence retention cleanup. Backups should be configured in Supabase.
 
+Before enabling worker task planning in an existing Supabase environment, run
+`supabase/migrations/20261020090000_worker_task_planning.sql`. It adds the
+verified-employment reference, scheduled start, planning notes and fixed work
+location fields used by the task API. These GPS coordinates describe the work
+site selected by the company and are not background or continuous tracking.
+
 ## Production Notes
 
 This build is ready for a Phase 1 test environment on a persistent Node host or on a Node host backed by Supabase.

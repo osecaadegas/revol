@@ -96,6 +96,25 @@ async function run() {
     result = (await request(`/api/professional/employments/${employment.id}/confirm`,"PATCH",{ decision:"confirm" },ct)).payload;
     assert.equal(result.professional.employments[0].verificationStatus,"verified");
 
+    const companyOrder = (await request("/api/work-orders","POST",{ title:"Turno de producao",address:"Rua Industrial 10, Braga",description:"Ordem para trabalhador contratado",photos:[] },ct,201)).payload.workOrder;
+    const otherOrder = (await request("/api/work-orders","POST",{ title:"Ordem sem vinculo",address:"Rua Externa 2, Braga",description:"Teste de isolamento",photos:[] },ot,201)).payload.workOrder;
+    await request("/api/tasks","POST",{ workOrderId:otherOrder.id,title:"Atribuicao indevida",assigneeId:workerId,dueDate:"2026-11-02" },ot,403);
+    const plannedTask = (await request("/api/tasks","POST",{
+      workOrderId:companyOrder.id,title:"Preparar linha",description:"Confirmar equipamento antes do turno.",assigneeId:workerId,
+      scheduledStartAt:"2026-11-01T08:00:00.000Z",dueDate:"2026-11-01",planningNotes:"Apresentar-se na portaria principal.",
+      workAddress:"Rua Industrial 10, Braga",workLocation:{ status:"granted",latitude:41.5454,longitude:-8.4265,capturedAt:"2026-10-20T09:00:00.000Z" }
+    },ct,201)).payload.task;
+    assert.equal(plannedTask.employmentId,employment.id,"worker tasks retain the verified relationship that authorises assignment");
+    assert.equal(plannedTask.workLocation.status,"granted");
+    const workerBootstrap = (await request("/api/bootstrap","GET",undefined,wt)).payload;
+    assert.ok(workerBootstrap.tasks.some(item => item.id === plannedTask.id),"assigned recruitment workers receive tasks in their own bootstrap");
+    assert.ok(workerBootstrap.workOrders.some(item => item.id === companyOrder.id),"the worker sees only the work order needed for the assigned task");
+    assert.ok(!workerBootstrap.workOrders.some(item => item.id === otherOrder.id),"an unrelated company order remains private");
+    const startedTask = (await request(`/api/tasks/${plannedTask.id}/status`,"PATCH",{ status:"in_progress" },wt)).payload.task;
+    assert.equal(startedTask.status,"in_progress","the assigned worker can operate the relationship-bound task");
+    const companyBootstrap = (await request("/api/bootstrap","GET",undefined,ct)).payload;
+    assert.ok(companyBootstrap.auditLogs.some(item => item.entityId === plannedTask.id && item.actorId === workerId),"worker task changes remain attributed in the originating company audit history");
+
     const standardQuestions = result.professional.questionGroups.flatMap(group => group.questions);
     assert.equal(standardQuestions.length,25,"the standard evaluation contains all 25 questions");
     const custom = (await request("/api/professional/custom-questions","POST",{ questionText:"Regista corretamente as verificações específicas da linha?",description:"Aplicável à linha de qualidade.",category:"Qualidade interna" },ct)).payload.professional.customQuestions[0];

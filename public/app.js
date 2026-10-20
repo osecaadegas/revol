@@ -3,7 +3,7 @@
   const tokenKey = "meo_session_token";
   const icon = window.TrataDesign.icon;
   const recruitmentUI = window.createRecruitmentUI({ get state() { return state; }, escapeHtml, isWorker, api, setNotice, renderApp,
-    renderWorkerProfilePanel, renderJobCard, renderApplicationCard, renderJobOfferForm, resolveKnownLocation });
+    renderWorkerProfilePanel, renderJobCard, renderApplicationCard, renderJobOfferForm, renderTasks, resolveKnownLocation });
 
   const state = {
     token: localStorage.getItem(tokenKey) || "",
@@ -1592,7 +1592,7 @@
 
   function renderMarketplaceHero(role, allJobs, jobs, applications) {
     if ((isWorker() || isManager()) && recruitmentUI.current() !== "jobs") {
-      const headings = {profile:"O teu CV Digital", employment:isWorker() ? "Percurso Profissional e Avaliações" : "Trabalhadores e vínculos", evaluations:"Percurso Profissional e Avaliações", access:"Pedidos de acesso", applications:"As tuas candidaturas", saved:"Oportunidades guardadas", messages:"Mensagens", settings:"Privacidade e dados", company:"A tua empresa", candidates:"Encontrar candidatos", create:state.editJobId ? "Editar vaga" : "Publicar uma vaga", admin:"Administração"};
+      const headings = {profile:"O teu CV Digital", employment:isWorker() ? "Percurso Profissional e Avaliações" : "Trabalhadores e vínculos", tasks:"Tarefas e planeamento", evaluations:"Percurso Profissional e Avaliações", access:"Pedidos de acesso", applications:"As tuas candidaturas", saved:"Oportunidades guardadas", messages:"Mensagens", settings:"Privacidade e dados", company:"A tua empresa", candidates:"Encontrar candidatos", create:state.editJobId ? "Editar vaga" : "Publicar uma vaga", admin:"Administração"};
       return `<header class="workspace-page-heading"><p class="eyebrow">${isWorker() ? "Area do trabalhador" : "Area da empresa"}</p><h1>${escapeHtml(headings[recruitmentUI.current()] || "Recrutamento")}</h1></header>`;
     }
     const profile = isWorker() ? workerCvProfile() : null;
@@ -2241,7 +2241,7 @@
   }
 
   function renderTaskForm() {
-    const workerOptions = state.data.users.filter((user) => user.active && ["employee", "contractor"].includes(user.role));
+    const workerOptions = state.data.users.filter((user) => user.active && ["employee", "contractor", "worker"].includes(user.role));
     return `
       <form class="panel form-grid" data-form="create-task">
         <div class="panel-header"><h2>Nova tarefa</h2></div>
@@ -2268,8 +2268,25 @@
           <input name="dueDate" required type="date">
         </div>
         <div class="field">
+          <label>Inicio planeado</label>
+          <input name="scheduledStartAt" type="datetime-local" required>
+        </div>
+        <div class="field">
+          <label>Morada do trabalho</label>
+          <input name="workAddress" required maxlength="500" placeholder="Rua, numero, codigo postal e localidade">
+        </div>
+        <div class="split-fields task-location-fields">
+          <div class="field"><label>Latitude GPS</label><input name="workLatitude" type="number" min="-90" max="90" step="any" placeholder="Ex: 41.1579"></div>
+          <div class="field"><label>Longitude GPS</label><input name="workLongitude" type="number" min="-180" max="180" step="any" placeholder="Ex: -8.6291"></div>
+        </div>
+        <button class="btn ghost" type="button" data-action="capture-task-location">Usar GPS atual para o local</button>
+        <div class="field">
           <label>Descricao</label>
           <textarea name="description" placeholder="Detalhe do trabalho esperado"></textarea>
+        </div>
+        <div class="field">
+          <label>Notas de planeamento</label>
+          <textarea name="planningNotes" maxlength="2000" placeholder="Acesso, contacto no local, materiais ou outras indicacoes uteis"></textarea>
         </div>
         <button class="btn primary full" type="submit" ${!state.data.workOrders.length || !workerOptions.length ? "disabled" : ""}>Criar tarefa</button>
         ${!state.data.workOrders.length ? `<p class="muted">Crie uma ordem antes de criar tarefas.</p>` : ""}
@@ -2301,12 +2318,15 @@
             <div class="meta-row">
               <span>${escapeHtml(order?.title || "Ordem removida")}</span>
               <span>${escapeHtml(task.assigneeName)}</span>
+              ${task.scheduledStartAt ? `<span>Inicio ${formatDate(task.scheduledStartAt)}</span>` : ""}
               <span>Prazo ${formatDate(task.dueDate)}</span>
             </div>
           </div>
           <span class="chip ${task.status}">${escapeHtml(statusLabel(task.status))}</span>
         </header>
         ${task.description ? `<p class="muted">${escapeHtml(task.description)}</p>` : ""}
+        ${task.planningNotes ? `<p><strong>Notas:</strong> ${escapeHtml(task.planningNotes)}</p>` : ""}
+        ${task.workAddress ? `<p class="task-work-location">${icon("map-pin")} <strong>Local:</strong> ${escapeHtml(task.workAddress)} ${task.workLocation?.status === "granted" ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(`${task.workLocation.latitude},${task.workLocation.longitude}`)}" target="_blank" rel="noopener noreferrer">Abrir no mapa</a>` : ""}</p>` : ""}
         <div class="meta-row">
           <span>${acceptedCount}/${finalEvidenceMinimum} provas finais validas</span>
           <span>${evidenceCount} fotos retidas</span>
@@ -2511,6 +2531,7 @@
               <div class="meta-row">
                 <span>${escapeHtml(order?.title || "Ordem removida")}</span>
                 <span>${escapeHtml(task.assigneeName)}</span>
+                ${task.scheduledStartAt ? `<span>Inicio ${formatDate(task.scheduledStartAt)}</span>` : ""}
                 <span>Prazo ${formatDate(task.dueDate)}</span>
                 ${task.validationDueAt ? `<span>Validacao ate ${formatDate(task.validationDueAt)}</span>` : ""}
               </div>
@@ -2518,6 +2539,8 @@
             <button class="btn ghost" data-action="close-drawer">Fechar</button>
           </div>
           ${task.description ? `<p class="muted">${escapeHtml(task.description)}</p>` : ""}
+          ${task.planningNotes ? `<div class="notice"><strong>Notas de planeamento:</strong> ${escapeHtml(task.planningNotes)}</div>` : ""}
+          ${task.workAddress ? `<p class="task-work-location">${icon("map-pin")} <strong>Local de trabalho:</strong> ${escapeHtml(task.workAddress)} ${task.workLocation?.status === "granted" ? `<a class="btn ghost" href="https://www.google.com/maps?q=${encodeURIComponent(`${task.workLocation.latitude},${task.workLocation.longitude}`)}" target="_blank" rel="noopener noreferrer">Abrir mapa</a>` : ""}</p>` : ""}
           ${task.blockReason ? `<div class="notice error">Bloqueio: ${escapeHtml(task.blockReason)}</div>` : ""}
           ${task.validationComment ? `<div class="notice success">Decisao: ${escapeHtml(task.validationComment)}</div>` : ""}
           ${renderTaskActions(task)}
@@ -2753,6 +2776,9 @@
     document.querySelectorAll("[data-action='capture-location']").forEach((button) => {
       button.addEventListener("click", captureLocation);
     });
+    document.querySelectorAll("[data-action='capture-task-location']").forEach((button) => {
+      button.addEventListener("click", captureTaskLocation);
+    });
 
     document.querySelectorAll("[data-toggle-user]").forEach((button) => {
       button.addEventListener("click", () => toggleUser(button.dataset.toggleUser));
@@ -2824,6 +2850,13 @@
 
   async function createTask(form) {
     const data = Object.fromEntries(new FormData(form).entries());
+    const latitude = Number(data.workLatitude);
+    const longitude = Number(data.workLongitude);
+    data.workLocation = data.workLatitude !== "" && data.workLongitude !== ""
+      ? { status: "granted", latitude, longitude, capturedAt: new Date().toISOString() }
+      : { status: "not_requested" };
+    delete data.workLatitude;
+    delete data.workLongitude;
     const payload = await api("/api/tasks", { method: "POST", body: data });
     state.data = payload.bootstrap;
     state.view = "tasks";
@@ -3072,6 +3105,27 @@
       () => {
         state.locationDraft = { status: "denied" };
         if (status) status.textContent = locationLabel(state.locationDraft);
+      },
+      { enableHighAccuracy: false, timeout: 9000, maximumAge: 0 }
+    );
+  }
+
+  function captureTaskLocation() {
+    const form = document.querySelector('[data-form="create-task"]');
+    if (!form || !navigator.geolocation) {
+      setNotice("O GPS nao esta disponivel neste dispositivo.", "error");
+      renderApp();
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        form.elements.workLatitude.value = position.coords.latitude.toFixed(6);
+        form.elements.workLongitude.value = position.coords.longitude.toFixed(6);
+        setNotice("Coordenadas do local preenchidas. Confirme a morada antes de criar a tarefa.");
+      },
+      () => {
+        setNotice("Nao foi possivel obter o GPS. Pode preencher as coordenadas manualmente.", "error");
+        renderApp();
       },
       { enableHighAccuracy: false, timeout: 9000, maximumAge: 0 }
     );
