@@ -2,6 +2,11 @@
 
 ## 2026-10-20
 
+- Adicionado um aviso persistente no painel do trabalhador quando existe um
+  vínculo de emprego por confirmar, com acesso direto ao pedido.
+- O separador `Percurso profissional` passa a mostrar um contador de pedidos e
+  os vínculos pendentes também aparecem na lista geral de notificações até o
+  trabalhador confirmar ou recusar.
 - Corrigida a criação de vínculos profissionais em curso: uma data de fim
   opcional vazia passa a ser persistida como `NULL`, evitando o erro de tipo
   `date` no Supabase.

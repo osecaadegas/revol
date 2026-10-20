@@ -1559,7 +1559,7 @@
     const applications = state.data.jobApplications || [];
     if (isWorker() || isManager()) {
       const panel = recruitmentUI.content();
-      return `<section class="marketplace-workspace">${renderMarketplaceHero(role, allJobs, jobs, applications)}${recruitmentUI.notifications()}${panel || renderSearchResults("app", allJobs.length, jobs.length, jobs.length ? jobs.map(job => renderJobCard(job)).join("") : renderMarketplaceEmptyState(role))}</section>`;
+      return `<section class="marketplace-workspace">${renderMarketplaceHero(role, allJobs, jobs, applications)}${recruitmentUI.employmentAlert()}${recruitmentUI.notifications()}${panel || renderSearchResults("app", allJobs.length, jobs.length, jobs.length ? jobs.map(job => renderJobCard(job)).join("") : renderMarketplaceEmptyState(role))}</section>`;
     }
     return `
       <section class="marketplace-workspace">

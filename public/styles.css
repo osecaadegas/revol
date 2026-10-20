@@ -3137,6 +3137,14 @@ td span:not(.status-badge) {
 .message p { white-space: pre-wrap; }
 .moderation-row { padding: 16px 0; border-bottom: 1px solid var(--border-primary); max-width: 800px; }
 .notifications { padding: 12px 0; border-bottom: 1px solid var(--border-primary); margin-bottom: 20px; }
+.notification-action { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border-primary); }
+.notification-action p { margin: 0; }
+.employment-confirmation-alert { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 0 20px; padding: 18px 20px; border: 1px solid var(--ink, var(--text-primary)); border-left: 8px solid var(--brand-primary); background: var(--surface-primary); box-shadow: 4px 4px 0 var(--ink, var(--text-primary)); }
+.employment-confirmation-alert > div { display: flex; align-items: flex-start; gap: 14px; }
+.employment-confirmation-alert svg { flex: 0 0 auto; margin-top: 2px; color: var(--ink, var(--text-primary)); }
+.employment-confirmation-alert strong { display: block; margin-bottom: 4px; font-size: 17px; color: var(--ink, var(--text-primary)); }
+.employment-confirmation-alert p { margin: 0; color: var(--text-secondary); }
+.nav-alert-count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: auto; padding: 0 6px; border-radius: 999px; background: var(--brand-primary); color: var(--ink, #111); font: 700 12px/1 system-ui, sans-serif; }
 details > summary { cursor: pointer; min-height: 44px; padding: 12px 0; font-weight: 600; }
 .applications-workspace > article { margin-bottom: 20px; }
 .more-filters { grid-column: 1 / -1; width: 100%; }
@@ -3167,6 +3175,8 @@ details > summary { cursor: pointer; min-height: 44px; padding: 12px 0; font-wei
   .marketplace-hero-panel h1 { font-size: 26px; }
   .recruitment-tabs { gap: 6px; }
   .recruitment-tabs .btn { flex: 1 1 auto; padding: 10px 12px; font-size: 14px; }
+  .employment-confirmation-alert, .notification-action { align-items: stretch; flex-direction: column; }
+  .employment-confirmation-alert .btn, .notification-action .btn { width: 100%; }
   .recruitment-form, .conversation { width: 100%; max-width: 100%; }
   .marketplace-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .split-fields { grid-template-columns: minmax(0, 1fr); }

@@ -13,12 +13,23 @@
     const button = (action, label, id = "", extra = "") => `<button type="button" class="btn ghost" data-recruitment="${action}" data-id="${e(id)}" ${extra}>${label}</button>`;
     const modes = [["onsite", "Presencial"], ["remote", "Remoto"], ["hybrid", "Hibrido"]];
     const shifts = [["", "A combinar"], ["day", "Diurno"], ["night", "Noturno"], ["rotating", "Rotativo"], ["weekends", "Fins de semana"]];
+    const pendingEmploymentRequests = () => h.isWorker()
+      ? (h.state.data?.professional?.employments || []).filter(item => item.verificationStatus === "pending" && !item.workerConfirmedAt)
+      : [];
     function tabs() {
       const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Mensagens"], ["settings", "Privacidade"]]
         : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["access", "Pedidos de acesso"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Mensagens"]];
       if (r().platformAdmin) items.push(["admin", "Administracao"]);
       const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"message-square",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
-      return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ghost" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span></button>`).join("")}</nav>`;
+      const pendingCount = pendingEmploymentRequests().length;
+      return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ghost" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span>${id === "employment" && pendingCount ? `<span class="nav-alert-count" aria-label="${pendingCount} vinculo pendente">${pendingCount}</span>` : ""}</button>`).join("")}</nav>`;
+    }
+
+    function employmentAlert() {
+      const pending = pendingEmploymentRequests();
+      if (!pending.length || tab === "employment") return "";
+      const first = pending[0];
+      return `<section class="employment-confirmation-alert" role="status" aria-live="polite"><div>${icon("bell")}<div><strong>${pending.length === 1 ? "Tem um vínculo de emprego por confirmar" : `Tem ${pending.length} vínculos de emprego por confirmar`}</strong><p>${e(first.companyName)} registou ${e(first.position)}. Confirme ou recuse os dados no seu percurso profissional.</p></div></div><button type="button" class="btn primary" data-recruitment="open-employment">Ver pedido</button></section>`;
     }
     function preferences() {
       const p = h.state.data.user.profile.workerCv?.preferences || {};
@@ -144,6 +155,11 @@
             tab = id; if (id === "create") h.state.editJobId = null;
             if (id === "applications" && !h.isWorker()) for (const application of h.state.data.jobApplications.filter(a => !a.recruitment?.viewedAt)) await send("application-view", "POST", { id: application.id });
           }
+          if (action === "open-employment") {
+            h.state.data = await h.api("/api/bootstrap");
+            h.state.view = "marketplace";
+            tab = "employment";
+          }
           if (action === "new-job") { h.state.view = "marketplace"; h.state.editJobId = null; tab = "create"; }
           if (action === "edit-job") { h.state.editJobId = id; tab = "create"; }
           if (action === "candidate-page") { candidatePage = Number(id); const result = await h.api(`/api/recruitment/candidates?${new URLSearchParams({ ...candidateFilters, page: candidatePage })}`); candidateResults = result.profiles; candidateTotal = result.total; }
@@ -214,7 +230,12 @@
     function report(job) {
       return `<details><summary>Denunciar vaga</summary><form class="form-grid" data-recruitment-form="report"><input type="hidden" name="jobId" value="${e(job.id)}">${select("reason", "Motivo", [["fake", "Empresa falsa"], ["fraud", "Fraude"], ["salary", "Salario enganador"], ["discrimination", "Discriminacao"], ["money", "Pedido de dinheiro"], ["closed", "Vaga indisponivel"], ["spam", "Spam"], ["other", "Outro"]])}${area("detail", "Detalhes")}<button class="btn ghost">Enviar denuncia</button></form></details>`;
     }
-    return { tabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, reset: () => { tab = "jobs"; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); },
-      notifications: () => (r().notifications || []).length ? `<details class="notifications"><summary>${r().notifications.length} notificacoes</summary>${r().notifications.slice(0, 15).map(n => `<p>${e(n.text)}</p>`).join("")}${button("notifications", "Marcar atualizacoes como lidas")}</details>` : "" };
+    return { tabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, employmentAlert, reset: () => { tab = "jobs"; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); },
+      notifications: () => {
+        const recruitmentNotifications = r().notifications || [], employmentRequests = pendingEmploymentRequests();
+        const count = recruitmentNotifications.length + employmentRequests.length;
+        if (!count) return "";
+        return `<details class="notifications"><summary>${count} notificacoes</summary>${employmentRequests.map(item => `<div class="notification-action"><p><strong>Vínculo por confirmar</strong><br>${e(item.companyName)} · ${e(item.position)}</p>${button("open-employment", "Ver pedido")}</div>`).join("")}${recruitmentNotifications.slice(0, 15).map(n => `<p>${e(n.text)}</p>`).join("")}${recruitmentNotifications.length ? button("notifications", "Marcar atualizacoes como lidas") : ""}</details>`;
+      } };
   };
 })();
