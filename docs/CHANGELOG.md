@@ -2,6 +2,13 @@
 
 ## 2026-10-20
 
+- Os contratempos ativos passaram a alertas operacionais de prioridade alta no
+  painel da empresa: faixa vermelha persistente em todas as áreas, contador na
+  navegação de tarefas (também em telemóvel), título do separador com aviso,
+  acesso direto à tarefa e lista completa no painel. O alerta acompanha o
+  estado real da tarefa e desaparece quando o trabalho retoma; não exige SQL.
+  Corrigida também a listagem de várias ordens no painel privado, encontrada
+  durante a regressão visual.
 - Corrigida a apresentação em telemóveis: o painel ocupa agora a largura toda
   quando a barra lateral desaparece, a navegação de recrutamento fica contida
   num único menu recolhível sem duplicações, e o cabeçalho e os avisos adaptam-se

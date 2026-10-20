@@ -36,7 +36,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20261020-mobile-layout";
+const PUBLIC_ASSET_VERSION = "20261020-priority-alert";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -1484,6 +1484,7 @@ function buildOperationalAlerts(db, companyId) {
       const workOrderTitle = order?.title || "Obra sem designação";
       return {
         type: "task_setback",
+        priority: "high",
         taskId: task.id,
         taskTitle: task.title,
         assigneeName: task.assigneeName,
@@ -1599,7 +1600,7 @@ function buildPrivateMvpData(db, auth) {
       .sort((a, b) => a.name.localeCompare(b.name)),
     workOrders: db.workOrders
       .filter((order) => order.companyId === companyId)
-      .map(publicWorkOrder)
+      .map((order) => publicWorkOrder(order))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     tasks: db.tasks
       .filter((task) => task.companyId === companyId)

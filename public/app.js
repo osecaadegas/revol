@@ -550,6 +550,28 @@
     state.data = await api("/api/bootstrap");
   }
 
+  function operationalAlertCount() {
+    return isManager() ? (state.data?.operationalAlerts || []).length : 0;
+  }
+
+  function renderOperationalAlertBadge() {
+    const count = operationalAlertCount();
+    return `<span class="operational-alert-badge" data-operational-alert-badge ${count ? "" : "hidden"} aria-label="${count} contratempo${count === 1 ? "" : "s"} ativo${count === 1 ? "" : "s"}">${count || ""}</span>`;
+  }
+
+  function syncOperationalAlertIndicators() {
+    const count = operationalAlertCount();
+    document.querySelectorAll("[data-operational-alert-badge]").forEach((badge) => {
+      badge.hidden = count === 0;
+      badge.textContent = count ? String(count) : "";
+      badge.setAttribute("aria-label", `${count} contratempo${count === 1 ? "" : "s"} ativo${count === 1 ? "" : "s"}`);
+    });
+    document.querySelector(".mobile-workspace-menu")?.classList.toggle("has-operational-alert", count > 0);
+    document.title = count
+      ? `⚠ ${count} contratempo${count === 1 ? "" : "s"} · TrataPro`
+      : "TrataPro - Vagas abertas";
+  }
+
   async function refreshOperationalAlerts() {
     if (operationalAlertsRefreshInFlight || !state.data || !isManager() || document.hidden) return;
     operationalAlertsRefreshInFlight = true;
@@ -567,6 +589,7 @@
       if (panel) panel.innerHTML = renderOperationalAlertsPanel();
       const count = document.querySelector("[data-operational-alert-count]");
       if (count) count.textContent = String(alerts.length);
+      syncOperationalAlertIndicators();
     } catch {
       // Keep the last known alert visible during temporary network failures.
       if (!state.token) renderPublicBoard();
@@ -1527,7 +1550,7 @@
           </div>
           <div data-mobile-recruitment-navigation>${isWorker() || isManager() ? recruitmentUI.mobileTabs() : ""}</div>
           ${noticeHtml()}
-          <div data-operational-notice aria-live="polite">${renderOperationalNotice()}</div>
+          <div data-operational-notice aria-live="assertive">${renderOperationalNotice()}</div>
           ${renderView()}
         </main>
       </div>
@@ -1536,6 +1559,7 @@
     `;
     bindAppEvents();
     window.TrataDesign.enhance();
+    syncOperationalAlertIndicators();
   }
 
   function renderNav(className) {
@@ -1553,7 +1577,7 @@
           .map(
             ([view, label]) => `
               <button type="button" data-view="${view}" class="${state.view === view ? "active" : ""}">
-                ${icon(({project:"folder",mvp:"layout-dashboard",dashboard:"layout-dashboard",orders:"folder",tasks:"clipboard-list",team:"users",history:"history"})[view] || "briefcase-business")}<span>${label}</span><span>${view === "tasks" ? state.data.tasks.length : ""}</span>
+                ${icon(({project:"folder",mvp:"layout-dashboard",dashboard:"layout-dashboard",orders:"folder",tasks:"clipboard-list",team:"users",history:"history"})[view] || "briefcase-business")}<span>${label}</span><span>${view === "tasks" ? state.data.tasks.length : ""}</span>${view === "tasks" && isManager() ? renderOperationalAlertBadge() : ""}
               </button>
             `
           )
@@ -1565,8 +1589,8 @@
   function renderMobileNav() {
     if (isWorker()) return "";
     return `
-      <details class="mobile-workspace-menu">
-      <summary>${icon("layout-dashboard")} ${canViewPrivateProject() ? "Workspace" : "Operacoes"}</summary>
+      <details class="mobile-workspace-menu ${operationalAlertCount() ? "has-operational-alert" : ""}">
+      <summary>${icon("layout-dashboard")} ${canViewPrivateProject() ? "Workspace" : "Operações"}${isManager() ? renderOperationalAlertBadge() : ""}</summary>
       <nav class="mobile-nav">
         ${navItems
           .filter(([view]) => {
@@ -1578,7 +1602,7 @@
           })
           .map(
             ([view, label]) => `
-              <button type="button" data-view="${view}" class="${state.view === view ? "active" : ""}">${label}</button>
+              <button type="button" data-view="${view}" class="${state.view === view ? "active" : ""}">${label}${view === "tasks" && isManager() ? renderOperationalAlertBadge() : ""}</button>
             `
           )
           .join("")}
@@ -2109,9 +2133,9 @@
 
   function renderOperationalAlert(alert) {
     return `
-      <article class="operational-alert" role="alert">
+      <article class="operational-alert">
         <div>
-          <strong>Contratempo comunicado</strong>
+          <strong>Contratempo ativo · prioridade alta</strong>
           <p>${escapeHtml(alert.message)}</p>
           <small>${formatDate(alert.reportedAt)}</small>
         </div>
@@ -2125,12 +2149,16 @@
     if (!alerts.length) return "";
     const alert = alerts[0];
     return `
-      <section class="company-operational-notice" role="alert">
+      <section class="company-operational-notice" role="alert" aria-label="Alerta prioritário de contratempo">
         <div>
-          <strong>${alerts.length === 1 ? "Novo contratempo operacional" : `${alerts.length} contratempos operacionais`}</strong>
+          <strong><span class="alert-priority">Prioridade alta</span> ${alerts.length === 1 ? "Contratempo ativo na tarefa" : `${alerts.length} contratempos ativos`}</strong>
           <p>${escapeHtml(alert.message)}</p>
+          <small>Comunicado em ${formatDate(alert.reportedAt)} · mantém-se ativo até a tarefa avançar.</small>
         </div>
-        <button class="btn ghost" data-operational-task="${escapeHtml(alert.taskId)}">Ver contratempo</button>
+        <div class="operational-notice-actions">
+          <button class="btn danger" data-operational-task="${escapeHtml(alert.taskId)}">Abrir tarefa</button>
+          ${alerts.length > 1 ? `<button class="btn ghost" data-operational-all>Ver todos</button>` : ""}
+        </div>
       </section>
     `;
   }
@@ -2873,6 +2901,13 @@
 
     document.querySelectorAll("[data-operational-notice], [data-operational-alerts-panel]").forEach((container) => {
       container.addEventListener("click", (event) => {
+        const all = event.target.closest("[data-operational-all]");
+        if (all && container.contains(all)) {
+          state.view = "dashboard";
+          renderApp();
+          requestAnimationFrame(() => document.querySelector("[data-operational-alerts-panel]")?.scrollIntoView({ block: "start" }));
+          return;
+        }
         const button = event.target.closest("[data-operational-task]");
         if (button && container.contains(button)) openOperationalTask(button.dataset.operationalTask);
       });

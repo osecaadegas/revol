@@ -424,7 +424,7 @@ async function run() {
       throw new Error("Workers must not read company operational alerts.");
     }
     const liveAlerts = await request(baseUrl, "GET", "/api/operational-alerts", null, managerToken);
-    if (liveAlerts.alerts?.[0]?.taskId !== taskId || liveAlerts.alerts[0].reason !== setbackReason) {
+    if (liveAlerts.alerts?.[0]?.taskId !== taskId || liveAlerts.alerts[0].reason !== setbackReason || liveAlerts.alerts[0].priority !== "high") {
       throw new Error("The company should receive the active setback through the refresh endpoint.");
     }
     const otherCompany = await request(baseUrl, "POST", "/api/register/company", {

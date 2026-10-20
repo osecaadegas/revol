@@ -2342,19 +2342,32 @@ td span:not(.status-badge) {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
   align-items: center;
-  margin-bottom: 18px;
-  border: 1px solid var(--text-primary);
-  border-left: 8px solid var(--warning);
-  padding: 14px 16px;
-  background: var(--warning-subtle);
+  margin-bottom: 24px;
+  border: 2px solid var(--danger);
+  border-left-width: 10px;
+  padding: 18px;
+  background: var(--danger-subtle);
+  box-shadow: 4px 4px 0 var(--text-primary);
 }
 
-.company-operational-notice strong { display: block; }
-.company-operational-notice p { margin: 4px 0 0; line-height: 1.4; }
+.company-operational-notice strong { display: block; font-size: 1.1rem; line-height: 1.3; }
+.company-operational-notice p { margin: 10px 0 6px; line-height: 1.45; overflow-wrap: anywhere; }
+.company-operational-notice small { color: var(--text-secondary); }
+.alert-priority { display: inline-block; margin-right: 8px; padding: 4px 8px; color: white; background: var(--danger); font-family: "Courier New", monospace; font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; vertical-align: middle; }
+.operational-notice-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.operational-notice-actions .btn { min-height: 48px; white-space: nowrap; }
+.operational-alert-badge { display: inline-grid; place-items: center; flex: 0 0 auto; min-width: 24px; min-height: 24px; margin-left: auto; padding: 0 5px; border: 1px solid var(--text-primary); border-radius: 50%; color: white; background: var(--danger); font-family: Inter, Arial, sans-serif; font-size: 12px; font-weight: 800; line-height: 1; }
+.operational-alert-badge[hidden] { display: none !important; }
+.mobile-workspace-menu > summary .operational-alert-badge { margin-right: 38px; }
+.mobile-workspace-menu.has-operational-alert > summary { color: white; background: var(--danger); }
+.mobile-workspace-menu.has-operational-alert[open] > summary { color: white; background: var(--danger); }
+.mobile-workspace-menu.has-operational-alert > summary .operational-alert-badge { color: var(--danger); background: white; }
 
 @media (max-width: 640px) {
   .operational-alert, .company-operational-notice { grid-template-columns: 1fr; }
   .operational-alert .btn, .company-operational-notice .btn { width: 100%; }
+  .company-operational-notice { padding: 14px; }
+  .operational-notice-actions { flex-direction: column; }
 }
 
 .card-actions {
