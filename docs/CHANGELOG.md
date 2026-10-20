@@ -2,6 +2,11 @@
 
 ## 2026-10-20
 
+- O Perfil do trabalhador explica a entrada e saída em linguagem simples. Após
+  a empresa resolver um contratempo, o trabalhador recebe um aviso contextual
+  com acesso direto à tarefa; a página verifica o estado enquanto o trabalhador
+  usa a área do trabalhador e ao regressar ao separador. Não há notificações
+  push nem migração nova: o aviso usa a resolução já auditada na tarefa.
 - O histórico de acessos no percurso do trabalhador fica recolhido por defeito,
   mas continua disponível para consulta e exercício de direitos. Ao abrir, as
   ações e finalidades aparecem em português em vez de códigos internos.

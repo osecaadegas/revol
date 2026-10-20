@@ -45,6 +45,27 @@
       const first = pending[0];
       return `<section class="employment-confirmation-alert" role="status" aria-live="polite"><div>${icon("bell")}<div><strong>${pending.length === 1 ? "Tem um vínculo de emprego por confirmar" : `Tem ${pending.length} vínculos de emprego por confirmar`}</strong><p>${e(first.companyName)} registou ${e(first.position)}. Confirme ou recuse os dados no seu percurso profissional.</p></div></div><button type="button" class="btn primary" data-recruitment="open-employment">Ver pedido</button></section>`;
     }
+    const setbackSeenKey = task => `tratapro_setback_seen:${h.state.data.user.id}:${task.id}`;
+    function resolvedSetbackAlerts() {
+      if (!h.isWorker()) return [];
+      return (h.state.data.tasks || []).filter(task => {
+        if (!["assigned", "in_progress"].includes(task.status) || !task.lastSetbackResolution?.resolvedAt) return false;
+        try { return localStorage.getItem(setbackSeenKey(task)) !== task.lastSetbackResolution.resolvedAt; }
+        catch { return true; }
+      }).sort((a, b) => b.lastSetbackResolution.resolvedAt.localeCompare(a.lastSetbackResolution.resolvedAt));
+    }
+    function setbackResolutionAlert() {
+      const pending = resolvedSetbackAlerts();
+      if (!pending.length) return "";
+      const task = pending[0], order = (h.state.data.workOrders || []).find(item => item.id === task.workOrderId);
+      return `<section class="employment-confirmation-alert setback-resolution-alert"><div>${icon("check")}<div><strong>${pending.length === 1 ? "Contratempo resolvido — podes retomar a tarefa" : `${pending.length} contratempos resolvidos — podes retomar as tarefas`}</strong><p>${e(task.title)}${order ? ` · ${e(order.title)}` : ""}. ${e(task.lastSetbackResolution.text)}</p></div></div><button type="button" class="btn primary" data-open-task="${e(task.id)}" data-setback-task="${e(task.id)}">Ver tarefa</button></section>`;
+    }
+    function acknowledgeSetback(taskId) {
+      const task = (h.state.data.tasks || []).find(item => item.id === taskId);
+      if (!task?.lastSetbackResolution?.resolvedAt) return;
+      try { localStorage.setItem(setbackSeenKey(task), task.lastSetbackResolution.resolvedAt); }
+      catch { /* O aviso permanece visível se o armazenamento local estiver indisponível. */ }
+    }
     function preferences() {
       const p = h.state.data.user.profile.workerCv?.preferences || {};
       return `<form class="form-grid recruitment-form" data-recruitment-form="preferences"><h2>Disponibilidade e preferencias</h2>
@@ -161,7 +182,7 @@
             <button class="worker-attendance-button exit" type="button" data-attendance="clock-out" data-task-id="${e(open?.taskId || "")}" ${!attendanceAvailable || !open ? "disabled" : ""}>Saída</button>
           </div>
           ${open ? `<p class="notice" role="status">Em serviço desde ${e(new Date(open.clockedInAt).toLocaleString("pt-PT"))}.</p>` : ""}
-          <details class="worker-attendance-privacy"><summary>Como funciona o registo?</summary><p>Entrada e saída registadas à hora do servidor. A verificação por GPS está desativada até existir avaliação jurídica e de privacidade. Estes registos não pontuam o teu desempenho.</p></details>
+          <details class="worker-attendance-privacy"><summary>Como funciona o registo?</summary><p>Escolhe a tarefa e toca em «Entrar ao trabalho» quando começares. No fim, toca em «Saída». A hora fica guardada automaticamente em «Últimos registos». Se faltares, usa «Justificação».</p></details>
           <details><summary>Últimos registos</summary>${punches.slice(0, 10).map(item => `<p>${e(new Date(item.clockedInAt).toLocaleString("pt-PT"))} — ${item.clockedOutAt ? e(new Date(item.clockedOutAt).toLocaleString("pt-PT")) : "Em curso"}</p>`).join("") || '<p>Ainda não há registos.</p>'}</details>
         </section>
         <section class="panel worker-justification-panel" id="worker-justification" ${justificationOpen ? "" : "hidden"}><h3>Justificar ausência</h3><p>Indica o dia e escreve um motivo ou anexa um documento. Não incluas diagnósticos ou outros dados de saúde desnecessários; o anexo fica privado.</p>
@@ -312,7 +333,7 @@
     function report(job) {
       return `<details><summary>Denunciar vaga</summary><form class="form-grid" data-recruitment-form="report"><input type="hidden" name="jobId" value="${e(job.id)}">${select("reason", "Motivo", [["fake", "Empresa falsa"], ["fraud", "Fraude"], ["salary", "Salario enganador"], ["discrimination", "Discriminacao"], ["money", "Pedido de dinheiro"], ["closed", "Vaga indisponivel"], ["spam", "Spam"], ["other", "Outro"]])}${area("detail", "Detalhes")}<button class="btn ghost">Enviar denuncia</button></form></details>`;
     }
-    return { tabs, mobileTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, reset: () => { tab = "jobs"; justificationOpen = false; selectedAttendanceTaskId = ""; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
+    return { tabs, mobileTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, setbackResolutionAlert, acknowledgeSetback, reset: () => { tab = "jobs"; justificationOpen = false; selectedAttendanceTaskId = ""; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
       notifications: () => {
         const recruitmentNotifications = r().notifications || [], employmentRequests = pendingEmploymentRequests();
         const count = recruitmentNotifications.length + employmentRequests.length;

@@ -234,6 +234,7 @@ async function run() {
     assert.ok(!pdf.payload.toString("latin1").includes("Avaliacao do periodo"),"confidential evaluation content is excluded from CV export");
     const otherBootstrap = (await request("/api/bootstrap","GET",undefined,ot)).payload;
     assert.equal(otherBootstrap.professional.reportSummaries.length,0,"other companies receive no report summaries");
+    const workerSetbackResolution = "O material chegou à obra e a equipa pode prosseguir.";
     if (process.env.PLAYWRIGHT_MODULE) {
       const { chromium } = require(process.env.PLAYWRIGHT_MODULE);
       browser = await chromium.launch({ headless:true, channel:process.env.PLAYWRIGHT_CHANNEL || "msedge" });
@@ -255,8 +256,8 @@ async function run() {
       await workerMenu.locator('[data-recruitment="tab"][data-id="tasks"][aria-current="page"]').waitFor({state:"attached"});
       assert.match(await workerMenu.locator('summary').textContent(),/Tarefas/,"mobile navigation announces the current area");
       await page.locator('[data-open-task]').first().click();
-      await page.getByRole('button',{ name:'Contratempo',exact:true }).waitFor();
-      await page.locator('[data-drawer-panel]').getByText(`Contratempo: ${setbackReason}`).waitFor();
+      await page.locator('[data-drawer-panel]').getByText('Aguardamos que a empresa resolva este contratempo.',{ exact:false }).waitFor();
+      await page.locator('[data-drawer-panel]').getByText(`Contratempo ativo: ${setbackReason}`).waitFor();
       const workMap = page.locator('.task-map iframe'); await workMap.waitFor();
       assert.ok((await workMap.getAttribute('src')).includes('Rua%20Industrial%2010%2C%20Braga'),"the worker task embeds Google Maps from the stored address");
       await page.locator('[data-action="close-drawer"]').click();
@@ -329,10 +330,24 @@ async function run() {
       }
       assert.equal(await page.locator('[data-recruitment="tab"][data-id="access"]').count(),0,"cross-company access is not presented as a normal company action while sharing is disabled");
       await page.screenshot({ path:path.join(shots,"company-evaluations-mobile.png"),fullPage:true });
+      await page.evaluate(token => localStorage.setItem("meo_session_token",token),wt); await page.reload();
+      await selectMobileTab("tasks");
+      await request(`/api/tasks/${plannedTask.id}/resolve-setback`,"POST",{ resolution:workerSetbackResolution },ct);
+      await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await page.locator(".setback-resolution-alert").waitFor();
+      assert.match(await page.locator(".setback-resolution-alert").textContent(),/Preparar linha.*material chegou.*prosseguir/i,"the worker receives the company resolution while the task page is open");
+      await page.locator(".setback-resolution-alert [data-setback-task]").click();
+      await page.locator(".setback-resolution-alert").waitFor({ state:"detached" });
+      await page.locator("[data-drawer-panel] .notice.success").filter({ hasText:workerSetbackResolution }).waitFor();
       assert.deepEqual(errors,[],"Professional dashboard browser errors");
       await context.close();
       console.log("professional-profile browser: worker/company desktop-mobile tabs and report view passed");
     }
+    const companyTaskAfterBrowser = (await request("/api/bootstrap","GET",undefined,ct)).payload.tasks.find(item => item.id === plannedTask.id);
+    if (companyTaskAfterBrowser.status === "blocked") await request(`/api/tasks/${plannedTask.id}/resolve-setback`,"POST",{ resolution:workerSetbackResolution },ct);
+    const workerResolvedTask = (await request("/api/bootstrap","GET",undefined,wt)).payload.tasks.find(item => item.id === plannedTask.id);
+    assert.equal(workerResolvedTask.lastSetbackResolution?.text,workerSetbackResolution,"a verified worker receives the resolved setback in their own tasks");
+    assert.equal(workerResolvedTask.status,"in_progress","the task can resume after company resolution");
     console.log("professional-profile: CV versions/import/export, employment verification, evaluation isolation, disputes, access logs and sharing block passed");
   } finally {
     if (browser) await browser.close();

@@ -3228,6 +3228,7 @@ td span:not(.status-badge) {
 .employment-confirmation-alert svg { flex: 0 0 auto; margin-top: 2px; color: var(--ink, var(--text-primary)); }
 .employment-confirmation-alert strong { display: block; margin-bottom: 4px; font-size: 17px; color: var(--ink, var(--text-primary)); }
 .employment-confirmation-alert p { margin: 0; color: var(--text-secondary); }
+.setback-resolution-alert { border-left-color: var(--success); }
 .nav-alert-count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: auto; padding: 0 6px; border-radius: 999px; background: var(--brand-primary); color: var(--ink, #111); font: 700 12px/1 system-ui, sans-serif; }
 details > summary { cursor: pointer; min-height: 44px; padding: 12px 0; font-weight: 600; }
 .applications-workspace > article { margin-bottom: 20px; }

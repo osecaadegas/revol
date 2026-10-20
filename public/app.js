@@ -601,6 +601,39 @@
     }
   }
 
+  let workerSetbackRefreshInFlight = false;
+  async function refreshWorkerSetbacks() {
+    if (workerSetbackRefreshInFlight || !state.data || !isWorker() || document.hidden || state.view !== "marketplace" ||
+        !state.data.tasks.some(task => task.status === "blocked")) return;
+    workerSetbackRefreshInFlight = true;
+    const sessionToken = state.token;
+    try {
+      const bootstrap = await api("/api/bootstrap");
+      if (!state.data || state.token !== sessionToken || !isWorker()) return;
+      const previous = state.data.tasks.filter(task => task.status === "blocked");
+      const resolved = previous.some(task => {
+        const updated = bootstrap.tasks.find(item => item.id === task.id);
+        return updated && updated.status !== "blocked" && updated.lastSetbackResolution?.resolvedAt;
+      });
+      if (resolved) {
+        state.data = bootstrap;
+        if (recruitmentUI.current() === "tasks" || state.selectedTaskId) renderApp();
+        else {
+          const slot = document.querySelector("[data-worker-setback-alert]");
+          if (slot) {
+            slot.innerHTML = recruitmentUI.setbackResolutionAlert();
+            slot.querySelectorAll("[data-open-task]").forEach(bindOpenTaskButton);
+          }
+        }
+      }
+    } catch {
+      // O estado conhecido permanece visível até à próxima consulta ou atualização manual.
+      if (!state.token) renderPublicBoard();
+    } finally {
+      workerSetbackRefreshInFlight = false;
+    }
+  }
+
   async function openOperationalTask(taskId) {
     try {
       await refreshData();
@@ -1644,7 +1677,7 @@
     const applications = state.data.jobApplications || [];
     if (isWorker() || isManager()) {
       const panel = recruitmentUI.content();
-      return `<section class="marketplace-workspace">${renderMarketplaceHero(role, allJobs, jobs, applications)}${recruitmentUI.employmentAlert()}${recruitmentUI.notifications()}${panel || renderSearchResults("app", allJobs.length, jobs.length, jobs.length ? jobs.map(job => renderJobCard(job)).join("") : renderMarketplaceEmptyState(role))}</section>`;
+      return `<section class="marketplace-workspace">${renderMarketplaceHero(role, allJobs, jobs, applications)}${recruitmentUI.employmentAlert()}<div data-worker-setback-alert aria-live="polite">${recruitmentUI.setbackResolutionAlert()}</div>${recruitmentUI.notifications()}${panel || renderSearchResults("app", allJobs.length, jobs.length, jobs.length ? jobs.map(job => renderJobCard(job)).join("") : renderMarketplaceEmptyState(role))}</section>`;
     }
     return `
       <section class="marketplace-workspace">
@@ -2879,6 +2912,15 @@
     return `<div class="empty">${icon("briefcase-business")}<span>${escapeHtml(message)}</span></div>`;
   }
 
+  function bindOpenTaskButton(button) {
+    button.addEventListener("click", () => {
+      if (button.dataset.setbackTask) recruitmentUI.acknowledgeSetback(button.dataset.setbackTask);
+      state.selectedTaskId = button.dataset.openTask;
+      state.locationDraft = { status: "not_requested" };
+      renderApp();
+    });
+  }
+
   function bindAppEvents() {
     recruitmentUI.bind();
     const editForm = document.querySelector('[data-form="create-job"][data-edit-id]');
@@ -2938,13 +2980,7 @@
       });
     });
 
-    document.querySelectorAll("[data-open-task]").forEach((button) => {
-      button.addEventListener("click", () => {
-        state.selectedTaskId = button.dataset.openTask;
-        state.locationDraft = { status: "not_requested" };
-        renderApp();
-      });
-    });
+    document.querySelectorAll("[data-open-task]").forEach(bindOpenTaskButton);
 
     document.querySelectorAll("[data-operational-notice], [data-operational-alerts-panel]").forEach((container) => {
       container.addEventListener("click", (event) => {
@@ -3363,10 +3399,12 @@
 
   async function init() {
     window.setInterval(refreshOperationalAlerts, 30000);
+    window.setInterval(refreshWorkerSetbacks, 30000);
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) refreshOperationalAlerts();
+      if (!document.hidden) { refreshOperationalAlerts(); refreshWorkerSetbacks(); }
     });
     window.addEventListener("focus", refreshOperationalAlerts);
+    window.addEventListener("focus", refreshWorkerSetbacks);
     const entryParams = new URLSearchParams(location.search);
     if (entryParams.get("apply")) sessionStorage.setItem("tratapro_apply", entryParams.get("apply"));
     if (entryParams.get("report")) sessionStorage.setItem("tratapro_apply", entryParams.get("report"));
