@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v19-setback-resolution";
+const CACHE_NAME = "tratapro-shell-v20-worker-attendance";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

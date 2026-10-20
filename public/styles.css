@@ -4144,15 +4144,27 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
 .order-task-plan details { min-width: 0; }
 .worker-home { display: grid; gap: 16px; min-width: 0; }
 .worker-home .panel { min-width: 0; }
-.worker-shift-card, .worker-rating-card { border: 1px solid currentColor; padding: 14px; margin: 12px 0; display: flex; gap: 16px; align-items: center; justify-content: space-between; }
-.worker-shift-card div, .worker-rating-card { min-width: 0; }
-.worker-shift-card small, .worker-rating-card small { display: block; margin-top: 5px; }
-.worker-rating-card { display: grid; }
+.worker-rating-card { display: grid; min-width: 0; gap: 16px; border: 1px solid currentColor; padding: 14px; margin: 12px 0; }
+.worker-rating-card small { display: block; margin-top: 5px; }
 .worker-rating-card div { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.worker-attendance-context { display: grid; gap: 4px; margin: 12px 0; min-width: 0; }
+.worker-attendance-context small { color: var(--text-secondary); overflow-wrap: anywhere; }
+.worker-attendance-context .field { margin-top: 10px; }
+.worker-attendance-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.worker-attendance-button { min-width: 0; min-height: 56px; border: 1px solid var(--text-primary); padding: 8px; color: #fff; font-family: "Courier New", monospace; font-size: 12px; font-weight: 700; line-height: 1.25; letter-spacing: .02em; text-transform: uppercase; text-align: center; overflow-wrap: anywhere; cursor: pointer; box-shadow: 3px 3px 0 var(--text-primary); }
+.worker-attendance-button.entry { background: var(--success); }
+.worker-attendance-button.justification { background: var(--text-primary); }
+.worker-attendance-button.exit { background: var(--danger); }
+.worker-attendance-button:not(:disabled):hover { filter: brightness(.88); }
+.worker-attendance-button:focus-visible { outline: 3px solid var(--brand-primary); outline-offset: 3px; }
+.worker-attendance-button:disabled { opacity: .48; cursor: not-allowed; box-shadow: none; }
+.worker-attendance .notice { margin-top: 14px; }
+.worker-attendance-privacy { margin-top: 16px; }
+.worker-justification-panel[hidden] { display: none !important; }
 @media (max-width: 700px) {
   .order-task-plan { padding: 12px; }
-  .worker-shift-card { flex-direction: column; align-items: stretch; }
-  .worker-shift-card .btn { min-height: 48px; width: 100%; }
+  .worker-attendance-actions { gap: 5px; }
+  .worker-attendance-button { min-height: 58px; padding: 6px 3px; font-size: 11px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

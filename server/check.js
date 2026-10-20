@@ -11,6 +11,7 @@ const files = [
   "server/professional-profile-test.js",
   "server/recruitment-test.js",
   "server/design-test.js",
+  "server/worker-home-ui-test.js",
   "server/public-marketplace.js",
   "server/private-mvp.js",
   "server/private-project.js",

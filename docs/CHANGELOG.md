@@ -2,6 +2,10 @@
 
 ## 2026-10-20
 
+- O Perfil do trabalhador apresenta agora entrada, justificação e saída em
+  três botões numa linha, com cores e estados distintos. A justificação
+  privada só abre quando é pedida; a escolha de tarefa, os registos recentes,
+  a validação e a informação de privacidade mantêm-se disponíveis.
 - A empresa pode resolver um contratempo ativo na tarefa com uma descrição
   obrigatória da solução. Só essa ação autorizada permite retomar o trabalho;
   motivo original, resolução, autor e data ficam no histórico auditável e

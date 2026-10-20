@@ -5,6 +5,7 @@
     const professional = window.createProfessionalProfileUI(h);
     const chat = window.createDirectChatUI(h);
     let tab = "jobs", adminData = null, candidateQuery = "", candidateResults = null, candidateFilters = {}, candidatePage = 1, candidateTotal = 0;
+    let justificationOpen = false, selectedAttendanceTaskId = "";
     const r = () => h.state.data?.recruitment || {};
     const stages = { submitted: "Candidatura enviada", viewed: "Vista pela empresa", reviewed: "Em analise", contacted: "Contactado", interview: "Entrevista", offer: "Oferta", accepted: "Contratado", hired: "Contratado", rejected: "Nao selecionado" };
     const field = (name, label, value = "", type = "text", attrs = "") => `<label class="field">${e(label)}<input name="${name}" type="${type}" value="${e(value ?? "")}" ${attrs}></label>`;
@@ -144,17 +145,26 @@
       const attendanceAvailable = h.state.data.attendanceAvailable !== false;
       const reports = (h.state.data.professional?.reportSummaries || []).filter(item => ["submitted", "corrected"].includes(item.status));
       const open = punches.find(item => !item.clockedOutAt);
+      const availableTasks = jobs.filter(item => !["approved", "pending_validation"].includes(item.status));
+      const selectedTask = availableTasks.find(item => item.id === (open?.taskId || selectedAttendanceTaskId)) || availableTasks[0];
+      selectedAttendanceTaskId = selectedTask?.id || "";
+      const currentTask = open ? jobs.find(item => item.id === open.taskId) : selectedTask;
       return `<section class="worker-home"><header><p class="eyebrow">Área do trabalhador</p><h2>Olá, ${e(h.state.data.user.name.split(" ")[0])}</h2><p>O teu trabalho, registos de presença e avaliações das empresas num só lugar.</p></header>
-        <section class="panel"><h3>Registo de trabalho</h3>${attendanceAvailable ? "" : '<p class="notice error">Registo horário e justificações indisponíveis até ser aplicada a migração da base de dados.</p>'}<p class="privacy-callout">Entrada e saída registadas à hora do servidor. A verificação de presença por GPS está desativada enquanto não existir avaliação jurídica e de privacidade. Não usamos estes registos para pontuar o teu desempenho.</p>
-          ${jobs.filter(item => !["approved"].includes(item.status)).map(task => {
-            const active = open?.taskId === task.id;
-            return `<article class="worker-shift-card"><div><strong>${e(task.title)}</strong><small>${e(task.workAddress || "Morada não indicada")} · ${e(task.scheduledStartAt ? new Date(task.scheduledStartAt).toLocaleString("pt-PT") : "Horário a combinar")}</small></div>
-              <button class="btn ${active ? "ghost" : "primary"}" type="button" data-attendance="${active ? "clock-out" : "clock-in"}" data-task-id="${e(task.id)}" ${!attendanceAvailable || (open && !active) ? "disabled" : ""}>${active ? "Registar saída" : "Registar entrada"}</button></article>`;
-          }).join("") || '<p class="empty">Ainda não tens tarefas atribuídas.</p>'}
-          ${open ? `<p class="notice">Entrada aberta desde ${e(new Date(open.clockedInAt).toLocaleString("pt-PT"))}.</p>` : ""}
+        <section class="panel worker-attendance"><h3>Registo de trabalho</h3>${attendanceAvailable ? "" : '<p class="notice error">Registo horário e justificações indisponíveis até ser aplicada a migração da base de dados.</p>'}
+          <div class="worker-attendance-context">
+            ${currentTask ? `<strong>${e(currentTask.title)}</strong><small>${e(currentTask.workAddress || "Morada não indicada")} · ${e(currentTask.scheduledStartAt ? new Date(currentTask.scheduledStartAt).toLocaleString("pt-PT") : "Horário a combinar")}</small>` : '<p class="empty">Ainda não tens tarefas disponíveis para registar trabalho.</p>'}
+            ${!open && availableTasks.length > 1 ? `<label class="field">Tarefa de hoje<select data-attendance-task-select>${availableTasks.map(task => `<option value="${e(task.id)}" ${task.id === selectedAttendanceTaskId ? "selected" : ""}>${e(task.title)}</option>`).join("")}</select></label>` : ""}
+          </div>
+          <div class="worker-attendance-actions" role="group" aria-label="Ações de registo de trabalho">
+            <button class="worker-attendance-button entry" type="button" data-attendance="clock-in" data-task-id="${e(selectedTask?.id || "")}" ${!attendanceAvailable || !selectedTask || open ? "disabled" : ""}>Entrar ao trabalho</button>
+            <button class="worker-attendance-button justification" type="button" data-recruitment="toggle-justification" aria-controls="worker-justification" aria-expanded="${justificationOpen}">Justificação</button>
+            <button class="worker-attendance-button exit" type="button" data-attendance="clock-out" data-task-id="${e(open?.taskId || "")}" ${!attendanceAvailable || !open ? "disabled" : ""}>Saída</button>
+          </div>
+          ${open ? `<p class="notice" role="status">Em serviço desde ${e(new Date(open.clockedInAt).toLocaleString("pt-PT"))}.</p>` : ""}
+          <details class="worker-attendance-privacy"><summary>Como funciona o registo?</summary><p>Entrada e saída registadas à hora do servidor. A verificação por GPS está desativada até existir avaliação jurídica e de privacidade. Estes registos não pontuam o teu desempenho.</p></details>
           <details><summary>Últimos registos</summary>${punches.slice(0, 10).map(item => `<p>${e(new Date(item.clockedInAt).toLocaleString("pt-PT"))} — ${item.clockedOutAt ? e(new Date(item.clockedOutAt).toLocaleString("pt-PT")) : "Em curso"}</p>`).join("") || '<p>Ainda não há registos.</p>'}</details>
         </section>
-        <section class="panel"><h3>Justificar ausência</h3><p>Indica o dia e escreve um motivo ou anexa um documento. Não incluas diagnósticos ou outros dados de saúde desnecessários; o anexo fica privado.</p>
+        <section class="panel worker-justification-panel" id="worker-justification" ${justificationOpen ? "" : "hidden"}><h3>Justificar ausência</h3><p>Indica o dia e escreve um motivo ou anexa um documento. Não incluas diagnósticos ou outros dados de saúde desnecessários; o anexo fica privado.</p>
           <form class="form-grid" data-recruitment-form="attendance-justification"><label class="field">Empresa<select name="employmentId" required>${activeEmployments().map(item => `<option value="${e(item.id)}">${e(item.companyName)}</option>`).join("")}</select></label><label class="field">Dia de ausência<input type="date" name="absenceDate" required></label><label class="field">Motivo (opcional com documento)<textarea name="reason" maxlength="1200" rows="2"></textarea></label><label class="field">Documento privado (PDF, PNG ou JPEG; até 6 MB)<input type="file" name="document" accept="application/pdf,image/png,image/jpeg"></label><button class="btn primary" type="submit" ${attendanceAvailable ? "" : "disabled"}>Enviar justificação</button></form>
           <details><summary>Justificações enviadas (${justifications.length})</summary>${justifications.map(item => `<p>${e(item.absenceDate)} · ${e(item.reason || "Documento enviado")}${item.downloadUrl ? ` · <a href="${e(item.downloadUrl)}">Descarregar anexo</a>` : ""}</p>`).join("") || '<p>Ainda não há justificações.</p>'}</details>
         </section>
@@ -187,10 +197,17 @@
         el.disabled = true;
         try {
           const action = el.dataset.recruitment, id = el.dataset.id;
+          if (action === "toggle-justification") {
+            justificationOpen = !justificationOpen;
+            h.renderApp();
+            document.querySelector('[data-recruitment="toggle-justification"]')?.focus();
+            return;
+          }
           if (action === "tab") {
             h.state.data = await h.api("/api/bootstrap");
             h.state.view = "marketplace";
             tab = id; if (id === "create") h.state.editJobId = null;
+            if (id !== "home") justificationOpen = false;
             if (id === "chat") await chat.load();
             if (id === "applications" && !h.isWorker()) for (const application of h.state.data.jobApplications.filter(a => !a.recruitment?.viewedAt)) await send("application-view", "POST", { id: application.id });
           }
@@ -275,6 +292,11 @@
           error.textContent = err.message;
         } finally { if (submit) submit.disabled = false; }
       }));
+      document.querySelectorAll("[data-attendance-task-select]").forEach(select => select.addEventListener("change", () => {
+        selectedAttendanceTaskId = select.value;
+        h.renderApp();
+        document.querySelector("[data-attendance-task-select]")?.focus();
+      }));
       document.querySelectorAll("[data-attendance]").forEach(button => button.addEventListener("click", async () => {
         button.disabled = true;
         try {
@@ -290,7 +312,7 @@
     function report(job) {
       return `<details><summary>Denunciar vaga</summary><form class="form-grid" data-recruitment-form="report"><input type="hidden" name="jobId" value="${e(job.id)}">${select("reason", "Motivo", [["fake", "Empresa falsa"], ["fraud", "Fraude"], ["salary", "Salario enganador"], ["discrimination", "Discriminacao"], ["money", "Pedido de dinheiro"], ["closed", "Vaga indisponivel"], ["spam", "Spam"], ["other", "Outro"]])}${area("detail", "Detalhes")}<button class="btn ghost">Enviar denuncia</button></form></details>`;
     }
-    return { tabs, mobileTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, reset: () => { tab = "jobs"; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
+    return { tabs, mobileTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, reset: () => { tab = "jobs"; justificationOpen = false; selectedAttendanceTaskId = ""; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
       notifications: () => {
         const recruitmentNotifications = r().notifications || [], employmentRequests = pendingEmploymentRequests();
         const count = recruitmentNotifications.length + employmentRequests.length;

@@ -12,6 +12,7 @@
     "smoke": "node server/smoke-test.js",
     "test:recruitment": "node server/recruitment-test.js",
     "test:professional": "node server/professional-profile-test.js",
+    "test:worker-home": "node server/worker-home-ui-test.js",
     "seed:demo": "node server/seed-demo-data.js"
   },
   "engines": {
