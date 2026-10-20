@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-20
+
+- Corrigida a criação de vínculos profissionais em curso: uma data de fim
+  opcional vazia passa a ser persistida como `NULL`, evitando o erro de tipo
+  `date` no Supabase.
+- Adicionada cobertura de regressão para garantir que vínculos sem data de fim
+  continuam ativos e são compatíveis com a persistência de produção.
+
 ## 2026-10-20 - Platform administrator email allowlist
 
 - Added a server-only, case-insensitive `PLATFORM_ADMIN_EMAILS` allowlist while

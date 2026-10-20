@@ -92,6 +92,7 @@ async function run() {
     result = (await request("/api/professional/employments","POST",{ companyId,position:"Operadora",startDate:"2024-01-01" },wt)).payload;
     const employment = result.professional.employments[0];
     assert.equal(employment.verificationStatus,"pending");
+    assert.equal(employment.endDate,null,"an omitted employment end date must persist as SQL NULL");
     result = (await request(`/api/professional/employments/${employment.id}/confirm`,"PATCH",{ decision:"confirm" },ct)).payload;
     assert.equal(result.professional.employments[0].verificationStatus,"verified");
 
