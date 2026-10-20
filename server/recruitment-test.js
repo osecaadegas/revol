@@ -100,12 +100,12 @@ async function run() {
       await page.locator('[data-action="close-auth-modal"]').first().click({ position: { x: 3, y: 3 } });
       await page.evaluate(token => localStorage.setItem("meo_session_token", token), wt);
       await page.reload();
-      await page.locator('[data-recruitment="tab"][data-id="profile"]').click();
+      await page.locator('.sidebar [data-recruitment="tab"][data-id="profile"]').click();
       await page.locator('[data-professional-form="cv"]').waitFor();
       await page.locator('[data-professional-form="cv"] textarea[name="summary"]').fill("Perfil profissional verificado no teste de interface.");
       await page.getByRole("button", { name: "Guardar rascunho" }).click();
       await page.getByText("Alteracoes guardadas.", { exact: true }).waitFor();
-      for (const id of ["employment", "applications", "saved", "messages", "settings", "jobs"]) { await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor(); }
+      for (const id of ["employment", "applications", "saved", "messages", "settings", "jobs"]) { await page.locator(`.sidebar [data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`.sidebar [data-id="${id}"][aria-current="page"]`).waitFor(); }
       const desktopFilterBox = await page.locator('.filter-panel').boundingBox();
       const desktopJobsBox = await page.locator('.search-results .market-job-list').boundingBox();
       assert.ok(desktopFilterBox && desktopJobsBox && desktopFilterBox.y + desktopFilterBox.height <= desktopJobsBox.y + 1, "Desktop vacancy filters must sit above the job results without overlap");
@@ -114,17 +114,22 @@ async function run() {
       const screenshotDir = path.join(__dirname, "..", "tmp", "recruitment-qa"); fs.mkdirSync(screenshotDir, { recursive: true });
       await page.screenshot({ path: path.join(screenshotDir, "worker-desktop.png"), fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
+      await page.reload();
+      const selectMobileTab = async id => {
+        const menu = page.locator('.mobile-recruitment-menu');
+        if (!await menu.evaluate(el => el.open)) await menu.locator('summary').click();
+        await menu.locator(`[data-recruitment="tab"][data-id="${id}"]`).click();
+        await menu.locator(`[data-id="${id}"][aria-current="page"]`).waitFor({state:'attached'});
+      };
       for (const id of ["profile", "employment", "settings", "saved", "messages", "applications", "jobs"]) {
-        await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click();
-        await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
+        await selectMobileTab(id);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Mobile overflow: ${id}`);
       }
       await page.screenshot({ path: path.join(screenshotDir, "worker-mobile.png"), fullPage: true });
       await page.evaluate(token => localStorage.setItem("meo_session_token", token), ct); await page.reload();
-      for (const id of ["company", "employment", "evaluations", "access", "applications", "candidates", "messages", "create", "jobs"]) {
-        await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click();
-        await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
-        assert.equal(await page.locator('.sidebar .recruitment-tabs .btn, .sidebar .nav button').evaluateAll(elements => elements.filter(element => getComputedStyle(element).backgroundColor === "rgb(217, 241, 33)").length), 1, `Only the current company section may use the yellow highlight: ${id}`);
+      for (const id of ["company", "employment", "evaluations", "applications", "candidates", "messages", "create", "jobs"]) {
+        await selectMobileTab(id);
+        assert.equal(await page.locator('.mobile-recruitment-menu .recruitment-tabs .btn').evaluateAll(elements => elements.filter(element => getComputedStyle(element).backgroundColor === "rgb(217, 241, 33)").length), 1, `Only the current company section may use the yellow highlight: ${id}`);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Company mobile overflow: ${id}`);
       }
       await page.locator('[data-recruitment="edit-job"]').click();

@@ -1469,7 +1469,7 @@
             </div>
             <button class="btn ghost" data-action="logout">Sair</button>
           </div>
-          <div data-mobile-recruitment-navigation></div>
+          <div data-mobile-recruitment-navigation>${isWorker() || isManager() ? recruitmentUI.mobileTabs() : ""}</div>
           ${noticeHtml()}
           ${renderOperationalNotice()}
           ${renderView()}

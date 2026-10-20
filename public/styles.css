@@ -4005,3 +4005,32 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
   .chat-composer { grid-template-columns: minmax(0,1fr); }
   .chat-composer .btn { width: 100%; }
 }
+
+/* Compact, discoverable workspace navigation on small screens. */
+[data-mobile-recruitment-navigation] { display: none; }
+@media (max-width: 980px) {
+  [data-mobile-recruitment-navigation] { display: block; margin-bottom: 20px; }
+  .mobile-recruitment-menu { border: 1px solid var(--text-primary); background: var(--surface-primary); }
+  .mobile-recruitment-menu > summary { gap: 10px; min-height: 52px; border: 0; font-size: 13px; }
+  .mobile-recruitment-menu > summary .ui-icon { flex: 0 0 auto; }
+  .mobile-recruitment-menu .recruitment-tabs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px; max-height: min(58dvh,460px); margin: 0; padding: 10px; overflow-y: auto; border-top: 1px solid var(--text-primary); }
+  .mobile-recruitment-menu .recruitment-tabs .btn { display: flex; justify-content: flex-start; gap: 6px; min-width: 0; min-height: 48px; padding: 9px 8px; border: 1px solid var(--border-subtle); color: var(--text-primary); background: var(--bg-secondary); text-align: left; }
+  .mobile-recruitment-menu .recruitment-tabs .btn > span:not(.nav-alert-count) { min-width: 0; overflow-wrap: anywhere; }
+  .mobile-recruitment-menu .recruitment-tabs .btn[aria-current="page"] { border-color: var(--text-primary); color: var(--text-primary); background: var(--brand-primary); }
+  .mobile-recruitment-menu .nav-alert-count { margin-left: auto; }
+  .mobile-workspace-menu[open] .mobile-nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); max-height: min(60dvh,460px); overflow-y: auto; }
+  .mobile-workspace-menu .mobile-nav button { min-width: 0; min-height: 48px; overflow-wrap: anywhere; }
+}
+@media (max-width: 640px) {
+  .evaluation-sections fieldset, .evaluation-form > fieldset { min-width: 0; padding: 12px; }
+  .evaluation-question { min-width: 0; padding: 12px; }
+  .rating-scale { width: 100%; }
+  .rating-options { grid-template-columns: repeat(6,minmax(0,1fr)); gap: 4px; }
+  .rating-option span { min-height: 42px; }
+  .rating-extremes { gap: 8px; font-size: 12px; }
+  .direct-chat-heading { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 360px) {
+  .mobile-recruitment-menu .recruitment-tabs { grid-template-columns: minmax(0,1fr); }
+  .rating-options { grid-template-columns: repeat(4,minmax(0,1fr)); }
+}

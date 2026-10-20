@@ -2,6 +2,10 @@
 
 ## 2026-10-20
 
+- Criado um menu móvel de recrutamento com a secção atual, acesso às áreas de
+  trabalhador e empresa e indicadores de tarefas, vínculos e conversas. Em
+  ecrãs estreitos, a navegação operacional e a escala de avaliações adaptam-se
+  à largura disponível sem scroll horizontal.
 - A ação `Bloquear` das tarefas passou a chamar-se `Contratempo`. A razão é
   obrigatória no cliente e no servidor; enquanto a tarefa estiver parada, a
   empresa recebe no painel um alerta com colaborador, obra, tarefa, data e razão.
