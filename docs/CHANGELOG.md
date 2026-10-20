@@ -13,6 +13,10 @@
   negociação de compressão/cache, o arranque autenticado, a abertura de chat
   e a recuperação de uma verificação de esquema falhada. Sem migração nem
   alteração de permissões.
+- A configuração da Vercel replica a cache longa apenas para JavaScript/CSS
+  da aplicação pedidos com `?v=`. A produção serve estes ficheiros diretamente,
+  sem passar pelo servidor Node; os recursos sem versão, o service worker,
+  o HTML e a API mantêm atualização normal.
 - Os três atalhos móveis do trabalhador mantêm-se fixos em todas as áreas e
   também no detalhe de uma tarefa; navegar pelo detalhe fecha-o. A barra já
   não depende de um vínculo ativo: sem vínculo, Perfil abre o CV e Tarefas
