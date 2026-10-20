@@ -109,6 +109,8 @@ async function run() {
       const desktopFilterBox = await page.locator('.filter-panel').boundingBox();
       const desktopJobsBox = await page.locator('.search-results .market-job-list').boundingBox();
       assert.ok(desktopFilterBox && desktopJobsBox && desktopFilterBox.y + desktopFilterBox.height <= desktopJobsBox.y + 1, "Desktop vacancy filters must sit above the job results without overlap");
+      assert.equal(await page.locator('.sidebar').evaluate(element => element.scrollWidth <= element.clientWidth), true, "Desktop sidebar must not scroll horizontally");
+      assert.equal(await page.locator('.sidebar [data-recruitment="tab"]:not([aria-current="page"])').first().evaluate(element => getComputedStyle(element).color), "rgb(21, 19, 15)", "Sidebar categories must use high-contrast black text");
       const screenshotDir = path.join(__dirname, "..", "tmp", "recruitment-qa"); fs.mkdirSync(screenshotDir, { recursive: true });
       await page.screenshot({ path: path.join(screenshotDir, "worker-desktop.png"), fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });

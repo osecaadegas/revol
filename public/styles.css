@@ -3591,14 +3591,16 @@ input::file-selector-button { border: 1px solid var(--text-primary); border-radi
 .icon-button { border: 1px solid var(--text-primary); border-radius: 50%; color: var(--text-primary); background: transparent; }
 
 .main-layout { grid-template-columns: 258px minmax(0,1fr); background: var(--bg-primary); }
-.sidebar { position: sticky; isolation: isolate; gap: 20px; padding: 0 14px 28px; border-right: 2px solid var(--text-primary); color: var(--surface-primary); background: var(--text-primary); }
-.sidebar::after { bottom: 0; left: auto; width: 100%; transform: rotate(90deg) translateY(-100%); transform-origin: right bottom; }
+.sidebar { position: sticky; isolation: isolate; gap: 20px; min-width: 0; padding: 0 14px 28px; border-right: 2px solid var(--text-primary); overflow-x: clip; color: var(--surface-primary); background: var(--text-primary); }
+.sidebar::after { display: none; }
 .sidebar .side-brand { margin: 0 -14px; min-height: 92px; padding: 16px; border-bottom: 1px solid #403d36; }
 .sidebar .side-brand strong { color: white; font-family: Impact, "Arial Black", sans-serif; font-size: 21px; letter-spacing: .02em; text-transform: uppercase; }
 .sidebar .side-brand span, .sidebar .session-card span { color: #a9a396; }
 .sidebar .brand-logo-mark { width: 47px; height: 47px; }
-.sidebar .recruitment-tabs, .sidebar .nav { gap: 3px; }
-.sidebar .recruitment-tabs .btn, .nav button { min-height: 43px; border: 0; border-radius: 1px; color: #c9c4b9; font-family: "Courier New", monospace; font-size: 11px; font-weight: 700; letter-spacing: .035em; text-transform: uppercase; }
+.sidebar .recruitment-tabs, .sidebar .nav { width: 100%; min-width: 0; gap: 3px; }
+.sidebar .recruitment-tabs .btn, .sidebar .nav button { width: 100%; min-width: 0; min-height: 43px; border: 0; border-radius: 1px; overflow: hidden; color: var(--text-primary); background: var(--surface-primary); font-family: "Courier New", monospace; font-size: 11px; font-weight: 700; letter-spacing: .035em; text-transform: uppercase; }
+.sidebar .recruitment-tabs .btn > span:not(.nav-alert-count), .sidebar .nav button > span { min-width: 0; overflow-wrap: anywhere; }
+.sidebar .recruitment-tabs .ui-icon, .sidebar .nav .ui-icon { flex: 0 0 auto; color: currentColor; }
 .sidebar .recruitment-tabs .btn[aria-current="page"], .sidebar .recruitment-tabs .btn[data-id="create"], .nav button.active { color: var(--text-primary); background: var(--brand-primary); box-shadow: none; }
 .nav button:hover, .sidebar .recruitment-tabs .btn:hover { color: var(--text-primary); background: var(--surface-primary); }
 .session-card { border-top-color: #4b473e; }

@@ -2,6 +2,11 @@
 
 ## 2026-10-20
 
+- Removido o overflow horizontal do sidebar autenticado, incluindo o elemento
+  decorativo que podia alargar a área rolável; os botões passam a respeitar a
+  largura disponível mesmo com títulos maiores.
+- As categorias do sidebar usam agora superfícies claras com texto e ícones
+  pretos, mantendo o verde-lima para o estado ativo e melhorando o contraste.
 - Corrigida a especificidade do layout dos filtros de vagas autenticados: em
   desktop a barra ocupa agora toda a largura acima dos resultados, sem
   sobreposição com os cartões; tablet e mobile mantêm os comportamentos
