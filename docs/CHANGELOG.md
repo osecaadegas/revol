@@ -2,6 +2,10 @@
 
 ## 2026-10-20
 
+- Reorganizado cada critério de avaliação com a pergunta e explicação à esquerda,
+  uma escala 0–10 ampla à direita e o comentário em largura total por baixo.
+  As opções começam neutras e só recebem a cor própria ao passar o rato, focar
+  com teclado ou selecionar; a opção escolhida conserva a cor.
 - Removido `Pedidos de acesso` da navegação normal das empresas enquanto a
   partilha de avaliações entre empresas está desativada. O bloqueio no servidor,
   o registo protegido e os direitos de acesso/contestação do trabalhador são

@@ -232,12 +232,20 @@ async function run() {
           const scale = page.locator(".rating-scale").first();
           assert.equal(await scale.locator("[data-evaluation-score]").count(),11,"the visual rating exposes every integer from 0 to 10");
           assert.equal(await scale.locator("[data-evaluation-score]:checked").count(),0,"ratings never start preselected");
-          await scale.locator('[data-evaluation-score][value="7"]').check({ force:true });
+          const seven = scale.locator('.rating-7'), swatch = seven.locator("span");
+          const neutralBackground = await swatch.evaluate(node => getComputedStyle(node).backgroundColor);
+          await seven.hover();
+          await page.waitForTimeout(200);
+          const hoverBackground = await swatch.evaluate(node => getComputedStyle(node).backgroundColor);
+          assert.notEqual(hoverBackground,neutralBackground,"rating colour appears on hover");
+          await seven.locator('[data-evaluation-score][value="7"]').check({ force:true });
+          await page.getByRole("heading",{ name:"Percurso Profissional e Avaliações",level:2,exact:true }).hover();
+          assert.equal(await swatch.evaluate(node => getComputedStyle(node).backgroundColor),hoverBackground,"selected rating keeps its colour after hover ends");
           await scale.getByText("7 em 10").waitFor();
         }
       }
       assert.equal(await page.locator('[data-recruitment="tab"][data-id="access"]').count(),0,"cross-company access is not presented as a normal company action while sharing is disabled");
-      await page.screenshot({ path:path.join(shots,"company-access-mobile.png"),fullPage:true });
+      await page.screenshot({ path:path.join(shots,"company-evaluations-mobile.png"),fullPage:true });
       assert.deepEqual(errors,[],"Professional dashboard browser errors");
       await context.close();
       console.log("professional-profile browser: worker/company desktop-mobile tabs and report view passed");
