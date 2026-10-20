@@ -251,9 +251,19 @@ async function run() {
           await page.getByRole("heading",{ name:"Percurso Profissional e Avaliações",level:2,exact:true }).hover();
           assert.equal(await swatch.evaluate(node => getComputedStyle(node).backgroundColor),hoverBackground,"selected rating keeps its colour after hover ends");
           await scale.getByText("7 em 10").waitFor();
-          const question = scale.locator("xpath=ancestor::*[contains(@class,'evaluation-question')][1]"), copyBox = await question.locator(".evaluation-question-copy").boundingBox(), scaleBox = await scale.boundingBox(), commentBox = await question.locator(".evaluation-comment textarea").boundingBox();
+          const question = scale.locator("xpath=ancestor::*[contains(@class,'evaluation-question')][1]"), commentToggle = question.locator("[data-evaluation-comment-toggle]");
+          assert.equal(await question.locator(".evaluation-comment:visible").count(),0,"optional comments start collapsed");
+          assert.equal(await commentToggle.getAttribute("aria-expanded"),"false","collapsed comment state is exposed to assistive technology");
+          await commentToggle.click();
+          const comment = question.locator(".evaluation-comment textarea");
+          await comment.fill("Observação profissional de teste.");
+          const copyBox = await question.locator(".evaluation-question-copy").boundingBox(), scaleBox = await scale.boundingBox(), commentBox = await comment.boundingBox();
           assert.ok(copyBox && scaleBox && commentBox && copyBox.y < scaleBox.y && scaleBox.y < commentBox.y,"question, rating and comment follow a clean vertical order");
           assert.ok(commentBox.height <= 70,"the optional comment starts as a compact field");
+          await commentToggle.click();
+          assert.equal(await question.locator(".evaluation-comment:visible").count(),0,"the comment can be collapsed after use");
+          assert.equal(await comment.inputValue(),"Observação profissional de teste.","collapsing a comment preserves its text");
+          assert.equal(await commentToggle.textContent(),"Ver comentário","a saved local comment remains discoverable while collapsed");
         }
       }
       assert.equal(await page.locator('[data-recruitment="tab"][data-id="access"]').count(),0,"cross-company access is not presented as a normal company action while sharing is disabled");

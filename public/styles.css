@@ -3666,6 +3666,8 @@ input::file-selector-button { border: 1px solid var(--text-primary); border-radi
 .rating-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; color: var(--text-secondary); font-size: 12px; }
 .rating-clear { padding: 2px 0; border: 0; border-bottom: 1px solid currentColor; color: var(--text-primary); background: transparent; font: inherit; cursor: pointer; }
 .rating-clear:disabled { visibility: hidden; }
+.evaluation-comment-toggle { justify-self: start; padding: 3px 0; border: 0; border-bottom: 1px solid currentColor; color: var(--text-primary); background: transparent; font-family: "Courier New", monospace; font-size: 12px; font-weight: 700; text-transform: uppercase; cursor: pointer; }
+.evaluation-comment-toggle:hover, .evaluation-comment-toggle:focus-visible { color: var(--text-primary); background: var(--brand-primary); outline: 2px solid var(--text-primary); outline-offset: 2px; }
 .evaluation-comment { grid-column: 1; margin-top: 2px; }
 .evaluation-comment small { margin-top: -4px; color: var(--text-secondary); }
 .evaluation-comment textarea { min-height: 52px; height: 52px; resize: vertical; }

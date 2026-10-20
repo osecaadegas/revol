@@ -2,6 +2,10 @@
 
 ## 2026-10-20
 
+- Os comentários opcionais de cada pergunta de avaliação ficam agora
+  recolhidos por defeito e abrem apenas através de `Adicionar comentário`.
+  O controlo é acessível, permite voltar a ocultar o campo sem perder o texto
+  introduzido e abre automaticamente comentários já guardados num rascunho.
 - Removida a introdução manual do início/fim da avaliação: o servidor regista
   automaticamente o dia atual em Portugal e rejeita uma segunda avaliação do
   mesmo vínculo na mesma data, mesmo que o pedido tente enviar outras datas.
