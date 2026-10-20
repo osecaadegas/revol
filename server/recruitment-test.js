@@ -124,6 +124,7 @@ async function run() {
       for (const id of ["company", "employment", "evaluations", "access", "applications", "candidates", "messages", "create", "jobs"]) {
         await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click();
         await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
+        assert.equal(await page.locator('.sidebar .recruitment-tabs .btn, .sidebar .nav button').evaluateAll(elements => elements.filter(element => getComputedStyle(element).backgroundColor === "rgb(217, 241, 33)").length), 1, `Only the current company section may use the yellow highlight: ${id}`);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Company mobile overflow: ${id}`);
       }
       await page.locator('[data-recruitment="edit-job"]').click();

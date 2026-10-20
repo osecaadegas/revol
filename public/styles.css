@@ -3279,11 +3279,9 @@ input::file-selector-button { background: var(--surface-elevated); color: var(--
 .recruitment-tabs { gap: 4px; padding: 0; margin: 0 0 24px; }
 .recruitment-tabs .btn { border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--text-muted); background: transparent; font-weight: 500; }
 .recruitment-tabs .btn[aria-current="page"] { color: var(--brand-link); border-bottom-color: var(--brand-link); }
-.recruitment-tabs .btn[data-id="create"] { color: var(--text-primary); background: var(--brand-primary); border-radius: var(--radius); margin-bottom: 8px; }
 .sidebar .recruitment-tabs { display: grid; gap: 4px; border: 0; margin: 0; }
 .sidebar .recruitment-tabs .btn { justify-content: flex-start; border: 0; border-radius: var(--radius); }
 .sidebar .recruitment-tabs .btn[aria-current="page"] { background: var(--brand-subtle); }
-.sidebar .recruitment-tabs .btn[data-id="create"] { background: var(--brand-primary); color: var(--text-primary); }
 .sidebar .nav { padding-top: 16px; border-top: 1px solid var(--border-subtle); }
 .sidebar .nav:not(:has(button)) { display: none; }
 .marketplace-workspace > .recruitment-tabs { display: none; }
@@ -3601,8 +3599,8 @@ input::file-selector-button { border: 1px solid var(--text-primary); border-radi
 .sidebar .recruitment-tabs .btn, .sidebar .nav button { width: 100%; min-width: 0; min-height: 43px; border: 0; border-radius: 1px; overflow: hidden; color: var(--text-primary); background: var(--surface-primary); font-family: "Courier New", monospace; font-size: 11px; font-weight: 700; letter-spacing: .035em; text-transform: uppercase; }
 .sidebar .recruitment-tabs .btn > span:not(.nav-alert-count), .sidebar .nav button > span { min-width: 0; overflow-wrap: anywhere; }
 .sidebar .recruitment-tabs .ui-icon, .sidebar .nav .ui-icon { flex: 0 0 auto; color: currentColor; }
-.sidebar .recruitment-tabs .btn[aria-current="page"], .sidebar .recruitment-tabs .btn[data-id="create"], .nav button.active { color: var(--text-primary); background: var(--brand-primary); box-shadow: none; }
-.nav button:hover, .sidebar .recruitment-tabs .btn:hover { color: var(--text-primary); background: var(--surface-primary); }
+.sidebar .recruitment-tabs .btn[aria-current="page"], .nav button.active { color: var(--text-primary); background: var(--brand-primary); box-shadow: none; }
+.nav button:not(.active):hover, .sidebar .recruitment-tabs .btn:not([aria-current="page"]):hover { color: var(--text-primary); background: var(--surface-primary); }
 .session-card { border-top-color: #4b473e; }
 .session-card strong { color: white; }
 .sidebar .session-card .btn { color: white; border-color: #7e786d; background: transparent; }

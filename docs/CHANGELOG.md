@@ -2,6 +2,8 @@
 
 ## 2026-10-20
 
+- Corrigido o menu lateral para aplicar o fundo verde-amarelo apenas à secção
+  atualmente aberta; `Criar vaga` deixa de aparecer ativo noutras áreas.
 - Simplificadas as respostas das avaliações profissionais para uma classificação
   inteira de 0 a 10 e um comentário sempre opcional, sem valor pré-selecionado.
 - Mantida a definição de escala guardada nas avaliações antigas, para que o

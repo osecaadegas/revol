@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v11-evaluation-rating-0-10";
+const CACHE_NAME = "tratapro-shell-v12-single-active-navigation";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
