@@ -106,6 +106,9 @@ async function run() {
       await page.getByRole("button", { name: "Guardar rascunho" }).click();
       await page.getByText("Alteracoes guardadas.", { exact: true }).waitFor();
       for (const id of ["employment", "applications", "saved", "messages", "settings", "jobs"]) { await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor(); }
+      const desktopFilterBox = await page.locator('.filter-panel').boundingBox();
+      const desktopJobsBox = await page.locator('.search-results .market-job-list').boundingBox();
+      assert.ok(desktopFilterBox && desktopJobsBox && desktopFilterBox.y + desktopFilterBox.height <= desktopJobsBox.y + 1, "Desktop vacancy filters must sit above the job results without overlap");
       const screenshotDir = path.join(__dirname, "..", "tmp", "recruitment-qa"); fs.mkdirSync(screenshotDir, { recursive: true });
       await page.screenshot({ path: path.join(screenshotDir, "worker-desktop.png"), fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });

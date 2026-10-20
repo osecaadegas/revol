@@ -2,6 +2,12 @@
 
 ## 2026-10-20
 
+- Corrigida a especificidade do layout dos filtros de vagas autenticados: em
+  desktop a barra ocupa agora toda a largura acima dos resultados, sem
+  sobreposição com os cartões; tablet e mobile mantêm os comportamentos
+  responsivos existentes.
+- Adicionada uma verificação visual automática da ordem vertical entre filtros
+  e resultados no fluxo autenticado do trabalhador.
 - Adicionado um aviso persistente no painel do trabalhador quando existe um
   vínculo de emprego por confirmar, com acesso direto ao pedido.
 - O separador `Percurso profissional` passa a mostrar um contador de pedidos e
