@@ -120,7 +120,7 @@ async function run() {
         const mobileLayout = await page.evaluate(() => ({
           viewport: document.documentElement.clientWidth,
           content: document.querySelector('.content').getBoundingClientRect().width,
-          navigation: document.querySelectorAll('.mobile-recruitment-menu > .recruitment-tabs').length,
+          navigation: document.querySelectorAll('.mobile-recruitment-menu > .recruitment-tabs, .mobile-recruitment-menu > .worker-mobile-menu-content > .recruitment-tabs').length,
           visibleTabs: [...document.querySelectorAll('.recruitment-tabs')].filter(element => element.getClientRects().length).length,
           navParents: [...document.querySelectorAll('.recruitment-tabs')].map(element => element.parentElement?.className),
           overflow: document.documentElement.scrollWidth > innerWidth + 1
@@ -192,8 +192,8 @@ async function run() {
       assert.equal(await alertPage.locator('.sidebar [data-operational-alert-badge]').textContent(), '2');
       await alertPage.getByRole('button', { name: 'Ver todos' }).click();
       assert.equal(await alertPage.locator('[data-operational-alerts-panel] .operational-alert').count(), 2);
-      await request(`/api/tasks/${alertTask.task.id}/status`, 'PATCH', { status: 'in_progress' }, alertEmployeeSession.session.token);
-      await request(`/api/tasks/${secondAlertTask.task.id}/status`, 'PATCH', { status: 'in_progress' }, alertEmployeeSession.session.token);
+      await request(`/api/tasks/${alertTask.task.id}/resolve-setback`, 'POST', { resolution: 'Material entregue para prosseguir o trabalho.' }, ct);
+      await request(`/api/tasks/${secondAlertTask.task.id}/resolve-setback`, 'POST', { resolution: 'Acesso restabelecido para prosseguir.' }, ct);
       await alertPage.evaluate(() => window.dispatchEvent(new Event('focus')));
       await alertPage.locator('.company-operational-notice').waitFor({ state: 'hidden' });
       assert.equal(await alertPage.locator('.sidebar [data-operational-alert-badge]').evaluate(element => element.hidden), true);

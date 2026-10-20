@@ -238,7 +238,7 @@
             h.state.view = "marketplace";
             tab = id; if (id === "create") h.state.editJobId = null;
             if (id !== "home") justificationOpen = false;
-            if (id === "chat") await chat.load();
+            if (id === "chat") await chat.load(undefined,{ useSnapshot:true });
             if (id === "applications" && !h.isWorker()) for (const application of h.state.data.jobApplications.filter(a => !a.recruitment?.viewedAt)) await send("application-view", "POST", { id: application.id });
           }
           if (action === "open-employment") {

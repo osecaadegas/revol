@@ -2,6 +2,17 @@
 
 ## 2026-10-20
 
+- Reduzidos pedidos em série no arranque autenticado e nas conversas diretas:
+  o mural público só carrega quando necessário e as respostas existentes da
+  API alimentam a lista após leitura/envio. Os ficheiros JavaScript/CSS
+  versionados usam compressão Brotli/Gzip e cache de navegador; HTML, API,
+  recursos sem versão e service worker continuam atualizáveis. A verificação
+  inicial do esquema Supabase é reutilizada apenas dentro do mesmo processo,
+  sem cache de dados privados. A regressão em ecrãs pequenos identificou e
+  corrigiu a exposição das opções do menu móvel fechado. Os testes cobrem a
+  negociação de compressão/cache, o arranque autenticado, a abertura de chat
+  e a recuperação de uma verificação de esquema falhada. Sem migração nem
+  alteração de permissões.
 - Os três atalhos móveis do trabalhador mantêm-se fixos em todas as áreas e
   também no detalhe de uma tarefa; navegar pelo detalhe fecha-o. A barra já
   não depende de um vínculo ativo: sem vínculo, Perfil abre o CV e Tarefas

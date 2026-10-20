@@ -246,10 +246,18 @@ async function run() {
         if (!await menu.evaluate(el => el.open)) await menu.locator('summary').click();
         await menu.locator(`[data-recruitment="tab"][data-id="${id}"]`).click();
       };
-      await page.goto(base); await page.evaluate(token => localStorage.setItem("meo_session_token",token),wt); await page.reload();
+      await page.goto(base);
+      await page.getByRole("heading",{ name:"Emprego em Portugal." }).waitFor();
+      await page.evaluate(token => localStorage.setItem("meo_session_token",token),wt);
+      const apiReads = [];
+      page.on("request", request => {
+        if (request.method() === "GET" && request.url().startsWith(`${base}/api/`)) apiReads.push(new URL(request.url()).pathname);
+      });
+      await page.reload();
       await page.setViewportSize({ width:320,height:740 });
       const workerMenu = page.locator('.mobile-recruitment-menu');
       await page.locator('.worker-topbar .worker-mobile-menu').waitFor({state:"visible"});
+      assert.equal(apiReads.filter(pathname => pathname === "/api/jobs/public").length,0,"authenticated startup does not fetch the public job board");
       assert.equal(await page.locator('[data-mobile-recruitment-navigation]').count(),0,"worker navigation no longer consumes content space");
       assert.equal(await page.locator('.worker-quick-nav button').count(),3,"the worker has three persistent mobile shortcuts");
       assert.equal(await workerMenu.evaluate(el => el.open),false,"full worker menu starts closed");
@@ -278,9 +286,11 @@ async function run() {
       await page.locator('.main-layout .worker-quick-nav [data-id="chat"][aria-current="page"]').waitFor({state:"attached"});
       assert.equal(await page.locator('.main-layout .worker-quick-nav [data-id="chat"]').getAttribute('aria-current'),"page","the persistent conversation shortcut navigates directly from the task detail");
       await page.locator('[data-direct-chat-root]').waitFor();
+      const chatListReads = apiReads.filter(pathname => pathname === "/api/direct-chat").length;
       assert.equal(await page.locator('[data-direct-chat="open"]').count(),2,"worker chat keeps direction and administration as separate conversations");
       await page.getByRole('button',{ name:/Ana Administração/ }).click();
       await page.getByText('Resposta da administração.').waitFor();
+      assert.equal(apiReads.filter(pathname => pathname === "/api/direct-chat").length,chatListReads,"opening a known conversation uses its existing list snapshot");
       const shots = path.join(__dirname,"..","tmp","professional-qa"); fs.mkdirSync(shots,{ recursive:true });
       await page.screenshot({ path:path.join(shots,"worker-direct-chat-desktop.png"),fullPage:true });
       await selectMobileTab('profile');

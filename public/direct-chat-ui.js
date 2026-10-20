@@ -11,20 +11,21 @@
     const state = () => h.state.data?.directChat || { conversations:[],contacts:[],unreadCount:0 };
     const dateTime = value => value ? new Date(value).toLocaleString("pt-PT",{ dateStyle:"short",timeStyle:"short" }) : "";
 
-    async function load(conversationId = activeId,{ render = false } = {}) {
+    async function load(conversationId = activeId,{ render = false, useSnapshot = false } = {}) {
       if (loading) return;
       loading = true;
       try {
-        const result = await h.api("/api/direct-chat");
-        h.state.data.directChat = result.chat;
-        if (conversationId && result.chat.conversations.some(item => item.id === conversationId)) {
+        const chat = useSnapshot && h.state.data.directChat
+          ? h.state.data.directChat
+          : (await h.api("/api/direct-chat")).chat;
+        h.state.data.directChat = chat;
+        if (conversationId && chat.conversations.some(item => item.id === conversationId)) {
           activeId = conversationId;
-          await h.api(`/api/direct-chat/conversations/${encodeURIComponent(activeId)}/read`,{ method:"PATCH",body:{} });
+          const read = await h.api(`/api/direct-chat/conversations/${encodeURIComponent(activeId)}/read`,{ method:"PATCH",body:{} });
+          h.state.data.directChat = read.chat;
           const detail = await h.api(`/api/direct-chat/conversations/${encodeURIComponent(activeId)}`);
           activeConversation = detail.conversation;
           messages = detail.messages;
-          const refreshed = await h.api("/api/direct-chat");
-          h.state.data.directChat = refreshed.chat;
         } else if (activeId) {
           activeId = null; activeConversation = null; messages = [];
         }
@@ -68,7 +69,7 @@
       document.querySelectorAll("[data-direct-chat]").forEach(button => button.addEventListener("click",async () => {
         button.disabled = true;
         try {
-          if (button.dataset.directChat === "open") { activeId = button.dataset.id; await load(activeId,{ render:true }); return; }
+          if (button.dataset.directChat === "open") { activeId = button.dataset.id; await load(activeId,{ render:true,useSnapshot:true }); return; }
           if (button.dataset.directChat === "refresh") { await load(activeId,{ render:true }); return; }
         } catch (error) { h.setNotice(error.message,"error"); h.renderApp(); }
         finally { button.disabled = false; }
@@ -78,9 +79,11 @@
         try {
           const data = Object.fromEntries(new FormData(form));
           if (form.dataset.directChatForm === "new") {
-            const result = await h.api("/api/direct-chat/conversations",{ method:"POST",body:data }); activeId = result.conversation.id;
-          } else await h.api("/api/direct-chat/messages",{ method:"POST",body:data });
-          await load(activeId,{ render:true });
+            const result = await h.api("/api/direct-chat/conversations",{ method:"POST",body:data }); activeId = result.conversation.id; h.state.data.directChat = result.chat;
+          } else {
+            const result = await h.api("/api/direct-chat/messages",{ method:"POST",body:data }); h.state.data.directChat = result.chat;
+          }
+          await load(activeId,{ render:true,useSnapshot:true });
         } catch (error) {
           let notice = form.querySelector(".form-error"); if (!notice) { notice = document.createElement("p"); notice.className = "notice error form-error"; notice.setAttribute("role","alert"); form.prepend(notice); }
           notice.textContent = error.message;

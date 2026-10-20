@@ -3,6 +3,7 @@ const fs = require("fs");
 const fsp = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
+const zlib = require("zlib");
 const { URL } = require("url");
 const { renderPrivateMvpHtml } = require("./private-mvp");
 const { renderPrivateProjectHtml } = require("./private-project");
@@ -36,7 +37,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20261020-priority-alert";
+const PUBLIC_ASSET_VERSION = "20261020-response-time-2";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -116,6 +117,8 @@ const SECURITY_HEADERS = {
 
 let writeQueue = Promise.resolve();
 const authAttempts = new Map();
+let supabaseSchemaReady = null;
+const staticAssetCache = new Map();
 
 const TABLES = [
   {
@@ -712,12 +715,14 @@ function requireSupabaseConfig() {
 
 async function ensureSupabaseStorage() {
   requireSupabaseConfig();
-  try {
-    await supabaseRest("meo_app_meta?select=key&limit=1");
-  } catch (error) {
-    error.message = `${error.message} Run supabase/migrations/20260810000000_initial_phase1_schema.sql before starting with APP_STORAGE_DRIVER=supabase.`;
-    throw error;
+  if (!supabaseSchemaReady) {
+    supabaseSchemaReady = supabaseRest("meo_app_meta?select=key&limit=1").catch((error) => {
+      supabaseSchemaReady = null;
+      error.message = `${error.message} Run supabase/migrations/20260810000000_initial_phase1_schema.sql before starting with APP_STORAGE_DRIVER=supabase.`;
+      throw error;
+    });
   }
+  await supabaseSchemaReady;
 }
 
 async function supabaseRest(pathname, options = {}) {
@@ -4110,23 +4115,55 @@ async function serveStatic(req, res, pathname) {
     filePath = path.join(PUBLIC_DIR, "index.html");
   }
   const ext = path.extname(filePath).toLowerCase();
-  let body = await fsp.readFile(filePath);
   const fileName = path.basename(filePath);
+  const compressible = ext === ".js" || ext === ".css";
+  let cached;
+  if (compressible) {
+    const stat = fs.statSync(filePath);
+    cached = staticAssetCache.get(filePath);
+    if (!cached || cached.mtimeMs !== stat.mtimeMs || cached.size !== stat.size) {
+      cached = { mtimeMs: stat.mtimeMs, size: stat.size, body: await fsp.readFile(filePath) };
+      staticAssetCache.set(filePath, cached);
+    }
+  }
+  let body = cached ? cached.body : await fsp.readFile(filePath);
   if (fileName === "index.html" && ["/", "/index.html"].includes(pathname)) {
     const db = await readMarketplaceDb();
     body = Buffer.from(body.toString("utf8").replace(/<div id="app" class="app-shell">[\s\S]*?<script src=/, `<div id="app" class="app-shell">${publicMarketplace.home(db, req)}</div>\n    <script src=`));
   }
-  const responseBody = fileName === "index.html"
+  let responseBody = fileName === "index.html"
     ? Buffer.from(renderPublicIndexHtml(body.toString("utf8"), req, pathname))
     : body;
+  let contentEncoding;
+  if (compressible && responseBody.length > 1024) {
+    const accepted = String(req.headers["accept-encoding"] || "");
+    const allows = (name) => accepted.split(",").some((part) => {
+      const [encoding, ...parameters] = part.trim().split(";").map((value) => value.trim().toLowerCase());
+      const quality = parameters.find((value) => value.startsWith("q="));
+      return encoding === name && (!quality || Number(quality.slice(2)) > 0);
+    });
+    if (allows("br")) contentEncoding = "br";
+    else if (allows("gzip")) contentEncoding = "gzip";
+    if (contentEncoding) {
+      if (!cached[contentEncoding]) cached[contentEncoding] = contentEncoding === "br"
+        ? zlib.brotliCompressSync(responseBody)
+        : zlib.gzipSync(responseBody);
+      responseBody = cached[contentEncoding];
+    }
+  }
+  const version = new URL(req.url, `http://${req.headers.host || "localhost"}`).searchParams.get("v");
+  const versionedAsset = compressible && /^[a-zA-Z0-9._-]{1,80}$/.test(version || "");
   const cacheControl =
+    versionedAsset ? "public, max-age=31536000, immutable" :
     [".html", ".js", ".css", ".webmanifest"].includes(ext) || fileName === "service-worker.js"
       ? "no-store"
       : "public, max-age=3600";
   res.writeHead(200, responseHeaders({
     "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
     "Content-Length": responseBody.length,
-    "Cache-Control": cacheControl
+    "Cache-Control": cacheControl,
+    ...(compressible ? { Vary: "Accept-Encoding" } : {}),
+    ...(contentEncoding ? { "Content-Encoding": contentEncoding } : {})
   }));
   res.end(responseBody);
 }

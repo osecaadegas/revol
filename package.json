@@ -13,6 +13,7 @@
     "test:recruitment": "node server/recruitment-test.js",
     "test:professional": "node server/professional-profile-test.js",
     "test:professional-ui": "node server/professional-profile-ui-test.js",
+    "test:storage-cache": "node server/storage-cache-test.js",
     "test:worker-home": "node server/worker-home-ui-test.js",
     "seed:demo": "node server/seed-demo-data.js"
   },

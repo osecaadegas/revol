@@ -99,6 +99,34 @@ async function run() {
     if (!homeResponse.headers.get("content-security-policy")?.includes("frame-src https://www.google.com https://maps.google.com") || homeResponse.headers.get("x-frame-options") !== "DENY") {
       throw new Error("Home page should expose baseline security headers.");
     }
+    if (homeResponse.headers.get("cache-control") !== "no-store") {
+      throw new Error("Dynamic home HTML must not be stored in the browser cache.");
+    }
+    for (const encoding of ["br", "gzip"]) {
+      const asset = await fetch(`${baseUrl}/app.js?v=20261020-response-time`, {
+        headers: { "Accept-Encoding": encoding }
+      });
+      if (!asset.ok || asset.headers.get("content-encoding") !== encoding ||
+          asset.headers.get("cache-control") !== "public, max-age=31536000, immutable" ||
+          asset.headers.get("vary") !== "Accept-Encoding" ||
+          !(await asset.text()).includes("refreshPublicJobs")) {
+        throw new Error(`Versioned JavaScript should be compressed with ${encoding} and cached safely.`);
+      }
+    }
+    const disabledCompression = await fetch(`${baseUrl}/app.js?v=20261020-response-time`, {
+      headers: { "Accept-Encoding": "br;q=0, gzip;q=0" }
+    });
+    if (disabledCompression.headers.get("content-encoding")) {
+      throw new Error("Disabled encodings must not be used.");
+    }
+    const unversionedAsset = await fetch(`${baseUrl}/app.js`);
+    if (unversionedAsset.headers.get("cache-control") !== "no-store") {
+      throw new Error("Unversioned JavaScript must remain refreshable.");
+    }
+    const serviceWorker = await fetch(`${baseUrl}/service-worker.js`);
+    if (serviceWorker.headers.get("cache-control") !== "no-store") {
+      throw new Error("Service worker updates must remain refreshable.");
+    }
 
     const clientHtml = await requestText(baseUrl, "/cliente");
     if (!clientHtml.includes('content="noindex,follow"') || !clientHtml.includes(`${baseUrl}/social-card.svg`)) {

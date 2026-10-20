@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v24-persistent-worker-shortcuts";
+const CACHE_NAME = "tratapro-shell-v25-response-time";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
@@ -48,6 +48,17 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  if (/\.(?:js|css)$/.test(url.pathname) && url.searchParams.has("v")) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(event.request);
+      if (cached) return cached;
+      const response = await fetch(event.request);
+      if (response.ok) await cache.put(event.request, response.clone());
+      return response;
+    })());
+    return;
+  }
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -57,6 +68,6 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/index.html")))
+      .catch(() => caches.match(event.request).then((cached) => cached || (event.request.mode === "navigate" ? caches.match("/index.html") : Response.error())))
   );
 });

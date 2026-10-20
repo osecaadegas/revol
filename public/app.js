@@ -3462,7 +3462,6 @@
     }
 
     try {
-      await refreshPublicJobs();
       if (state.token || googleSessionStarted) {
         try {
           await refreshData();
@@ -3485,6 +3484,7 @@
           }
         }
       }
+      await refreshPublicJobs();
       renderPublicBoard();
     } catch (error) {
       app.innerHTML = `
