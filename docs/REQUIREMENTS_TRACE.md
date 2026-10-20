@@ -94,6 +94,9 @@ The app must first behave like a public labor-market board:
 | Work orders with address/location text, description, optional initial photos | `/api/work-orders`, UI work order form, private evidence records |
 | Task creation with assignee and deadline | `/api/tasks`, manager task form; recruited workers require a verified relationship with the assigning company |
 | Worker planning and task access | Conditional `Tarefas` worker navigation; scheduled start, planning notes, fixed work address/GPS and relationship-bound authorization |
+| Recruitment correspondence | Existing application and interview messages, relabelled `Correspondência` without changing their recruitment context or stored history |
+| Direct worker/company conversations | `Conversas` UI plus `/api/direct-chat`; a verified relationship is required and each conversation is restricted to the worker and one explicitly selected company member |
+| Direct-message persistence and audit | `meo_direct_conversations`, `meo_direct_messages`, unread/read timestamps, rate limiting and company-scoped audit events |
 | Operational states | `planned`, `assigned`, `in_progress`, `blocked`, `pending_validation`, `approved`, `rejected` |
 | Block justification | Status change to `blocked` requires reason |
 | Photo evidence | `/api/tasks/:id/evidence`, stored privately in local uploads or Supabase Storage; final task validation requires at least three GPS-authenticated photos |

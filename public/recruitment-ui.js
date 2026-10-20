@@ -3,6 +3,7 @@
     const e = h.escapeHtml;
     const icon = window.TrataDesign.icon;
     const professional = window.createProfessionalProfileUI(h);
+    const chat = window.createDirectChatUI(h);
     let tab = "jobs", adminData = null, candidateQuery = "", candidateResults = null, candidateFilters = {}, candidatePage = 1, candidateTotal = 0;
     const r = () => h.state.data?.recruitment || {};
     const stages = { submitted: "Candidatura enviada", viewed: "Vista pela empresa", reviewed: "Em analise", contacted: "Contactado", interview: "Entrevista", offer: "Oferta", accepted: "Contratado", hired: "Contratado", rejected: "Nao selecionado" };
@@ -17,14 +18,14 @@
       ? (h.state.data?.professional?.employments || []).filter(item => item.verificationStatus === "pending" && !item.workerConfirmedAt)
       : [];
     function tabs() {
-      const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Mensagens"], ["settings", "Privacidade"]]
-        : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["access", "Pedidos de acesso"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Mensagens"]];
+      const items = h.isWorker() ? [["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Correspondência"], ["chat", "Conversas"], ["settings", "Privacidade"]]
+        : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["access", "Pedidos de acesso"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Correspondência"], ["chat", "Conversas"]];
       if (h.isWorker() && h.state.data.tasks?.length) items.splice(4, 0, ["tasks", "Tarefas"]);
       if (r().platformAdmin) items.push(["admin", "Administracao"]);
-      const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",tasks:"clipboard-list",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"message-square",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
+      const symbols = {jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",tasks:"clipboard-list",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"mail",chat:"message-circle",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
       const pendingCount = pendingEmploymentRequests().length;
       const activeTasks = (h.state.data.tasks || []).filter(item => ["assigned", "in_progress", "blocked"].includes(item.status)).length;
-      return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ghost" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span>${id === "employment" && pendingCount ? `<span class="nav-alert-count" aria-label="${pendingCount} vinculo pendente">${pendingCount}</span>` : id === "tasks" && activeTasks ? `<span class="nav-alert-count" aria-label="${activeTasks} tarefas ativas">${activeTasks}</span>` : ""}</button>`).join("")}</nav>`;
+      return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => `<button class="btn ghost" data-recruitment="tab" data-id="${id}" aria-current="${h.state.view === "marketplace" && tab === id ? "page" : "false"}">${icon(symbols[id])}<span>${name}</span>${id === "employment" && pendingCount ? `<span class="nav-alert-count" aria-label="${pendingCount} vinculo pendente">${pendingCount}</span>` : id === "tasks" && activeTasks ? `<span class="nav-alert-count" aria-label="${activeTasks} tarefas ativas">${activeTasks}</span>` : id === "chat" && chat.unreadCount() ? `<span class="nav-alert-count" aria-label="${chat.unreadCount()} mensagens não lidas">${chat.unreadCount()}</span>` : ""}</button>`).join("")}</nav>`;
     }
 
     function employmentAlert() {
@@ -72,7 +73,7 @@
       const conversations = new Map();
       for (const m of messages) conversations.set(`${m.jobOfferId}:${m.workerId}`, m);
       for (const a of h.state.data.jobApplications || []) if (!conversations.has(`${a.jobOfferId}:${a.workerId}`)) conversations.set(`${a.jobOfferId}:${a.workerId}`, a);
-      return `<h2>Mensagens e entrevistas</h2>${[...conversations.values()].map(c => {
+      return `<h2>Correspondência de recrutamento e entrevistas</h2><p>Comunicações associadas a candidaturas, vagas e marcações de entrevista.</p>${[...conversations.values()].map(c => {
         const job = h.state.data.jobOffers.find(j => j.id === c.jobOfferId);
         const items = messages.filter(m => m.jobOfferId === c.jobOfferId && m.workerId === c.workerId);
         return `<section class="conversation"><h3>${e(job?.title || "Vaga")} ${h.isWorker() ? "" : `· ${e(c.workerName || h.state.data.jobApplications.find(a => a.workerId === c.workerId)?.workerName || "Candidato")}`}</h3>${items.map(m => `<article class="message ${m.senderId === h.state.data.user.id ? "sent" : "received"}"><p>${e(m.body)}</p><small>${e(new Date(m.createdAt).toLocaleString("pt-PT"))}</small>${m.interviewAt ? `<p>Entrevista: ${e(new Date(m.interviewAt).toLocaleString("pt-PT"))}</p><p>${m.response === "accepted" ? "Entrevista aceite" : m.response === "alternative" ? "Pedido de outro horario" : "A aguardar resposta"}</p>${h.isWorker() && !m.response ? `${button("accept-interview", "Aceitar", m.id)}${button("alternative-interview", "Sugerir outro horario", m.id)}` : ""}` : ""}${!m.readAt && m.senderId !== h.state.data.user.id ? button("read-message", "Marcar como lida", m.id) : ""}</article>`).join("")}<form class="form-grid" data-recruitment-form="message"><input type="hidden" name="jobId" value="${e(c.jobOfferId)}"><input type="hidden" name="workerId" value="${e(c.workerId)}">${area("body", "Mensagem")}${!h.isWorker() ? field("interviewAt", "Convidar para entrevista (opcional)", "", "datetime-local") : ""}<button class="btn primary">Enviar</button></form></section>`;
@@ -120,6 +121,7 @@
       if (tab === "saved") return saved();
       if (tab === "company") return company();
       if (tab === "messages") return messages();
+      if (tab === "chat") return chat.render();
       if (tab === "candidates") return candidates();
       if (tab === "admin") return `<section class="admin-workspace">${adminView()}</section>`;
       if (tab === "create") return h.renderJobOfferForm();
@@ -156,6 +158,7 @@
             h.state.data = await h.api("/api/bootstrap");
             h.state.view = "marketplace";
             tab = id; if (id === "create") h.state.editJobId = null;
+            if (id === "chat") await chat.load();
             if (id === "applications" && !h.isWorker()) for (const application of h.state.data.jobApplications.filter(a => !a.recruitment?.viewedAt)) await send("application-view", "POST", { id: application.id });
           }
           if (action === "open-employment") {
@@ -229,11 +232,12 @@
         } finally { if (submit) submit.disabled = false; }
       }));
       professional.bind();
+      chat.bind();
     }
     function report(job) {
       return `<details><summary>Denunciar vaga</summary><form class="form-grid" data-recruitment-form="report"><input type="hidden" name="jobId" value="${e(job.id)}">${select("reason", "Motivo", [["fake", "Empresa falsa"], ["fraud", "Fraude"], ["salary", "Salario enganador"], ["discrimination", "Discriminacao"], ["money", "Pedido de dinheiro"], ["closed", "Vaga indisponivel"], ["spam", "Spam"], ["other", "Outro"]])}${area("detail", "Detalhes")}<button class="btn ghost">Enviar denuncia</button></form></details>`;
     }
-    return { tabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, employmentAlert, reset: () => { tab = "jobs"; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); },
+    return { tabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, employmentAlert, reset: () => { tab = "jobs"; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
       notifications: () => {
         const recruitmentNotifications = r().notifications || [], employmentRequests = pendingEmploymentRequests();
         const count = recruitmentNotifications.length + employmentRequests.length;

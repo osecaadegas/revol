@@ -397,6 +397,9 @@ function createRecruitment(h) {
         db.sessions = db.sessions.filter(s => s.userId !== auth.user.id);
         db.jobApplications = db.jobApplications.filter(a => a.workerId !== auth.user.id);
         db.recruitmentMessages = db.recruitmentMessages.filter(m => m.workerId !== auth.user.id);
+        const conversationIds = new Set((db.directConversations || []).filter(item => item.workerId === auth.user.id).map(item => item.id));
+        db.directConversations = (db.directConversations || []).filter(item => item.workerId !== auth.user.id);
+        db.directMessages = (db.directMessages || []).filter(item => !conversationIds.has(item.conversationId));
         for (const log of db.auditLogs.filter(l => l.actorId === auth.user.id)) { log.actorName = "Conta eliminada"; log.ip = ""; log.detail = {}; }
         auth.user.name = "Conta eliminada"; auth.user.email = `${crypto.randomUUID()}@deleted.invalid`; auth.user.nif = null; auth.user.passwordHash = h.hashPassword(crypto.randomBytes(32).toString("hex")); auth.user.active = false; auth.user.profile = {};
       } else fail("Operacao nao encontrada.", 404);

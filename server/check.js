@@ -7,6 +7,7 @@ const files = [
   "server/index.js",
   "server/recruitment.js",
   "server/professional-profile.js",
+  "server/direct-chat.js",
   "server/professional-profile-test.js",
   "server/recruitment-test.js",
   "server/design-test.js",
@@ -19,6 +20,7 @@ const files = [
   "public/design-system.js",
   "public/recruitment-ui.js",
   "public/professional-profile-ui.js",
+  "public/direct-chat-ui.js",
   "public/service-worker.js"
 ];
 

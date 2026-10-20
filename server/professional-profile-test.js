@@ -96,6 +96,24 @@ async function run() {
     result = (await request(`/api/professional/employments/${employment.id}/confirm`,"PATCH",{ decision:"confirm" },ct)).payload;
     assert.equal(result.professional.employments[0].verificationStatus,"verified");
 
+    const administrationUser = (await request("/api/users","POST",{ name:"Ana Administração",email:"administracao@cv.test",role:"manager",password:"password123" },ct,201)).payload.user;
+    const administrationToken = (await request("/api/auth/login","POST",{ email:"administracao@cv.test",password:"password123" },null)).payload.session.token;
+    const workerChat = (await request("/api/direct-chat","GET",undefined,wt)).payload.chat;
+    assert.ok(workerChat.contacts.some(item => item.id === company.bootstrap.user.id && item.roleLabel === "Direção"),"the worker can identify the company owner before starting a chat");
+    assert.ok(workerChat.contacts.some(item => item.id === administrationUser.id && item.roleLabel === "Administração"),"the worker can choose an administration contact separately");
+    const bossConversation = (await request("/api/direct-chat/conversations","POST",{ contactUserId:company.bootstrap.user.id },wt,201)).payload.conversation;
+    const administrationConversation = (await request("/api/direct-chat/conversations","POST",{ contactUserId:administrationUser.id },wt,201)).payload.conversation;
+    await request("/api/direct-chat/conversations","POST",{ contactUserId:workerId },ot,403);
+    await request("/api/direct-chat/messages","POST",{ conversationId:bossConversation.id,body:"Mensagem reservada à direção." },wt);
+    await request("/api/direct-chat/messages","POST",{ conversationId:administrationConversation.id,body:"Mensagem reservada à administração." },wt);
+    assert.equal((await request(`/api/direct-chat/conversations/${bossConversation.id}`,"GET",undefined,ct)).payload.messages.length,1);
+    await request(`/api/direct-chat/conversations/${administrationConversation.id}`,"GET",undefined,ct,404);
+    assert.equal((await request(`/api/direct-chat/conversations/${administrationConversation.id}`,"GET",undefined,administrationToken)).payload.messages[0].body,"Mensagem reservada à administração.");
+    await request("/api/direct-chat/messages","POST",{ conversationId:administrationConversation.id,body:"Resposta da administração." },administrationToken);
+    assert.equal((await request("/api/direct-chat","GET",undefined,wt)).payload.chat.unreadCount,1,"direct replies expose an unread count only to their recipient");
+    await request(`/api/direct-chat/conversations/${administrationConversation.id}/read`,"PATCH",{},wt);
+    assert.equal((await request("/api/direct-chat","GET",undefined,wt)).payload.chat.unreadCount,0);
+
     const companyOrder = (await request("/api/work-orders","POST",{ title:"Turno de producao",address:"Rua Industrial 10, Braga",description:"Ordem para trabalhador contratado",photos:[] },ct,201)).payload.workOrder;
     const otherOrder = (await request("/api/work-orders","POST",{ title:"Ordem sem vinculo",address:"Rua Externa 2, Braga",description:"Teste de isolamento",photos:[] },ot,201)).payload.workOrder;
     await request("/api/tasks","POST",{ workOrderId:otherOrder.id,title:"Atribuicao indevida",assigneeId:workerId,dueDate:"2026-11-02" },ot,403);
@@ -185,14 +203,23 @@ async function run() {
       const workMap = page.locator('.task-map iframe'); await workMap.waitFor();
       assert.ok((await workMap.getAttribute('src')).includes('Rua%20Industrial%2010%2C%20Braga'),"the worker task embeds Google Maps from the stored address");
       await page.locator('[data-action="close-drawer"]').click();
+      await page.locator('[data-recruitment="tab"][data-id="chat"]').click();
+      await page.locator('[data-direct-chat-root]').waitFor();
+      assert.equal(await page.locator('[data-direct-chat="open"]').count(),2,"worker chat keeps direction and administration as separate conversations");
+      await page.getByRole('button',{ name:/Ana Administração/ }).click();
+      await page.getByText('Resposta da administração.').waitFor();
+      const shots = path.join(__dirname,"..","tmp","professional-qa"); fs.mkdirSync(shots,{ recursive:true });
+      await page.screenshot({ path:path.join(shots,"worker-direct-chat-desktop.png"),fullPage:true });
       await page.locator('[data-recruitment="tab"][data-id="profile"]').click();
       await page.locator('[data-professional-form="cv"]').waitFor();
       for (const step of ["0","1","2","3"]) { await page.locator(`[data-professional="cv-step"][data-step="${step}"]`).click(); await page.locator(`[data-cv-step="${step}"]`).waitFor(); }
-      await page.locator('[data-recruitment="tab"][data-id="employment"]').click(); await page.getByRole("heading",{ name:"Vinculos e relatorios",level:2 }).waitFor();
+      await page.locator('[data-recruitment="tab"][data-id="employment"]').click(); await page.getByRole("heading",{ name:"Percurso Profissional e Avaliações",level:2,exact:true }).waitFor();
       await page.locator('[data-professional="view-report"]').first().click(); await page.locator(".evaluation-detail").waitFor();
-      const shots = path.join(__dirname,"..","tmp","professional-qa"); fs.mkdirSync(shots,{ recursive:true });
       await page.screenshot({ path:path.join(shots,"worker-employment-desktop.png"),fullPage:true });
       await page.setViewportSize({ width:390,height:844 });
+      await page.locator('[data-recruitment="tab"][data-id="chat"]').click();
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),"Direct chat mobile overflow");
+      await page.screenshot({ path:path.join(shots,"worker-direct-chat-mobile.png"),fullPage:true });
       await page.locator('[data-recruitment="tab"][data-id="profile"]').click();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),"Digital CV mobile overflow");
       await page.screenshot({ path:path.join(shots,"worker-cv-mobile.png"),fullPage:true });

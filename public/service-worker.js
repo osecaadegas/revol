@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v13-task-address-map";
+const CACHE_NAME = "tratapro-shell-v14-direct-chat";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
@@ -6,6 +6,7 @@ const SHELL_ASSETS = [
   "/app.js",
   "/recruitment-ui.js",
   "/professional-profile-ui.js",
+  "/direct-chat-ui.js",
   "/design-system.js",
   "/vendor/lucide.svg",
   "/fonts/InterVariable.woff2",

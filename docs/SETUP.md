@@ -187,8 +187,9 @@ For a dirty Supabase project that already contains old prototype tables, run the
 12. Run `supabase/migrations/20261017073331_professional_evaluation_history.sql`.
 13. Run `supabase/migrations/20261020090000_worker_task_planning.sql`.
 14. Run `supabase/migrations/20261020123000_evaluation_rating_scale_0_10.sql`.
-15. Confirm the private storage bucket `meo-evidence` exists and remains private.
-16. Set these environment variables on the host:
+15. Run `supabase/migrations/20261020160000_direct_worker_company_chat.sql`.
+16. Confirm the private storage bucket `meo-evidence` exists and remains private.
+17. Set these environment variables on the host:
 
 ```text
 APP_STORAGE_DRIVER=supabase

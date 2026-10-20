@@ -2,6 +2,18 @@
 
 ## 2026-10-20
 
+- A área existente de mensagens de candidaturas e entrevistas passou a chamar-se
+  `Correspondência`, preservando o seu histórico e comportamento.
+- Adicionada a área independente `Conversas`, com conversas diretas persistentes
+  entre um trabalhador e um membro específico de uma empresa com vínculo
+  verificado. Direção, administração e restantes contactos aparecem separados.
+- Cada conversa só pode ser lida e utilizada pelo trabalhador e pelo membro da
+  empresa selecionado; outros membros e empresas recebem uma resposta neutra de
+  recurso inexistente. Envios e leituras relevantes ficam no histórico de auditoria.
+- Adicionadas notificações de não lidas, recibos de leitura, atualização periódica,
+  limite de envio, estados vazios/erro e layout responsivo em duas colunas.
+- Adicionada a migração `20261020160000_direct_worker_company_chat.sql` e testes
+  de isolamento entre Direção/Administração e empresas sem vínculo.
 - Simplificado o planeamento de tarefas para pedir apenas a morada do trabalho,
   removendo latitude, longitude e captura GPS deste formulário.
 - O detalhe da tarefa apresenta agora ao trabalhador um Google Maps incorporado

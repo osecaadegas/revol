@@ -358,6 +358,21 @@ Status: implemented locally; production migration pending.
   worker and originating company; no continuous location collection exists.
 - See migration `20261020090000_worker_task_planning.sql`.
 
+### M34 - Correspondência e conversas diretas
+
+Status: implemented locally; production migration pending.
+
+- Renames the existing recruitment/interview message surface to
+  `Correspondência` without changing its records or workflow.
+- Adds a separate WhatsApp-like `Conversas` workspace for one-to-one contact
+  between a worker and a specifically selected company member.
+- Requires a verified employment relationship and scopes every conversation to
+  its worker, company and individual company recipient; membership alone does
+  not expose a colleague's conversations.
+- Persists messages, unread/read state and audit events, with responsive desktop
+  and mobile presentation and no public or unauthenticated endpoint.
+- See migration `20261020160000_direct_worker_company_chat.sql`.
+
 ## Next Recommended Work
 
 1. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the Vercel production environment after the Google OAuth client is created.
@@ -377,6 +392,7 @@ Status: implemented locally; production migration pending.
 15. Ask the client to approve real completion percentage, manual-to-requirement mappings and acceptance criteria.
 16. Add authenticated document storage/access rules before exposing private manuals, contract or proposal files.
 17. Add browser-driven regression coverage for public routes, public filtering and trabalhador application.
+18. Apply `20261020160000_direct_worker_company_chat.sql` before deploying the direct-conversation release.
 
 ## Agent Update Protocol
 

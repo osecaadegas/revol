@@ -8,6 +8,7 @@ const { renderPrivateMvpHtml } = require("./private-mvp");
 const { renderPrivateProjectHtml } = require("./private-project");
 const recruitment = require("./recruitment");
 const professionalProfile = require("./professional-profile");
+const directChat = require("./direct-chat");
 const { createPublicMarketplace } = require("./public-marketplace");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
@@ -315,6 +316,7 @@ const TABLES = [
 for (const definition of TABLES.filter(t => ["jobOffers", "jobApplications"].includes(t.key))) definition.fields.recruitment = "recruitment";
 TABLES.push(...recruitment.TABLES);
 TABLES.push(...professionalProfile.TABLES);
+TABLES.push(...directChat.TABLES);
 const recruitmentApi = recruitment.createRecruitment({ readDb, mutateDb, requireAuth, requireWorker, requireCompanyAccount,
   publicUser, publicCompany, publicJobOffer, audit, buildBootstrap, readBody, sendJson, responseHeaders,
   readPrivateUploadFile, savePrivateUploadFile, deletePrivateUploadFile, safeHttpUrl, hashPassword, publicJobPath, parsePhotoDataUrl,
@@ -322,6 +324,7 @@ const recruitmentApi = recruitment.createRecruitment({ readDb, mutateDb, require
 const professionalProfileApi = professionalProfile.createProfessionalProfile({ readDb, mutateDb, requireAuth, requireWorker,
   requireCompanyAccount, publicUser, publicCompany, audit, buildBootstrap, readBody, sendJson, responseHeaders,
   readPrivateUploadFile, savePrivateUploadFile, deletePrivateUploadFile });
+const directChatApi = directChat.createDirectChat({ readDb, mutateDb, requireAuth, readBody, sendJson, audit });
 const publicMarketplace = createPublicMarketplace({ htmlEscape, publicJobPath, publicOpenJobs, renderPublicTopbarStatic, safeHttpUrl });
 
 function now() {
@@ -579,7 +582,7 @@ function createEmptyDb() {
     jobApplications: [],
     recruitmentMessages: [],
     jobReports: [],
-    ...Object.fromEntries(professionalProfile.EMPTY_KEYS.map((key) => [key, []]))
+    ...Object.fromEntries([...professionalProfile.EMPTY_KEYS,...directChat.EMPTY_KEYS].map((key) => [key, []]))
   };
 }
 
@@ -603,7 +606,8 @@ function ensureShape(db) {
     "jobApplications",
     "recruitmentMessages",
     "jobReports",
-    ...professionalProfile.EMPTY_KEYS
+    ...professionalProfile.EMPTY_KEYS,
+    ...directChat.EMPTY_KEYS
   ]) {
     if (!Array.isArray(db[key])) db[key] = [];
   }
@@ -1495,6 +1499,7 @@ function buildBootstrap(db, auth) {
     workerProfiles,
     recruitment: recruitmentApi.snapshot(db, auth),
     professional: professionalProfileApi.snapshot(db, auth),
+    directChat: directChatApi.snapshot(db, auth),
     statusLabels: PUBLIC_STATUS_LABELS
   };
 }
@@ -2610,6 +2615,7 @@ function routeNotFound() {
 }
 
 async function handleApi(req, res, pathname) {
+  if (await directChatApi.handle(req, res, pathname)) return;
   if (await professionalProfileApi.handle(req, res, pathname)) return;
   if (await recruitmentApi.handle(req, res, pathname)) return;
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);

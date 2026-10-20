@@ -39,6 +39,8 @@ drop table if exists
   public.meo_cv_versions,
   public.meo_cv_profiles,
   public.meo_job_reports,
+  public.meo_direct_messages,
+  public.meo_direct_conversations,
   public.meo_recruitment_messages,
   public.meo_job_applications,
   public.meo_job_offers,
@@ -281,6 +283,23 @@ create table public.meo_recruitment_messages (
   sender_id text not null references public.meo_users(id), body text not null, interview_at timestamptz,
   response text, read_at timestamptz, created_at timestamptz not null default now()
 );
+create table public.meo_direct_conversations (
+  id text primary key,
+  company_id text not null references public.meo_companies(id) on delete cascade,
+  worker_id text not null references public.meo_users(id) on delete cascade,
+  company_user_id text not null references public.meo_users(id) on delete cascade,
+  created_by text not null references public.meo_users(id) on delete restrict,
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+  unique (company_id,worker_id,company_user_id),
+  check (worker_id <> company_user_id)
+);
+create table public.meo_direct_messages (
+  id text primary key,
+  conversation_id text not null references public.meo_direct_conversations(id) on delete cascade,
+  sender_id text not null references public.meo_users(id) on delete restrict,
+  body text not null check (char_length(btrim(body)) between 1 and 3000),
+  read_at timestamptz, created_at timestamptz not null default now()
+);
 create table public.meo_job_reports (
   id text primary key, job_offer_id text not null references public.meo_job_offers(id),
   user_id text not null references public.meo_users(id), reason text not null, detail text,
@@ -434,6 +453,10 @@ create index meo_job_applications_worker_idx on public.meo_job_applications(work
 create index meo_job_applications_offer_idx on public.meo_job_applications(job_offer_id);
 create index meo_recruitment_messages_worker_idx on public.meo_recruitment_messages(worker_id,created_at);
 create index meo_recruitment_messages_company_idx on public.meo_recruitment_messages(company_id,created_at);
+create index meo_direct_conversations_worker_idx on public.meo_direct_conversations(worker_id,updated_at desc);
+create index meo_direct_conversations_company_user_idx on public.meo_direct_conversations(company_user_id,updated_at desc);
+create index meo_direct_messages_conversation_idx on public.meo_direct_messages(conversation_id,created_at);
+create index meo_direct_messages_unread_idx on public.meo_direct_messages(conversation_id,created_at) where read_at is null;
 create index meo_job_reports_status_idx on public.meo_job_reports(status,created_at);
 create index meo_cv_versions_worker_idx on public.meo_cv_versions(worker_id,version desc);
 create index meo_cv_documents_worker_idx on public.meo_cv_documents(worker_id,created_at desc) where deleted_at is null;
@@ -542,7 +565,7 @@ do $$
 declare table_name text;
 begin
   foreach table_name in array array[
-    'meo_recruitment_messages','meo_job_reports','meo_cv_profiles','meo_cv_versions','meo_cv_documents',
+    'meo_recruitment_messages','meo_direct_conversations','meo_direct_messages','meo_job_reports','meo_cv_profiles','meo_cv_versions','meo_cv_documents',
     'meo_company_verifications','meo_company_memberships','meo_employment_relationships',
     'meo_employer_evaluation_reports','meo_evaluation_criteria','meo_custom_evaluation_questions',
     'meo_evaluation_question_versions','meo_evaluation_answers','meo_evaluation_revisions','meo_company_access_grants',
@@ -584,7 +607,7 @@ begin
     table_name := change->>'table';
     if not (table_name = any(array[
       'meo_companies','meo_users','meo_sessions','meo_invites','meo_work_orders','meo_tasks','meo_evidences',
-      'meo_audit_logs','meo_job_offers','meo_job_applications','meo_recruitment_messages','meo_job_reports',
+      'meo_audit_logs','meo_job_offers','meo_job_applications','meo_recruitment_messages','meo_direct_conversations','meo_direct_messages','meo_job_reports',
       'meo_cv_profiles','meo_cv_versions','meo_cv_documents','meo_company_verifications','meo_company_memberships',
       'meo_employment_relationships','meo_employer_evaluation_reports','meo_evaluation_criteria','meo_custom_evaluation_questions',
       'meo_evaluation_question_versions','meo_evaluation_answers','meo_evaluation_revisions',
