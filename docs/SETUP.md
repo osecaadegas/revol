@@ -115,6 +115,11 @@ process; the example values are technical defaults, not legal advice.
 
 `PUBLIC_SITE_URL` is optional but recommended in production. Set it to the final public origin, for example `https://your-production-domain`, so canonical URLs, `robots.txt`, `sitemap.xml`, and server-rendered public vacancy detail pages use one stable domain. If empty, the server derives the origin from the request headers.
 
+`PLATFORM_ADMIN_USER_IDS` and `PLATFORM_ADMIN_EMAILS` are optional,
+comma-separated allowlists for the private recruitment administration area.
+Email matching is case-insensitive. Keep both variables server-only and use only
+accounts whose email ownership has been verified operationally.
+
 ## SEO Setup
 
 The public marketplace has server-generated SEO basics:

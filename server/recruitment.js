@@ -36,7 +36,15 @@ function salary(job) {
   return `${amount} EUR / ${{ HOUR: "hora", DAY: "dia", WEEK: "semana", MONTH: "mes", YEAR: "ano" }[j.salaryPeriod || "MONTH"]}`;
 }
 function admin(user) {
-  return String(process.env.PLATFORM_ADMIN_USER_IDS || "").split(",").map(v => v.trim()).filter(Boolean).includes(user.id);
+  const userIds = String(process.env.PLATFORM_ADMIN_USER_IDS || "")
+    .split(",")
+    .map(value => value.trim())
+    .filter(Boolean);
+  const emails = String(process.env.PLATFORM_ADMIN_EMAILS || "")
+    .split(",")
+    .map(value => value.trim().toLowerCase())
+    .filter(Boolean);
+  return userIds.includes(user.id) || emails.includes(String(user.email || "").trim().toLowerCase());
 }
 function profileSettings(body, current = {}) {
   const merged = { ...current, ...body };

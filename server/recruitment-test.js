@@ -26,7 +26,8 @@ async function run() {
     const worker = await request("/api/register/worker", "POST", { name: "Candidato Teste", nif: "200000004", email: "worker@test.invalid", password: "password123" }, null, 201);
     const ct = company.session.token, wt = worker.session.token, ot = other.session.token;
     const workerId = worker.bootstrap.user.id;
-    process.env.PLATFORM_ADMIN_USER_IDS = other.bootstrap.user.id;
+    process.env.PLATFORM_ADMIN_USER_IDS = "";
+    process.env.PLATFORM_ADMIN_EMAILS = other.bootstrap.user.email.toUpperCase();
     await request("/api/recruitment/admin", "GET", null, ct, 403);
     await request("/api/recruitment/admin", "GET", null, ot);
     await request("/api/recruitment/company", "PATCH", { nif: "123456789", location: "Alpiarca", description: "Empresa de logistica", requestVerification: true, verification: "verified" }, ct);

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-20 - Platform administrator email allowlist
+
+- Added a server-only, case-insensitive `PLATFORM_ADMIN_EMAILS` allowlist while
+  preserving the existing administrator ID allowlist.
+- Documented the production configuration and added authorization regression
+  coverage for email-based platform administrators.
+
 ## 2026-10-17 - Industrial Workshop Visual System
 
 - Reworked the existing TrataPro public marketplace, authentication surfaces,

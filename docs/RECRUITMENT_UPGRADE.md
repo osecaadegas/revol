@@ -76,6 +76,8 @@ Environment variables:
 
 - `PLATFORM_ADMIN_USER_IDS`: comma-separated existing account IDs. Configured in
   production for the account explicitly selected by the user.
+- `PLATFORM_ADMIN_EMAILS`: comma-separated account emails, matched
+  case-insensitively. This complements the ID allowlist without replacing it.
 - `PUBLIC_SITE_URL`: configured to the current production origin.
 - `RESEND_API_KEY` and `EMAIL_FROM`: optional, not configured by this change.
   The sender must be verified with Resend. Until then, email alert choices are
