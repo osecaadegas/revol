@@ -337,7 +337,7 @@ Status: implemented locally; production migration and legal/privacy validation p
 
 - Expanded employer reports to the 25 standard observable professional
   questions with integer 0-10 ratings, optional comments and category averages.
-- Added private drafts, assessment periods, permanent duplicate prevention,
+- Added private drafts, automatic Portugal-local assessment dates, permanent same-day duplicate prevention,
   company questions and immutable wording snapshots. Submitted ratings are
   closed permanently; later assessments require a different period.
 - Preserved originating-company isolation, worker disputes/data access,

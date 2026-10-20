@@ -87,6 +87,13 @@ const addMonths = (value, months) => { const date = new Date(value); date.setUTC
 const stableId = (prefix, value) => `${prefix}_${crypto.createHash("sha256").update(String(value)).digest("hex").slice(0, 24)}`;
 const companyVerified = company => company?.recruitment?.verification === "verified";
 
+function currentPortugalDate() {
+  if (process.env.APP_STORAGE_DRIVER === "local" && /^\d{4}-\d{2}-\d{2}$/.test(process.env.PROFESSIONAL_TEST_DATE || "")) return process.env.PROFESSIONAL_TEST_DATE;
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone:"Europe/Lisbon",year:"numeric",month:"2-digit",day:"2-digit" }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.filter(item => item.type !== "literal").map(item => [item.type,item.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
+
 function date(value, label, optional = true) {
   const result = text(value, 10);
   if (!result && optional) return "";
@@ -623,16 +630,13 @@ function createProfessionalProfile(h) {
           const employment = db.employmentRelationships.find(item => item.id === body.employmentId && item.companyId === auth.company.id && item.verificationStatus === "verified"); if (!employment) fail("A avaliação exige um vínculo de trabalho verificado com esta empresa.",403);
           const requestedReport = body.reportId ? db.evaluationReports.find(item => item.id === body.reportId && item.companyId === auth.company.id) : null;
           const existingDraft = requestedReport?.status === "draft" ? requestedReport : null;
-          if (requestedReport && !existingDraft) fail("Uma avaliação submetida não pode ser alterada. Crie uma nova avaliação para um período diferente.",409);
+          if (requestedReport && !existingDraft) fail("Uma avaliação submetida não pode ser alterada. Crie uma nova avaliação noutro dia.",409);
           if (body.reportId && !requestedReport) fail("Rascunho não encontrado.",404);
           const priorId = text(body.supersedesReportId || body.correctionOfReportId, 140);
-          if (priorId || text(body.correctionReason,1000)) fail("As avaliações submetidas são imutáveis. Registe uma nova avaliação para um período diferente.",409);
-          const periodStart = date(body.periodStart || employment.startDate, "Início do período", false);
-          const periodEnd = date(body.periodEnd || employment.endDate || new Date().toISOString().slice(0,10), "Fim do período", false);
-          if (periodEnd < periodStart) fail("O fim do período de avaliação deve ser igual ou posterior ao início.");
-          if (periodStart < employment.startDate || (employment.endDate && periodEnd > employment.endDate)) fail("O período avaliado tem de estar dentro das datas do vínculo verificado.");
+          if (priorId || text(body.correctionReason,1000)) fail("As avaliações submetidas são imutáveis. Registe uma nova avaliação noutro dia.",409);
+          const evaluationDate = currentPortugalDate(), periodStart = evaluationDate, periodEnd = evaluationDate;
           const duplicate = db.evaluationReports.find(item => item.id !== existingDraft?.id && item.companyId === auth.company.id && item.workerId === employment.workerId && item.employmentId === employment.id && item.periodStart === periodStart && item.periodEnd === periodEnd);
-          if (duplicate) fail("Já existe uma avaliação ou rascunho para esta empresa, trabalhador, vínculo e período. Escolha um novo período.",409);
+          if (duplicate) fail("Já existe uma avaliação ou rascunho para este trabalhador na data de hoje.",409);
           const createdAt = stamp();
           const report = existingDraft || { id:uid("evr"), employmentId:employment.id, workerId:employment.workerId, companyId:auth.company.id, authorId:auth.user.id, createdAt };
           Object.assign(report, {

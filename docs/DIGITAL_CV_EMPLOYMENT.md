@@ -43,10 +43,10 @@ vanilla JavaScript, local JSON and Supabase architecture.
 - Company-specific questions with editable active definitions and immutable
   per-assessment wording/scoring snapshots. Custom answers are labelled and do
   not affect the shared standard-question averages.
-- Private editable drafts, explicit submission, duplicate-period protection,
-  strengths/improvement context and assessment dates. Once submitted, ratings
+- Private editable drafts, explicit submission, automatic Portugal-local
+  assessment dates and duplicate-day protection. Once submitted, ratings
   cannot be edited, corrected or superseded; a later assessment must be a new
-  record for a different period. Worker disputes remain attached as responses
+  record on another day. Worker disputes remain attached as responses
   and never rewrite the employer's submitted answers.
 
 ## Authorization Boundary

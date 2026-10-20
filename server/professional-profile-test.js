@@ -8,6 +8,7 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), "tratapro-professional-"));
 process.env.APP_STORAGE_DRIVER = "local";
 process.env.APP_DATA_DIR = temp;
 process.env.CRON_SECRET = "professional-test-cron";
+process.env.PROFESSIONAL_TEST_DATE = "2024-12-31";
 const { createServer } = require("./index");
 const server = createServer();
 let base;
@@ -162,16 +163,19 @@ async function run() {
     assert.equal(historical.answers.find(item => item.source === "custom").question.questionText,"Regista corretamente as verificações específicas da linha?","historical wording is immutable after archiving");
     await request("/api/professional/evaluations","POST",{ intent:"submit",employmentId:employment.id,supersedesReportId:report.id,correctionReason:"Tentativa de alteração.",workerRole:"Operadora",periodStart:"2024-01-01",periodEnd:"2024-12-31",answers,customQuestionIds:[custom.id],factualExperience:{} },ct,409);
     await request("/api/professional/evaluations","POST",{ intent:"submit",reportId:report.id,employmentId:employment.id,workerRole:"Operadora",periodStart:"2024-01-01",periodEnd:"2024-12-31",answers,customQuestionIds:[custom.id],factualExperience:{} },ct,409);
-    result = (await request("/api/professional/evaluations","POST",{ intent:"submit",employmentId:employment.id,workerRole:"Operadora",periodStart:"2025-04-01",periodEnd:"2025-04-30",assessmentContext:"Nova avaliação para um período posterior.",answers,customQuestionIds:[custom.id],factualExperience:{} },ct)).payload;
-    assert.ok(result.professional.reportSummaries.some(item => item.periodStart === "2025-04-01" && item.status === "submitted"),"a submitted rating is immutable but a genuinely new period can be assessed");
+    process.env.PROFESSIONAL_TEST_DATE = "2025-04-30";
+    result = (await request("/api/professional/evaluations","POST",{ intent:"submit",employmentId:employment.id,workerRole:"Operadora",periodStart:"1999-01-01",periodEnd:"1999-12-31",assessmentContext:"Nova avaliação registada noutra data.",answers,customQuestionIds:[custom.id],factualExperience:{} },ct)).payload;
+    assert.ok(result.professional.reportSummaries.some(item => item.periodStart === "2025-04-30" && item.periodEnd === "2025-04-30" && item.status === "submitted"),"the server records the current Portuguese date and ignores manipulated period fields");
     assert.ok(result.professional.reportSummaries.some(item => item.id === report.id && item.status === "submitted"),"the earlier submitted assessment remains unchanged");
     const noDataAnswers = standardQuestions.map(question => ({ questionKey:question.key,answerState:"unanswered",score:null,comment:"" }));
+    process.env.PROFESSIONAL_TEST_DATE = "2025-03-31";
     result = (await request("/api/professional/evaluations","POST",{ intent:"draft",employmentId:employment.id,workerRole:"Operadora",periodStart:"2025-03-01",periodEnd:"2025-03-31",assessmentContext:"Rascunho ainda sem classificações.",answers:noDataAnswers,factualExperience:{} },ct)).payload;
-    const noData = result.professional.reportSummaries.find(item => item.periodStart === "2025-03-01");
+    const noData = result.professional.reportSummaries.find(item => item.periodStart === "2025-03-31");
     assert.equal(noData.scoredAnswerCount,0); assert.deepEqual(noData.categoryAverages,[],"a no-data assessment is not represented as a zero score");
     assert.ok((await request("/api/professional","GET",undefined,wt)).payload.professional.accessHistory.some(item => item.action === "evaluation_report.viewed"));
 
-    await request("/api/professional/evaluations","POST",{ intent:"submit",employmentId:employment.id,workerRole:"Operadora",periodStart:"2025-01-01",periodEnd:"2025-01-31",assessmentContext:"Avaliação por falta justificada.",answers },ct,400);
+    process.env.PROFESSIONAL_TEST_DATE = "2025-01-31";
+    await request("/api/professional/evaluations","POST",{ intent:"submit",employmentId:employment.id,workerRole:"Operadora",periodStart:"2020-01-01",periodEnd:"2020-01-31",assessmentContext:"Avaliação por falta justificada.",answers },ct,400);
     await request("/api/professional/evaluations","POST",{ intent:"submit",employmentId:employment.id,workerRole:"Operadora",periodStart:"2025-02-01",periodEnd:"2025-02-28",answers },wt,403);
     await request(`/api/professional/evaluations/${report.id}`,"GET",undefined,null,401);
     result = (await request("/api/professional/disputes","POST",{ reportId:report.id,type:"correction",description:"A data indicada deve ser revista.",workerResponse:"O periodo correto terminou em dezembro." },wt)).payload;
@@ -229,7 +233,12 @@ async function run() {
         await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),`Company ${id} mobile overflow`);
         if (id === "evaluations") {
-          const scale = page.locator(".rating-scale").first();
+          const categoryPicker = page.locator("[data-evaluation-category-select]");
+          assert.equal(await page.locator("[data-evaluation-category]:visible").count(),1,"only one evaluation category is visible at a time");
+          assert.ok(await page.locator("[data-evaluation-category] [data-evaluation-score]").count() >= 275,"all category answers remain in the form while sections are collapsed");
+          await categoryPicker.selectOption("adaptation");
+          await page.locator('[data-evaluation-category="adaptation"]:visible').waitFor();
+          const scale = page.locator('[data-evaluation-category="adaptation"] .rating-scale').first();
           assert.equal(await scale.locator("[data-evaluation-score]").count(),11,"the visual rating exposes every integer from 0 to 10");
           assert.equal(await scale.locator("[data-evaluation-score]:checked").count(),0,"ratings never start preselected");
           const seven = scale.locator('.rating-7'), swatch = seven.locator("span");
@@ -242,7 +251,7 @@ async function run() {
           await page.getByRole("heading",{ name:"Percurso Profissional e Avaliações",level:2,exact:true }).hover();
           assert.equal(await swatch.evaluate(node => getComputedStyle(node).backgroundColor),hoverBackground,"selected rating keeps its colour after hover ends");
           await scale.getByText("7 em 10").waitFor();
-          const question = page.locator(".evaluation-question").first(), copyBox = await question.locator(".evaluation-question-copy").boundingBox(), scaleBox = await scale.boundingBox(), commentBox = await question.locator(".evaluation-comment textarea").boundingBox();
+          const question = scale.locator("xpath=ancestor::*[contains(@class,'evaluation-question')][1]"), copyBox = await question.locator(".evaluation-question-copy").boundingBox(), scaleBox = await scale.boundingBox(), commentBox = await question.locator(".evaluation-comment textarea").boundingBox();
           assert.ok(copyBox && scaleBox && commentBox && copyBox.y < scaleBox.y && scaleBox.y < commentBox.y,"question, rating and comment follow a clean vertical order");
           assert.ok(commentBox.height <= 70,"the optional comment starts as a compact field");
         }

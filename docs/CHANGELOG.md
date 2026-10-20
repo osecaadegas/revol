@@ -2,6 +2,13 @@
 
 ## 2026-10-20
 
+- Removida a introdução manual do início/fim da avaliação: o servidor regista
+  automaticamente o dia atual em Portugal e rejeita uma segunda avaliação do
+  mesmo vínculo na mesma data, mesmo que o pedido tente enviar outras datas.
+- Adicionado um seletor de categorias ao formulário de avaliação. Apenas uma
+  categoria fica visível de cada vez, mantendo todas as respostas no mesmo
+  formulário e reduzindo o scroll; cartões, escalas e campos opcionais também
+  foram compactados.
 - Simplificado o cartão de cada critério para apresentar a pergunta, a escala
   0–10 imediatamente por baixo e o comentário opcional no fim. O campo de
   comentário começa agora compacto, com redimensionamento vertical disponível.

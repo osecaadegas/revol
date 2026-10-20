@@ -123,7 +123,7 @@ The app must first behave like a public labor-market board:
 | Employer eligibility | Verified company plus verified own employment relationship; company-created relationships require accepted/hired application evidence |
 | Structured professional evaluation | 25 standard observable-behaviour questions in seven categories, accessible visual integer 0-10 rating controls with no preselection, optional work-related comments, standard-only category averages and an explicit draft no-data state |
 | Company-specific questions and historical integrity | Company question catalogue plus immutable question/scoring snapshots in each assessment; later edits or archiving cannot alter submitted history |
-| Drafts and immutable periods | Private company drafts, explicit assessed dates and permanent duplicate-period protection; submitted ratings cannot be edited or superseded and later assessments require a different period |
+| Drafts and immutable dates | Private company drafts, automatic Portugal-local evaluation date and one record per company/worker/relationship/day; submitted ratings cannot be edited or superseded |
 | Separate facts and opinion | Employment and evaluation tables/routes/UI remain separate; evaluations never enter CV/PDF/public discovery |
 | Worker response and data rights | `meo_worker_disputes` correction/context/dispute/restriction/deletion/access workflow with company response |
 | Access and sharing history | `meo_report_access_logs`, access-request history and existing audit actions |
