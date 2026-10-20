@@ -337,8 +337,9 @@ Status: implemented locally; production migration and legal/privacy validation p
 
 - Expanded employer reports to the 25 standard observable professional
   questions with integer 0-10 ratings, optional comments and category averages.
-- Added private drafts, assessment periods, duplicate prevention, company
-  questions, immutable wording snapshots and audited correction versions.
+- Added private drafts, assessment periods, permanent duplicate prevention,
+  company questions and immutable wording snapshots. Submitted ratings are
+  closed permanently; later assessments require a different period.
 - Preserved originating-company isolation, worker disputes/data access,
   retention redaction and the disabled-by-default cross-company sharing gate.
 - See migrations `20261017073331_professional_evaluation_history.sql` and

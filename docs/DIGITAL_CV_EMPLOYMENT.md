@@ -44,8 +44,10 @@ vanilla JavaScript, local JSON and Supabase architecture.
   per-assessment wording/scoring snapshots. Custom answers are labelled and do
   not affect the shared standard-question averages.
 - Private editable drafts, explicit submission, duplicate-period protection,
-  strengths/improvement context, assessment dates, evaluator membership role,
-  and immutable correction versions linked through an audit revision record.
+  strengths/improvement context and assessment dates. Once submitted, ratings
+  cannot be edited, corrected or superseded; a later assessment must be a new
+  record for a different period. Worker disputes remain attached as responses
+  and never rewrite the employer's submitted answers.
 
 ## Authorization Boundary
 

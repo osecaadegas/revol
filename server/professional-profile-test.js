@@ -160,10 +160,11 @@ async function run() {
     await request(`/api/professional/custom-questions/${custom.id}`,"PATCH",{ action:"archive" },ct);
     const historical = (await request(`/api/professional/evaluations/${report.id}`,"GET",undefined,ct)).payload.report;
     assert.equal(historical.answers.find(item => item.source === "custom").question.questionText,"Regista corretamente as verificações específicas da linha?","historical wording is immutable after archiving");
-    result = (await request("/api/professional/evaluations","POST",{ intent:"submit",employmentId:employment.id,supersedesReportId:report.id,correctionReason:"Clarificação factual solicitada.",workerRole:"Operadora",periodStart:"2024-01-01",periodEnd:"2024-12-31",assessmentContext:"Versão corrigida e auditada.",answers,customQuestionIds:[custom.id],factualExperience:{} },ct)).payload;
-    const corrected = result.professional.reportSummaries.find(item => item.status === "corrected");
-    assert.equal(corrected.version,2,"correction creates a new immutable version");
-    assert.ok(result.professional.reportSummaries.some(item => item.id === report.id && item.status === "superseded"),"the original remains in history instead of being overwritten");
+    await request("/api/professional/evaluations","POST",{ intent:"submit",employmentId:employment.id,supersedesReportId:report.id,correctionReason:"Tentativa de alteração.",workerRole:"Operadora",periodStart:"2024-01-01",periodEnd:"2024-12-31",answers,customQuestionIds:[custom.id],factualExperience:{} },ct,409);
+    await request("/api/professional/evaluations","POST",{ intent:"submit",reportId:report.id,employmentId:employment.id,workerRole:"Operadora",periodStart:"2024-01-01",periodEnd:"2024-12-31",answers,customQuestionIds:[custom.id],factualExperience:{} },ct,409);
+    result = (await request("/api/professional/evaluations","POST",{ intent:"submit",employmentId:employment.id,workerRole:"Operadora",periodStart:"2025-04-01",periodEnd:"2025-04-30",assessmentContext:"Nova avaliação para um período posterior.",answers,customQuestionIds:[custom.id],factualExperience:{} },ct)).payload;
+    assert.ok(result.professional.reportSummaries.some(item => item.periodStart === "2025-04-01" && item.status === "submitted"),"a submitted rating is immutable but a genuinely new period can be assessed");
+    assert.ok(result.professional.reportSummaries.some(item => item.id === report.id && item.status === "submitted"),"the earlier submitted assessment remains unchanged");
     const noDataAnswers = standardQuestions.map(question => ({ questionKey:question.key,answerState:"unanswered",score:null,comment:"" }));
     result = (await request("/api/professional/evaluations","POST",{ intent:"draft",employmentId:employment.id,workerRole:"Operadora",periodStart:"2025-03-01",periodEnd:"2025-03-31",assessmentContext:"Rascunho ainda sem classificações.",answers:noDataAnswers,factualExperience:{} },ct)).payload;
     const noData = result.professional.reportSummaries.find(item => item.periodStart === "2025-03-01");
@@ -224,7 +225,17 @@ async function run() {
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),"Digital CV mobile overflow");
       await page.screenshot({ path:path.join(shots,"worker-cv-mobile.png"),fullPage:true });
       await page.evaluate(token => localStorage.setItem("meo_session_token",token),ct); await page.reload();
-      for (const id of ["employment","evaluations","access"]) { await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor(); assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),`Company ${id} mobile overflow`); }
+      for (const id of ["employment","evaluations","access"]) {
+        await page.locator(`[data-recruitment="tab"][data-id="${id}"]`).click(); await page.locator(`[data-id="${id}"][aria-current="page"]`).waitFor();
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),`Company ${id} mobile overflow`);
+        if (id === "evaluations") {
+          const scale = page.locator(".rating-scale").first();
+          assert.equal(await scale.locator("[data-evaluation-score]").count(),11,"the visual rating exposes every integer from 0 to 10");
+          assert.equal(await scale.locator("[data-evaluation-score]:checked").count(),0,"ratings never start preselected");
+          await scale.locator('[data-evaluation-score][value="7"]').check({ force:true });
+          await scale.getByText("7 em 10").waitFor();
+        }
+      }
       await page.screenshot({ path:path.join(shots,"company-access-mobile.png"),fullPage:true });
       assert.deepEqual(errors,[],"Professional dashboard browser errors");
       await context.close();

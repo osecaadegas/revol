@@ -621,36 +621,33 @@ function createProfessionalProfile(h) {
           const membership = assertAuthorisedCompanyStaff(db, auth);
           const intent = body.intent === "draft" ? "draft" : "submit";
           const employment = db.employmentRelationships.find(item => item.id === body.employmentId && item.companyId === auth.company.id && item.verificationStatus === "verified"); if (!employment) fail("A avaliação exige um vínculo de trabalho verificado com esta empresa.",403);
-          const existingDraft = body.reportId ? db.evaluationReports.find(item => item.id === body.reportId && item.companyId === auth.company.id && item.status === "draft") : null;
-          if (body.reportId && !existingDraft) fail("Rascunho não encontrado.", 404);
+          const requestedReport = body.reportId ? db.evaluationReports.find(item => item.id === body.reportId && item.companyId === auth.company.id) : null;
+          const existingDraft = requestedReport?.status === "draft" ? requestedReport : null;
+          if (requestedReport && !existingDraft) fail("Uma avaliação submetida não pode ser alterada. Crie uma nova avaliação para um período diferente.",409);
+          if (body.reportId && !requestedReport) fail("Rascunho não encontrado.",404);
           const priorId = text(body.supersedesReportId || body.correctionOfReportId, 140);
-          const prior = priorId ? db.evaluationReports.find(item => item.id === priorId && item.companyId === auth.company.id && item.employmentId === employment.id && item.status !== "draft" && item.status !== "superseded") : null;
-          if (priorId && !prior) fail("Avaliação anterior não encontrada.",404);
+          if (priorId || text(body.correctionReason,1000)) fail("As avaliações submetidas são imutáveis. Registe uma nova avaliação para um período diferente.",409);
           const periodStart = date(body.periodStart || employment.startDate, "Início do período", false);
           const periodEnd = date(body.periodEnd || employment.endDate || new Date().toISOString().slice(0,10), "Fim do período", false);
           if (periodEnd < periodStart) fail("O fim do período de avaliação deve ser igual ou posterior ao início.");
           if (periodStart < employment.startDate || (employment.endDate && periodEnd > employment.endDate)) fail("O período avaliado tem de estar dentro das datas do vínculo verificado.");
-          const duplicate = db.evaluationReports.find(item => item.id !== existingDraft?.id && item.companyId === auth.company.id && item.workerId === employment.workerId && item.employmentId === employment.id && item.periodStart === periodStart && item.periodEnd === periodEnd && !["superseded","withdrawn","expired"].includes(item.status));
-          if (duplicate && !prior) fail("Já existe uma avaliação ou rascunho para esta empresa, trabalhador, vínculo e período.", 409);
+          const duplicate = db.evaluationReports.find(item => item.id !== existingDraft?.id && item.companyId === auth.company.id && item.workerId === employment.workerId && item.employmentId === employment.id && item.periodStart === periodStart && item.periodEnd === periodEnd);
+          if (duplicate) fail("Já existe uma avaliação ou rascunho para esta empresa, trabalhador, vínculo e período. Escolha um novo período.",409);
           const createdAt = stamp();
           const report = existingDraft || { id:uid("evr"), employmentId:employment.id, workerId:employment.workerId, companyId:auth.company.id, authorId:auth.user.id, createdAt };
           Object.assign(report, {
             employmentId:employment.id, workerId:employment.workerId, companyId:auth.company.id,
             evaluatorRole:membership.role, workerRole:text(body.workerRole,180) || employment.position,
-            periodStart, periodEnd, status:intent === "draft" ? "draft" : prior ? "corrected" : "submitted",
+            periodStart, periodEnd, status:intent === "draft" ? "draft" : "submitted",
             assessmentContext:evaluationContext(body.assessmentContext,1600), strengths:evaluationContext(body.strengths,1600), improvements:evaluationContext(body.improvements,1600),
             factualExperience:{ nightShift:boolean(body.factualExperience?.nightShift), weekend:boolean(body.factualExperience?.weekend), overtime:boolean(body.factualExperience?.overtime), travel:boolean(body.factualExperience?.travel), context:evaluationContext(body.factualExperience?.context,700) },
-            version:prior ? (prior.version || 1) + 1 : report.version || 1, supersedesReportId:prior?.id || report.supersedesReportId || null,
+            version:report.version || 1, supersedesReportId:null,
             submittedAt:intent === "submit" ? createdAt : null, reviewExpiresAt:addMonths(createdAt,EVALUATION_REVIEW_MONTHS), retentionUntil:addYears(createdAt,EMPLOYMENT_DATA_RETENTION_YEARS), updatedAt:createdAt
           });
           const snapshots = buildQuestionSnapshot(db, report, { ...body, intent }, createdAt);
           replaceReportAnswers(db, report, snapshots, createdAt);
           if (!existingDraft) db.evaluationReports.push(report);
           if (intent === "submit") {
-            if (prior) {
-              db.evaluationRevisions.push({ id:uid("evrlog"), reportId:report.id, previousReportId:prior.id, companyId:auth.company.id, changedBy:auth.user.id, reason:text(body.correctionReason,1000) || "Correção autorizada", snapshot:reportDetail(db, prior), createdAt });
-              prior.status = "superseded"; prior.updatedAt = createdAt;
-            }
             accessLog(db, auth, report, "evaluation_report.submitted", req, "employment_relationship_management"); h.audit(db, auth, "evaluation_report", report.id, "evaluation_report.submitted", { employmentId:employment.id, workerId:employment.workerId, version:report.version }, req);
           } else h.audit(db, auth, "evaluation_report", report.id, "evaluation_report.draft_saved", { employmentId:employment.id, workerId:employment.workerId }, req);
         } else if (pathname === "/api/professional/disputes" && req.method === "POST") {

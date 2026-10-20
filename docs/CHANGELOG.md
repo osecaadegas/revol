@@ -2,6 +2,14 @@
 
 ## 2026-10-20
 
+- Tornadas imutáveis as avaliações profissionais depois da submissão. A API
+  rejeita alterações por `reportId`, substituições e correções da classificação;
+  uma avaliação posterior exige um novo registo com período diferente. Pedidos
+  do trabalhador continuam rastreáveis sem reescrever respostas do empregador.
+- Substituídos os campos numéricos das avaliações por uma escala visual 0–10
+  com onze opções coloridas, seleção explícita, estado sem classificação e ação
+  para limpar. A escala mantém comentários opcionais, teclado, leitores de ecrã
+  e disposição responsiva em telemóvel.
 - A área existente de mensagens de candidaturas e entrevistas passou a chamar-se
   `Correspondência`, preservando o seu histórico e comportamento.
 - Adicionada a área independente `Conversas`, com conversas diretas persistentes
