@@ -4255,6 +4255,19 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
 .planning-task-address { grid-column: 1 / -1; margin: 0; overflow-wrap: anywhere; }
 .worker-planning-changes { display: grid; gap: 5px; }
 .worker-planning-changes p { margin: 0; }
+.worker-punctuality, .manager-punctuality { display: grid; gap: 12px; min-width: 0; }
+.worker-punctuality h3, .manager-punctuality h2 { margin-bottom: 0; }
+.punctuality-employer { display: grid; gap: 8px; border: 1px solid var(--text-primary); padding: 16px; min-width: 0; }
+.punctuality-employer h4, .punctuality-employer h3, .punctuality-employer p { margin: 0; }
+.punctuality-rating { font-size: clamp(1.75rem, 5vw, 2.5rem); line-height: 1; }
+.punctuality-chart { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); align-items: end; gap: 4px; min-height: 80px; border-bottom: 1px solid var(--text-primary); }
+.punctuality-chart span { display: block; min-width: 0; height: 72px; position: relative; }
+.punctuality-chart i { position: absolute; bottom: 0; width: 100%; height: var(--bar-height); min-height: 2px; background: var(--brand-primary); border: 1px solid var(--text-primary); }
+.punctuality-record { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--border-subtle); overflow-wrap: anywhere; }
+.punctuality-record span, .punctuality-record small { display: block; }
+.manager-punctuality-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.attendance-justification { padding: 12px 0; border-top: 1px solid var(--border-subtle); }
+.attendance-justification p { overflow-wrap: anywhere; }
 .planning-request { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--border-subtle); padding: 14px 0; }
 .planning-request p { margin: 5px 0; overflow-wrap: anywhere; }
 .worker-planning { display: grid; gap: 16px; }

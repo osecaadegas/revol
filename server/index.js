@@ -12,6 +12,7 @@ const professionalProfile = require("./professional-profile");
 const directChat = require("./direct-chat");
 const { createPushNotifications } = require("./push-notifications");
 const { createPublicMarketplace } = require("./public-marketplace");
+const punctuality = require("./punctuality");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
@@ -38,7 +39,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20261023-important-push";
+const PUBLIC_ASSET_VERSION = "20261023-punctuality";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -51,6 +52,7 @@ const GOOGLE_REGISTRATION_NIF_COOKIE = "meo_google_registration_nif";
 const APP_STORAGE_DRIVER = String(
   process.env.APP_STORAGE_DRIVER || (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY ? "supabase" : "local")
 ).toLowerCase();
+const PUNCTUALITY_ENABLED = process.env.PUNCTUALITY_ENABLED === "true" || (process.env.PUNCTUALITY_ENABLED !== "false" && APP_STORAGE_DRIVER === "local");
 
 const ROLES = new Set(["manager", "employee", "contractor", "worker", "company", "client", "developer"]);
 const MANAGED_ROLES = new Set(["manager", "employee", "contractor", "client", "developer"]);
@@ -135,6 +137,7 @@ const TABLES = [
       sector: "sector",
       description: "description",
       recruitment: "recruitment",
+      punctualityConfig: "punctuality_config",
       createdAt: "created_at"
     }
   },
@@ -268,17 +271,17 @@ const TABLES = [
     key: "attendanceEntries",
     table: "meo_attendance_entries",
     idKey: "id",
-    fields: { id: "id", companyId: "company_id", workerId: "worker_id", taskId: "task_id", workOrderId: "work_order_id", clockedInAt: "clocked_in_at", clockedOutAt: "clocked_out_at", createdAt: "created_at" }
+    fields: { id: "id", companyId: "company_id", workerId: "worker_id", taskId: "task_id", workOrderId: "work_order_id", clockedInAt: "clocked_in_at", clockedOutAt: "clocked_out_at", punctuality: "punctuality", createdAt: "created_at" }
   },
   {
     key: "attendanceJustifications",
     table: "meo_attendance_justifications",
     idKey: "id",
-    fields: { id: "id", companyId: "company_id", workerId: "worker_id", employmentId: "employment_id", absenceDate: "absence_date", reason: "reason", originalName: "original_name", mimeType: "mime_type", storedName: "stored_name", createdAt: "created_at" }
+    fields: { id: "id", companyId: "company_id", workerId: "worker_id", employmentId: "employment_id", absenceDate: "absence_date", kind: "kind", status: "status", reason: "reason", originalName: "original_name", mimeType: "mime_type", storedName: "stored_name", decidedAt: "decided_at", decidedBy: "decided_by", decisionReason: "decision_reason", createdAt: "created_at" }
   },
   {
     key: "workSchedules", table: "meo_work_schedules", idKey: "id",
-    fields: { id: "id", companyId: "company_id", workerId: "worker_id", employmentId: "employment_id", taskId: "task_id", workDate: "work_date", startTime: "start_time", address: "address", note: "note", createdBy: "created_by", createdAt: "created_at", updatedAt: "updated_at" }
+    fields: { id: "id", companyId: "company_id", workerId: "worker_id", employmentId: "employment_id", taskId: "task_id", workDate: "work_date", startTime: "start_time", firstPublishedStartAt: "first_published_start_at", address: "address", note: "note", createdBy: "created_by", createdAt: "created_at", updatedAt: "updated_at" }
   },
   {
     key: "dayOffRequests", table: "meo_day_off_requests", idKey: "id",
@@ -344,6 +347,14 @@ const TABLES = [
     }
   }
 ];
+if (!PUNCTUALITY_ENABLED) {
+  delete TABLES.find(item => item.key === "companies").fields.punctualityConfig;
+  delete TABLES.find(item => item.key === "attendanceEntries").fields.punctuality;
+  delete TABLES.find(item => item.key === "workSchedules").fields.firstPublishedStartAt;
+  for (const field of ["kind", "status", "decidedAt", "decidedBy", "decisionReason"]) {
+    delete TABLES.find(item => item.key === "attendanceJustifications").fields[field];
+  }
+}
 for (const definition of TABLES.filter(t => ["jobOffers", "jobApplications"].includes(t.key))) definition.fields.recruitment = "recruitment";
 TABLES.push(...recruitment.TABLES);
 TABLES.push(...professionalProfile.TABLES);
@@ -1597,6 +1608,15 @@ function buildBootstrap(db, auth) {
   }
 
   const visibleOrderIds = new Set(workOrders.map((order) => order.id));
+  const punctualitySummaries = PUNCTUALITY_ENABLED ? (isManager
+    ? db.employmentRelationships.filter(item => item.companyId === auth.company.id && item.verificationStatus === "verified" && item.employmentStatus === "active")
+      .map(item => item.workerId)
+    : db.employmentRelationships.filter(item => item.workerId === auth.user.id && item.verificationStatus === "verified")
+      .map(item => item.companyId)) : [];
+  const punctualityData = PUNCTUALITY_ENABLED ? [...new Set(punctualitySummaries)].map(id => {
+    const summary = isManager ? punctuality.snapshot(db, auth.company.id, id) : punctuality.snapshot(db, id, auth.user.id);
+    return isManager ? { ...summary, records: summary.records.slice(0, 10), chart: [] } : summary;
+  }) : [];
   const evidences = db.evidences.filter((evidence) => {
     if (evidence.taskId && taskIds.has(evidence.taskId)) return true;
     if (evidence.companyId !== auth.company.id) return false;
@@ -1651,6 +1671,8 @@ function buildBootstrap(db, auth) {
     workOrders: workOrders.map((order) => publicWorkOrder(order, auth)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     tasks: tasks.map((task) => publicTask(task, db)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     attendanceAvailable: db.attendanceSchemaReady !== false,
+    punctuality: { enabled: PUNCTUALITY_ENABLED && db.attendanceSchemaReady !== false && db.planningSchemaReady !== false,
+      rules: isManager ? punctuality.rulesFor(auth.company) : null, summaries: punctualityData },
     planningAvailable: db.planningSchemaReady !== false,
     pendingDayOffCount: isManager ? db.dayOffRequests.filter((item) => item.companyId === auth.company.id && item.status === "pending").length : 0,
     planningWorkers: isManager ? companyUsers.filter((user) => user.role === "worker" && db.employmentRelationships.some((item) =>
@@ -3551,7 +3573,10 @@ async function handleApi(req, res, pathname) {
       if (!startTime && !taskId && !note) {
         if (existing) {
           db.workSchedules = db.workSchedules.filter((item) => item.id !== existing.id);
-          audit(db, auth, "work_schedule", existing.id, "planning.schedule_removed", { workerId, workDate }, req);
+          audit(db, auth, "work_schedule", existing.id, "planning.schedule_removed", { workerId, workDate, previous: {
+            taskId: existing.taskId, startTime: existing.startTime, firstPublishedStartAt: existing.firstPublishedStartAt,
+            address: existing.address, note: existing.note
+          } }, req);
           notifyWorker = true;
         }
       } else {
@@ -3566,10 +3591,12 @@ async function handleApi(req, res, pathname) {
         }
         if (!existing || existing.taskId !== taskId || existing.startTime !== startTime || existing.address !== address || existing.note !== note) {
           const timestamp = now();
+          const previous = existing ? { taskId: existing.taskId, startTime: existing.startTime, address: existing.address, note: existing.note } : null;
           if (existing) Object.assign(existing, { employmentId: employment.id, taskId, startTime, address, note, updatedAt: timestamp });
           else db.workSchedules.push({ id: nextId(db, "workSchedules", "sched"), companyId: auth.company.id, workerId, employmentId: employment.id,
-            taskId, workDate, startTime, address, note, createdBy: auth.user.id, createdAt: timestamp, updatedAt: timestamp });
-          audit(db, auth, "work_schedule", existing?.id || db.workSchedules.at(-1).id, existing ? "planning.schedule_updated" : "planning.schedule_created", { workerId, workDate, startTime, taskId, address }, req);
+            taskId, workDate, startTime, firstPublishedStartAt: PUNCTUALITY_ENABLED ? punctuality.localStart(workDate, startTime) : null,
+            address, note, createdBy: auth.user.id, createdAt: timestamp, updatedAt: timestamp });
+          audit(db, auth, "work_schedule", existing?.id || db.workSchedules.at(-1).id, existing ? "planning.schedule_updated" : "planning.schedule_created", { workerId, workDate, startTime, taskId, address, previous }, req);
           notifyWorker = Boolean(existing);
         }
       }
@@ -3662,8 +3689,11 @@ async function handleApi(req, res, pathname) {
         }
         if (open) throw Object.assign(new Error("Já existe uma entrada aberta. Registe primeiro a saída."), { status: 409 });
         if (["approved", "pending_validation"].includes(task.status)) throw Object.assign(new Error("Esta tarefa já não aceita entradas."), { status: 409 });
+        const clockedInAt = now();
         const entry = { id: nextId(db, "attendanceEntries", "att"), companyId: task.companyId, workerId: auth.user.id,
-          taskId: task.id, workOrderId: task.workOrderId, clockedInAt: now(), clockedOutAt: null, createdAt: now() };
+          taskId: task.id, workOrderId: task.workOrderId, clockedInAt, clockedOutAt: null,
+          punctuality: PUNCTUALITY_ENABLED ? punctuality.punctualityForClockIn(db, task, auth.user.id, clockedInAt) : null,
+          createdAt: clockedInAt };
         db.attendanceEntries.push(entry);
         audit(db, taskScopedAuth(auth, task), "attendance", entry.id, "attendance.clocked_in", { taskId }, req);
       } else {
@@ -3703,16 +3733,94 @@ async function handleApi(req, res, pathname) {
         upload = { buffer, mimeType: match[1], name: cleanString(body.document.name, 160) || "documento" };
       }
       if (!reason && !upload) throw Object.assign(new Error("Escreva o motivo ou anexe um documento."), { status: 400 });
+      const kind = PUNCTUALITY_ENABLED ? cleanString(body.kind || "absence", 40) : "absence";
+      if (!["absence", "late_arrival", "forgotten_clock_in", "technical_failure", "discrepancy"].includes(kind)) {
+        throw Object.assign(new Error("Escolha um tipo de justificação válido."), { status: 400 });
+      }
       const id = nextId(db, "attendanceJustifications", "just");
       const storedName = upload ? `attendance/${id}.${upload.mimeType === "application/pdf" ? "pdf" : upload.mimeType === "image/png" ? "png" : "jpg"}` : null;
       if (upload) await savePrivateUploadFile(storedName, upload.mimeType, upload.buffer);
       const item = { id, companyId: employment.companyId, workerId: auth.user.id, employmentId: employment.id,
-        absenceDate, reason, originalName: upload?.name || "", mimeType: upload?.mimeType || "", storedName, createdAt: now() };
+        absenceDate, kind, status: "pending", reason, originalName: upload?.name || "", mimeType: upload?.mimeType || "", storedName,
+        decidedAt: null, decidedBy: null, decisionReason: "", createdAt: now() };
       db.attendanceJustifications.push(item);
-      audit(db, { ...auth, company: { ...auth.company, id: employment.companyId } }, "attendance_justification", id, "attendance.justification_submitted", { absenceDate, hasDocument: Boolean(upload) }, req);
+      audit(db, { ...auth, company: { ...auth.company, id: employment.companyId } }, "attendance_justification", id, "attendance.justification_submitted", { absenceDate, kind, hasDocument: Boolean(upload) }, req);
       return { bootstrap: buildBootstrap(db, auth) };
     });
     sendJson(res, 201, result);
+    return;
+  }
+
+  const justificationDecisionMatch = pathname.match(/^\/api\/attendance\/justifications\/([^/]+)\/decision$/);
+  if (req.method === "POST" && justificationDecisionMatch) {
+    const body = await readBody(req);
+    const result = await mutateDb((db) => {
+      const auth = requireAuth(db, req);
+      requireManager(auth);
+      if (!PUNCTUALITY_ENABLED) throw Object.assign(new Error("A classificação de pontualidade ainda não está ativa."), { status: 503 });
+      const item = db.attendanceJustifications.find(record => record.id === decodeURIComponent(justificationDecisionMatch[1]) && record.companyId === auth.company.id);
+      if (!item) throw Object.assign(new Error("Justificação não encontrada."), { status: 404 });
+      if (item.status !== "pending") throw Object.assign(new Error("Esta justificação já foi decidida."), { status: 409 });
+      const decision = cleanString(body.decision, 20);
+      const decisionReason = cleanString(body.reason, 1200);
+      if (!["approved", "rejected"].includes(decision) || (decision === "rejected" && !decisionReason)) {
+        throw Object.assign(new Error("Indique a decisão e, ao recusar, uma razão concreta."), { status: 400 });
+      }
+      Object.assign(item, { status: decision, decisionReason, decidedBy: auth.user.id, decidedAt: now() });
+      audit(db, auth, "attendance_justification", item.id, "attendance.justification_decided", { workerId: item.workerId, workDate: item.absenceDate, kind: item.kind, decision, decisionReason }, req);
+      return { bootstrap: buildBootstrap(db, auth) };
+    });
+    sendJson(res, 200, result);
+    return;
+  }
+
+  const attendanceCorrectionMatch = pathname.match(/^\/api\/attendance\/entries\/([^/]+)\/correct$/);
+  if (req.method === "POST" && attendanceCorrectionMatch) {
+    const body = await readBody(req);
+    const result = await mutateDb((db) => {
+      const auth = requireAuth(db, req);
+      requireManager(auth);
+      if (!PUNCTUALITY_ENABLED) throw Object.assign(new Error("A classificação de pontualidade ainda não está ativa."), { status: 503 });
+      const entry = db.attendanceEntries.find(record => record.id === decodeURIComponent(attendanceCorrectionMatch[1]) && record.companyId === auth.company.id);
+      if (!entry) throw Object.assign(new Error("Registo de entrada não encontrado."), { status: 404 });
+      const localInput = String(body.clockedInAt || "");
+      const correctedIso = /^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(localInput)
+        ? punctuality.localStart(localInput.slice(0, 10), localInput.slice(11)) : null;
+      const correctedAt = new Date(correctedIso || "");
+      const reason = cleanString(body.reason, 1200);
+      if (!Number.isFinite(correctedAt.getTime()) || correctedAt.getTime() > Date.now() || !reason) {
+        throw Object.assign(new Error("Indique uma hora de entrada válida, não futura, e a razão da correção."), { status: 400 });
+      }
+      if (entry.clockedOutAt && correctedAt.getTime() > Date.parse(entry.clockedOutAt)) {
+        throw Object.assign(new Error("A entrada corrigida não pode ser posterior à saída."), { status: 400 });
+      }
+      const originalAt = entry.clockedInAt;
+      if (correctedAt.toISOString() === originalAt) {
+        throw Object.assign(new Error("A hora corrigida é igual à hora já registada."), { status: 400 });
+      }
+      const originalPunctuality = entry.punctuality ? { ...entry.punctuality } : null;
+      entry.clockedInAt = correctedAt.toISOString();
+      const affectedEntryIds = punctuality.reconcileShiftRecords(db, entry.companyId, entry.workerId, entry.punctuality?.scheduleId);
+      audit(db, auth, "attendance", entry.id, "attendance.clock_in_corrected", { workerId: entry.workerId, originalAt, correctedAt: entry.clockedInAt, originalPunctuality, affectedEntryIds, reason }, req);
+      return { bootstrap: buildBootstrap(db, auth) };
+    });
+    sendJson(res, 200, result);
+    return;
+  }
+
+  if (req.method === "PUT" && pathname === "/api/punctuality/rules") {
+    const body = await readBody(req);
+    const result = await mutateDb((db) => {
+      const auth = requireAuth(db, req);
+      requireManager(auth);
+      if (!PUNCTUALITY_ENABLED) throw Object.assign(new Error("A classificação de pontualidade ainda não está ativa."), { status: 503 });
+      const previous = punctuality.rulesFor(auth.company);
+      const next = punctuality.validateRules(body, previous);
+      auth.company.punctualityConfig = next;
+      audit(db, auth, "company", auth.company.id, "punctuality.rules_changed", { previous, next }, req);
+      return { bootstrap: buildBootstrap(db, auth) };
+    });
+    sendJson(res, 200, result);
     return;
   }
 

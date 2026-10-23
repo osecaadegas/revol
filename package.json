@@ -17,6 +17,7 @@
     "test:worker-home": "node server/worker-home-ui-test.js",
     "test:pwa": "node server/pwa-install-test.js",
     "test:push": "node server/push-notifications-test.js",
+    "test:punctuality": "node server/punctuality-test.js",
     "seed:demo": "node server/seed-demo-data.js"
   },
   "engines": {

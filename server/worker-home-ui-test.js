@@ -60,6 +60,17 @@ assert.match(rendered, /id="worker-justification" hidden/);
 assert.match(rendered, /Escolhe a tarefa e toca em «Entrar ao trabalho»/);
 assert.doesNotMatch(rendered, /A verificação por GPS está desativada/);
 assert.equal(ui.setbackResolutionAlert(), "");
+state.data.punctuality = { enabled: true, summaries: [{ companyId: "company_1", status: "provisional", rating: 9.8,
+  scoredShifts: 10, onTime: 9, minorDelays: 1, significantDelays: 0, majorDelays: 0, approvedExclusions: 1, pendingExceptions: 0,
+  rules: { version: 1, windowDays: 90, graceSeconds: 300, minorLimitSeconds: 900, significantLimitSeconds: 1800, confirmedShifts: 20, scores: [10,8,5,0] },
+  chart: [{ date: "2026-10-20", rating: 9.8 }], records: [{ workDate: "2026-10-20", status: "scored", score: 8,
+    scheduledAt: "2026-10-20T06:00:00Z", clockedInAt: "2026-10-20T06:10:00Z", corrections: [] }] }] };
+rendered = ui.content();
+assert.match(rendered, /Pontualidade/);
+assert.match(rendered, /Avaliação Provisória/);
+assert.match(rendered, /9,8\/10/);
+assert.match(rendered, /Consultar turnos e corrigir erros/);
+assert.match(rendered, /name="kind"/, "the worker can classify a justification or contest a record");
 
 task.workOrderId = "order_1";
 task.lastSetbackResolution = { text: "Material entregue; o trabalho pode prosseguir.", resolvedAt: "2026-10-20T10:00:00Z" };

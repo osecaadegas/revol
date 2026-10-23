@@ -1,5 +1,13 @@
 # Requirements Trace
 
+## Indicador de pontualidade (pedido escrito de 23-10-2026)
+
+O pedido do Cliente Zero autoriza este indicador limitado, embora a reputação automática estivesse fora do âmbito original da Fase 1. A pontualidade continua independente do mérito profissional, da remuneração e de decisões disciplinares. `server/punctuality.js` classifica apenas entradas registadas pelo servidor contra um horário publicado da mesma empresa/trabalhador/tarefa ou ordem: até 5 min = 10, até 15 = 8, até 30 = 5, acima = 0. Calcula em segundos, `Europe/Lisbon`, janela móvel de 90 dias, sem turnos futuros, com 20 turnos mínimos para confirmação. Falta de entrada não equivale a atraso. Um turno não pontua duas tarefas. Horários alterados depois de iniciados e horários sem publicação segura ficam pendentes para revisão.
+
+`server/index.js` conserva o snapshot da regra, do horário e da pontuação em `meo_attendance_entries.punctuality`, e o horário inicial em `meo_work_schedules.first_published_start_at`. O perfil do trabalhador mostra média, decomposição, dias, justificações, correções e evolução; a empresa só vê trabalhadores com vínculo confirmado da própria empresa. Justificações pendentes suspendem a pontuação do dia; aprovações excluem-no; recusas exigem razão e só repõem pontos com entrada fiável. Correções horárias e mudanças de regra deixam histórico de auditoria. A migração é `supabase/migrations/20261023142142_punctuality_rating.sql`; ver ativação segura em `docs/SETUP.md`.
+
+Limitação intencional: a entrada existente usa hora do servidor, mas não constitui prova GPS/câmara de presença física. Não há vigilância contínua. O indicador fica desligado por omissão em Supabase até revisão jurídica/privacidade, migração e ativação explícita. O cálculo não decide salários, sanções ou despedimentos.
+
 ## Source Documents Read
 
 - `Contrato.pdf`

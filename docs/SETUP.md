@@ -1,5 +1,11 @@
 # Setup Guide
 
+## Pontualidade (23-10-2026)
+
+O indicador de pontualidade é independente das avaliações profissionais. Em armazenamento local, está disponível para ensaio; pode ser desligado com `PUNCTUALITY_ENABLED=false`. Em Supabase, permanece desligado por omissão. Para ativar no projeto de produção: (1) avaliar com apoio jurídico e de proteção de dados a necessidade de AIPD, base legal, transparência aos trabalhadores, acesso e conservação; (2) aplicar `supabase/migrations/20261023142142_punctuality_rating.sql` **após** `20261023140042_schedule_task_link.sql` no mesmo projeto Supabase da aplicação; (3) definir `PUNCTUALITY_ENABLED=true` apenas no ambiente do servidor e publicar novamente. Esta entrega não executa a migração nem ativa o indicador em produção.
+
+As entradas antigas não são pontuadas retroativamente. Horários anteriores sem publicação inicial comprovável, alterações retroativas e entradas sem horário seguro ficam para revisão. A base de dados guarda as regras, a sua versão e o horário aplicado a cada entrada. A empresa pode alterar regras apenas para futuras entradas na área «Presenças e justificações». A média é calculada ao consultar a página, pelo que a janela de 90 dias avança sem cron. A entrada é marcada com hora do servidor, mas não confirma presença física por GPS/câmara; não usar o resultado para decisões automáticas sobre emprego. Justificações de ausência, atraso, esquecimento, falha técnica e contestação são privadas, revistas pela empresa e auditadas. Um documento de saúde deve ser minimizado e tratado segundo a política aplicável. Testar com `npm run test:punctuality` e `npm run test:professional`.
+
 ## Planeamento da equipa (23-10-2026)
 
 Depois das migrações anteriores, aplique `supabase/migrations/20261023120000_worker_planning_and_day_off.sql` no mesmo projeto Supabase configurado para esta aplicação. Até lá, a grelha e os pedidos de folga surgem indisponíveis, sem interferir com tarefas ou presenças existentes. No armazenamento local, as coleções são criadas automaticamente. A empresa define horários por dia/trabalhador; as folgas pedidas com menos de 24 horas antes do início do dia em `Europe/Lisbon` são recusadas pelo servidor. A aprovação é explícita e retira o horário planeado nesse dia; não altera tarefas nem justificações de ausência.

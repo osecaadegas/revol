@@ -2427,11 +2427,17 @@
   function renderAttendance() {
     const attendance = state.data.attendanceEntries || [];
     const justifications = state.data.attendanceJustifications || [];
+    const punctuality = state.data.punctuality || {};
+    const rules = punctuality.rules || {};
+    const justificationKinds = { absence: "Ausência", late_arrival: "Atraso", forgotten_clock_in: "Entrada esquecida", technical_failure: "Falha técnica", discrepancy: "Contestação" };
+    const ratingText = (summary) => summary.rating == null ? "Dados Insuficientes" : `${Number(summary.rating).toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}/10`;
+    const localInput = (value) => value ? new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(new Date(value)).replace(" ", "T") : "";
     return `<section class="view-heading"><div><h1>Presenças e justificações</h1><p>Entradas, saídas e ausências comunicadas pelos trabalhadores.</p></div></section>
-      <div class="panel"><p class="muted">Registos factuais; não são classificações de desempenho. Documentos reservados aos responsáveis da empresa.</p>
+      <div class="panel"><p class="muted">Os registos de entrada podem contribuir para um indicador independente de pontualidade. Não medem produtividade nem mérito global. Documentos reservados aos responsáveis da empresa.</p>
         ${state.data.attendanceAvailable === false ? '<p class="notice error">Migração do registo horário ainda pendente.</p>' : ""}
-        <details open><summary>Entradas e saídas recentes (${attendance.length})</summary><div class="attendance-records">${attendance.map(item => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${formatDate(item.clockedInAt)} — ${item.clockedOutAt ? formatDate(item.clockedOutAt) : "Em curso"}</p>`).join("") || '<p>Sem registos.</p>'}</div></details>
-        <details open><summary>Justificações recebidas (${justifications.length})</summary><div class="attendance-records">${justifications.map(item => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${escapeHtml(item.absenceDate)} · ${escapeHtml(item.reason || "Documento entregue")}${item.downloadUrl ? ` · <a href="${escapeHtml(item.downloadUrl)}">Descarregar anexo</a>` : ""}</p>`).join("") || '<p>Sem justificações.</p>'}</div></details>
+        ${punctuality.enabled ? `<section class="manager-punctuality"><h2>Pontualidade</h2><p>Média dos registos válidos nos últimos ${escapeHtml(rules.windowDays)} dias; menos de ${escapeHtml(rules.confirmedShifts)} turnos é provisório. Falhas sem entrada ficam por analisar, não recebem zero.</p><div class="manager-punctuality-grid">${(punctuality.summaries || []).map(summary => `<article class="punctuality-employer"><h3>${escapeHtml(userById(summary.workerId)?.name || "Trabalhador")}</h3><strong class="punctuality-rating">${escapeHtml(ratingText(summary))}</strong><span>${summary.status === "provisional" ? "Avaliação Provisória" : summary.status === "confirmed" ? "Avaliação Confirmada" : "Dados Insuficientes"}</span><p>${escapeHtml(summary.scoredShifts)} turnos avaliados · ${escapeHtml(summary.pendingExceptions)} pedidos pendentes</p><details><summary>Registos recentes</summary>${summary.records.map(record => `<p>${escapeHtml(record.workDate)} · ${record.score == null ? "Pendente ou excluído" : `${escapeHtml(record.score)}/10`} · ${record.scheduledAt ? formatDate(record.scheduledAt) : "Sem horário"} → ${formatDate(record.clockedInAt)}</p>`).join("") || "Sem registos."}</details></article>`).join("") || '<p>Sem trabalhadores com vínculo confirmado.</p>'}</div><details><summary>Configurar regras futuras</summary><p>As novas regras só afetam entradas futuras; cada registo conserva a versão usada.</p><form class="form-grid punctuality-rules-form" data-punctuality-rules><label class="field">Janela (dias)<input type="number" name="windowDays" min="7" max="365" value="${escapeHtml(rules.windowDays)}" required></label><label class="field">Tolerância (minutos)<input type="number" name="graceMinutes" min="0" max="30" value="${escapeHtml(rules.graceSeconds / 60)}" required></label><label class="field">Limite atraso ligeiro (minutos)<input type="number" name="minorLimitMinutes" min="1" max="180" value="${escapeHtml(rules.minorLimitSeconds / 60)}" required></label><label class="field">Limite atraso significativo (minutos)<input type="number" name="significantLimitMinutes" min="1" max="180" value="${escapeHtml(rules.significantLimitSeconds / 60)}" required></label><label class="field">Turnos para confirmar<input type="number" name="confirmedShifts" min="1" max="365" value="${escapeHtml(rules.confirmedShifts)}" required></label>${(rules.scores || []).map((score, index) => `<label class="field">Pontuação escalão ${index + 1}<input type="number" name="score${index}" min="0" max="10" value="${escapeHtml(score)}" required></label>`).join("")}<button class="btn ghost" type="submit">Guardar regras</button></form></details></section>` : ""}
+        <details><summary>Entradas e saídas recentes (${attendance.length})</summary><div class="attendance-records">${attendance.map(item => `<article><p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${formatDate(item.clockedInAt)} — ${item.clockedOutAt ? formatDate(item.clockedOutAt) : "Em curso"}</p>${punctuality.enabled ? `<details><summary>Corrigir hora de entrada</summary><form class="form-grid" data-attendance-correction="${escapeHtml(item.id)}"><label class="field">Hora correta (Portugal)<input type="datetime-local" name="clockedInAt" value="${escapeHtml(localInput(item.clockedInAt))}" required></label><label class="field">Razão da correção<input name="reason" maxlength="1200" required></label><button class="btn ghost" type="submit">Registar correção</button></form></details>` : ""}</article>`).join("") || '<p>Sem registos.</p>'}</div></details>
+        <details open><summary>Justificações recebidas (${justifications.length})</summary><div class="attendance-records">${justifications.map(item => `<article class="attendance-justification"><p><strong>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")}</strong> · ${escapeHtml(item.absenceDate)} · ${escapeHtml(justificationKinds[item.kind] || "Ausência")} · ${item.status === "approved" ? "Aprovada" : item.status === "rejected" ? "Recusada" : "Pendente"}</p><p>${escapeHtml(item.reason || "Documento entregue")}${item.downloadUrl ? ` · <a href="${escapeHtml(item.downloadUrl)}">Descarregar anexo</a>` : ""}</p>${item.decisionReason ? `<p>Decisão: ${escapeHtml(item.decisionReason)}</p>` : ""}${punctuality.enabled && item.status === "pending" ? `<form class="form-grid" data-attendance-decision="${escapeHtml(item.id)}"><label class="field">Razão da decisão (obrigatória ao recusar)<input name="reason" maxlength="1200"></label><div class="planning-editor-actions"><button class="btn primary" type="submit" name="decision" value="approved">Aprovar</button><button class="btn ghost" type="submit" name="decision" value="rejected">Recusar</button></div></form>` : ""}</article>`).join("") || '<p>Sem justificações.</p>'}</div></details>
       </div>`;
   }
 
@@ -3165,6 +3171,48 @@
   function bindAppEvents() {
     document.querySelectorAll("[data-push-toggle]").forEach(button => button.addEventListener("click", togglePush));
     recruitmentUI.bind();
+    document.querySelectorAll("[data-attendance-decision]").forEach(form => form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const decision = event.submitter?.value;
+      const reason = form.elements.reason.value.trim();
+      if (decision === "rejected" && !reason) { setNotice("Indique a razão da recusa.", "error"); form.elements.reason.focus(); return; }
+      event.submitter.disabled = true;
+      try {
+        const result = await api(`/api/attendance/justifications/${encodeURIComponent(form.dataset.attendanceDecision)}/decision`, { method: "POST", body: { decision, reason } });
+        state.data = result.bootstrap;
+        setNotice(decision === "approved" ? "Justificação aprovada." : "Justificação recusada com razão registada.");
+        renderApp();
+      } catch (error) { setNotice(error.message, "error"); renderApp(); }
+    }));
+    document.querySelectorAll("[data-attendance-correction]").forEach(form => {
+      form.elements.clockedInAt.step = "1";
+      form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submit = form.querySelector('[type="submit"]');
+      submit.disabled = true;
+      try {
+        const result = await api(`/api/attendance/entries/${encodeURIComponent(form.dataset.attendanceCorrection)}/correct`, { method: "POST", body: Object.fromEntries(new FormData(form)) });
+        state.data = result.bootstrap;
+        setNotice("Correção guardada no histórico.");
+        renderApp();
+      } catch (error) { setNotice(error.message, "error"); renderApp(); }
+      });
+    });
+    document.querySelector("[data-punctuality-rules]")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submit = event.currentTarget.querySelector('[type="submit"]');
+      submit.disabled = true;
+      const values = Object.fromEntries(new FormData(event.currentTarget));
+      const body = { windowDays: Number(values.windowDays), graceSeconds: Number(values.graceMinutes) * 60,
+        minorLimitSeconds: Number(values.minorLimitMinutes) * 60, significantLimitSeconds: Number(values.significantLimitMinutes) * 60,
+        confirmedShifts: Number(values.confirmedShifts), scores: [0, 1, 2, 3].map(index => Number(values[`score${index}`])) };
+      try {
+        const result = await api("/api/punctuality/rules", { method: "PUT", body });
+        state.data = result.bootstrap;
+        setNotice("Regras futuras guardadas com uma nova versão.");
+        renderApp();
+      } catch (error) { setNotice(error.message, "error"); renderApp(); }
+    });
     document.querySelector("[data-planning-week]")?.addEventListener("change", (event) => {
       planningWeek = planningMonday(event.target.value);
       planningSelection = null;
