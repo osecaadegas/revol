@@ -1,5 +1,9 @@
 # Setup Guide
 
+## Planeamento da equipa (23-10-2026)
+
+Depois das migrações anteriores, aplique `supabase/migrations/20261023120000_worker_planning_and_day_off.sql` no mesmo projeto Supabase configurado para esta aplicação. Até lá, a grelha e os pedidos de folga surgem indisponíveis, sem interferir com tarefas ou presenças existentes. No armazenamento local, as coleções são criadas automaticamente. A empresa define horários por dia/trabalhador; as folgas pedidas com menos de 24 horas antes do início do dia em `Europe/Lisbon` são recusadas pelo servidor. A aprovação é explícita e retira o horário planeado nesse dia; não altera tarefas nem justificações de ausência.
+
 ## Requirements
 
 For the recruitment release, apply

@@ -97,6 +97,35 @@ async function run() {
     result = (await request(`/api/professional/employments/${employment.id}/confirm`,"PATCH",{ decision:"confirm" },ct)).payload;
     assert.equal(result.professional.employments[0].verificationStatus,"verified");
 
+    const futureDate = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
+    const todayDate = new Intl.DateTimeFormat("sv-SE", { timeZone:"Europe/Lisbon" }).format(new Date());
+    const tomorrowDate = new Intl.DateTimeFormat("sv-SE", { timeZone:"Europe/Lisbon" }).format(new Date(Date.now() + 24 * 60 * 60 * 1000));
+    await request("/api/planning/schedules","PUT",{ workerId,workDate:futureDate,startTime:"08:30",address:"Rua da Renovação 12" },wt,403);
+    await request("/api/planning/schedules","PUT",{ workerId,workDate:futureDate,startTime:"08:30",address:"Rua da Renovação 12" },ot,400);
+    let planningResult = (await request("/api/planning/schedules","PUT",{ workerId,workDate:futureDate,startTime:"08:30",address:"Rua da Renovação 12",note:"Trazer ferramentas" },ct)).payload;
+    assert.equal(planningResult.bootstrap.workSchedules.length,1);
+    let workerPlan = (await request("/api/bootstrap","GET",undefined,wt)).payload;
+    assert.equal(workerPlan.workSchedules[0].startTime,"08:30");
+    assert.equal(workerPlan.workSchedules[0].address,"Rua da Renovação 12");
+    await request("/api/planning/day-off","POST",{ employmentId:employment.id,workDate:todayDate },wt,400);
+    await request("/api/planning/day-off","POST",{ employmentId:employment.id,workDate:tomorrowDate },wt,400);
+    await request("/api/planning/day-off","POST",{ employmentId:employment.id,workDate:futureDate },ot,403);
+    const dayOff = (await request("/api/planning/day-off","POST",{ employmentId:employment.id,workDate:futureDate,reason:"Assunto pessoal" },wt,201)).payload;
+    assert.equal(dayOff.bootstrap.dayOffRequests[0].status,"pending");
+    assert.equal(dayOff.bootstrap.workSchedules.length,1,"a request alone must not erase a planned shift");
+    assert.equal((await request("/api/operational-alerts","GET",undefined,ct)).payload.pendingDayOffCount,1,"the company receives a pending-leave alert without refreshing the entire app");
+    await request("/api/planning/day-off","POST",{ employmentId:employment.id,workDate:futureDate },wt,409);
+    await request(`/api/planning/day-off/${dayOff.bootstrap.dayOffRequests[0].id}/decision`,"POST",{ decision:"approved" },wt,403);
+    await request(`/api/planning/day-off/${dayOff.bootstrap.dayOffRequests[0].id}/decision`,"POST",{ decision:"approved" },ot,404);
+    planningResult = (await request(`/api/planning/day-off/${dayOff.bootstrap.dayOffRequests[0].id}/decision`,"POST",{ decision:"approved" },ct)).payload;
+    assert.equal(planningResult.bootstrap.dayOffRequests[0].status,"approved");
+    assert.equal(planningResult.bootstrap.workSchedules.length,0,"approval must remove the shift for that day");
+    assert.equal((await request("/api/operational-alerts","GET",undefined,ct)).payload.pendingDayOffCount,0);
+    await request("/api/planning/schedules","PUT",{ workerId,workDate:futureDate,startTime:"09:00",address:"Rua da Renovação 12" },ct,409);
+    workerPlan = (await request("/api/bootstrap","GET",undefined,wt)).payload;
+    assert.equal(workerPlan.dayOffRequests[0].status,"approved","worker sees the company decision");
+    assert.equal(workerPlan.workSchedules.length,0);
+
     const administrationUser = (await request("/api/users","POST",{ name:"Ana Administração",email:"administracao@cv.test",role:"manager",password:"password123" },ct,201)).payload.user;
     const administrationToken = (await request("/api/auth/login","POST",{ email:"administracao@cv.test",password:"password123" },null)).payload.session.token;
     const workerChat = (await request("/api/direct-chat","GET",undefined,wt)).payload.chat;

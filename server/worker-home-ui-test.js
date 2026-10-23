@@ -51,6 +51,8 @@ const ui = context.window.createRecruitmentUI({
 ui.defaultWorkerHome();
 rendered = ui.content();
 assert.match(rendered, /class="worker-attendance-actions"/);
+assert.match(rendered, /Ver planeamento e pedir folga/, "the worker profile must link to forthcoming shifts and leave requests");
+assert.match(ui.tabs(), /data-id="planning"/, "an active worker has a planning category");
 assert.match(rendered, /data-attendance="clock-in"[^>]*>Entrar ao trabalho<\/button>/);
 assert.match(rendered, /data-recruitment="toggle-justification"[^>]*aria-expanded="false"[^>]*>Justificação<\/button>/);
 assert.match(rendered, /data-attendance="clock-out"[^>]*disabled[^>]*>Saída<\/button>/);

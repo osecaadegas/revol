@@ -1,5 +1,10 @@
 # Progressive Build Plan
 
+## Extensão solicitada: planeamento diário e folgas
+
+- Implementado: grelha semanal da empresa, consulta pelo trabalhador, pedidos de folga com antecedência mínima de 24 horas, decisão exclusiva da empresa, isolamento por empresa/trabalhador e trilho de auditoria.
+- Operação pendente: aplicar a migração aditiva `20261023120000_worker_planning_and_day_off.sql` no Supabase de produção e confirmar o fluxo com contas reais. O planeamento é informativo e independente da criação/estado de tarefas.
+
 ## Current Product Boundary
 
 The 2026-10-07 written recruitment upgrade request explicitly expands the

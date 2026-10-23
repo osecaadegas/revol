@@ -33,6 +33,8 @@
     locationDraft: { status: "not_requested" },
     lastInviteLink: ""
   };
+  let planningWeek = "";
+  let planningSelection = null;
   let operationalAlertsRefreshInFlight = false;
 
   const roleLabels = {
@@ -89,6 +91,7 @@
     ["dashboard", "Painel"],
     ["orders", "Ordens"],
     ["tasks", "Tarefas"],
+    ["planning", "Planeamento"],
     ["attendance", "Presenças e justificações"],
     ["team", "Equipa"],
     ["history", "Historico"]
@@ -585,8 +588,27 @@
       if (!state.data || state.token !== sessionToken || !isManager()) return;
       const alerts = Array.isArray(payload.alerts) ? payload.alerts : [];
       const previous = JSON.stringify(state.data.operationalAlerts || []);
-      if (previous === JSON.stringify(alerts)) return;
+      const pendingCount = Number(payload.pendingDayOffCount || 0);
+      const planningChanged = pendingCount !== Number(state.data.pendingDayOffCount || 0);
+      if (previous === JSON.stringify(alerts) && !planningChanged) return;
       state.data.operationalAlerts = alerts;
+      state.data.pendingDayOffCount = pendingCount;
+      if (planningChanged) {
+        if (state.view === "planning") {
+          state.data = await api("/api/bootstrap");
+          renderApp();
+          return;
+        }
+        const planningNotice = document.querySelector("[data-planning-notice]");
+        if (planningNotice) {
+          planningNotice.innerHTML = renderPlanningNotice();
+          planningNotice.querySelector("[data-view='planning']")?.addEventListener("click", async () => {
+            state.data = await api("/api/bootstrap");
+            state.view = "planning";
+            renderApp();
+          });
+        }
+      }
       const notice = document.querySelector("[data-operational-notice]");
       if (notice) notice.innerHTML = renderOperationalNotice();
       const panel = document.querySelector("[data-operational-alerts-panel]");
@@ -1594,6 +1616,7 @@
           </div>
           ${noticeHtml()}
           <div data-operational-notice aria-live="assertive">${renderOperationalNotice()}</div>
+          <div data-planning-notice>${renderPlanningNotice()}</div>
           ${renderView()}
         </main>
       </div>
@@ -1616,14 +1639,14 @@
             if (view === "marketplace" && (isWorker() || isManager())) return false;
             if (view === "project") return canViewPrivateProject();
             if (view === "mvp") return canViewPrivateProject();
-            if (["team", "attendance"].includes(view)) return isManager();
+            if (["team", "attendance", "planning"].includes(view)) return isManager();
             if (["orders", "tasks", "dashboard", "history"].includes(view)) return canUseOperations();
             return true;
           })
           .map(
             ([view, label]) => `
               <button type="button" data-view="${view}" ${view === "tasks" && isManager() ? "data-operational-alert-target" : ""} class="${state.view === view ? "active" : ""} ${view === "tasks" && operationalAlertCount() ? "operational-siren" : ""}">
-                ${icon(({project:"folder",mvp:"layout-dashboard",dashboard:"layout-dashboard",orders:"folder",tasks:"clipboard-list",attendance:"history",team:"users",history:"history"})[view] || "briefcase-business")}<span>${label}</span><span>${view === "tasks" ? state.data.tasks.length : ""}</span>${view === "tasks" && isManager() ? renderOperationalAlertBadge() : ""}
+                ${icon(({project:"folder",mvp:"layout-dashboard",dashboard:"layout-dashboard",orders:"folder",tasks:"clipboard-list",planning:"clipboard-list",attendance:"history",team:"users",history:"history"})[view] || "briefcase-business")}<span>${label}</span><span>${view === "tasks" ? state.data.tasks.length : view === "planning" ? state.data.pendingDayOffCount || "" : ""}</span>${view === "tasks" && isManager() ? renderOperationalAlertBadge() : ""}
               </button>
             `
           )
@@ -1642,7 +1665,7 @@
           .filter(([view]) => {
             if (view === "project") return canViewPrivateProject();
             if (view === "mvp") return canViewPrivateProject();
-            if (["team", "attendance"].includes(view)) return isManager();
+            if (["team", "attendance", "planning"].includes(view)) return isManager();
             if (["orders", "tasks", "dashboard", "history"].includes(view)) return canUseOperations();
             return true;
           })
@@ -1686,6 +1709,7 @@
     if (state.view === "marketplace") return renderMarketplace();
     if (state.view === "orders") return canUseOperations() ? renderOrders() : renderMarketplace();
     if (state.view === "tasks") return canUseOperations() ? renderTasks() : renderMarketplace();
+    if (state.view === "planning") return isManager() ? renderPlanning() : renderMarketplace();
     if (state.view === "attendance") return isManager() ? renderAttendance() : renderMarketplace();
     if (state.view === "team") return renderTeam();
     if (state.view === "history") return canUseOperations() ? renderHistory() : renderMarketplace();
@@ -2313,6 +2337,49 @@
         <details open><summary>Entradas e saídas recentes (${attendance.length})</summary><div class="attendance-records">${attendance.map(item => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${formatDate(item.clockedInAt)} — ${item.clockedOutAt ? formatDate(item.clockedOutAt) : "Em curso"}</p>`).join("") || '<p>Sem registos.</p>'}</div></details>
         <details open><summary>Justificações recebidas (${justifications.length})</summary><div class="attendance-records">${justifications.map(item => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${escapeHtml(item.absenceDate)} · ${escapeHtml(item.reason || "Documento entregue")}${item.downloadUrl ? ` · <a href="${escapeHtml(item.downloadUrl)}">Descarregar anexo</a>` : ""}</p>`).join("") || '<p>Sem justificações.</p>'}</div></details>
       </div>`;
+  }
+
+  function planningMonday(value) {
+    const base = /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? new Date(`${value}T12:00:00Z`) : new Date();
+    base.setUTCDate(base.getUTCDate() - ((base.getUTCDay() + 6) % 7));
+    return base.toISOString().slice(0, 10);
+  }
+
+  function planningDays() {
+    const monday = new Date(`${planningMonday(planningWeek)}T12:00:00Z`);
+    return Array.from({ length: 7 }, (_, offset) => {
+      const date = new Date(monday);
+      date.setUTCDate(monday.getUTCDate() + offset);
+      return date.toISOString().slice(0, 10);
+    });
+  }
+
+  function renderPlanning() {
+    const workers = state.data.planningWorkers || [];
+    const days = planningDays();
+    const schedules = state.data.workSchedules || [];
+    const requests = state.data.dayOffRequests || [];
+    const pending = requests.filter((item) => item.status === "pending");
+    const cell = (worker, date) => {
+      const slot = schedules.find((item) => item.workerId === worker.id && item.workDate === date);
+      const request = requests.find((item) => item.workerId === worker.id && item.workDate === date && item.status !== "rejected");
+      return `<button type="button" class="planning-cell ${request?.status === "approved" ? "day-off-approved" : ""}" data-planning-worker="${escapeHtml(worker.id)}" data-planning-date="${date}" ${request?.status === "approved" ? "disabled" : ""} aria-label="${escapeHtml(`${worker.name} · ${date} · ${slot ? `${slot.startTime}, ${slot.address}` : request?.status === "approved" ? "folga aprovada" : "sem horário"}`)}"><span class="planning-cell-date">${new Date(`${date}T12:00:00Z`).toLocaleDateString("pt-PT", { weekday: "short", day: "numeric", month: "short" })}</span><strong>${request?.status === "approved" ? "Folga" : slot?.startTime || "+ Definir"}</strong>${slot ? `<small>${escapeHtml(slot.address)}</small>` : request?.status === "pending" ? "<small>Folga pedida</small>" : ""}</button>`;
+    };
+    const selected = planningSelection && workers.find((worker) => worker.id === planningSelection.workerId);
+    const selectedSlot = selected && schedules.find((item) => item.workerId === selected.id && item.workDate === planningSelection.date);
+    return `<section class="view-heading"><div><h1>Planeamento da equipa</h1><p>Defina a hora de entrada e a morada de cada trabalhador. A equipa vê o plano no telemóvel.</p></div></section>
+      ${state.data.planningAvailable === false ? '<p class="notice error">A migração do planeamento ainda não foi aplicada à base de dados.</p>' : ""}
+      <section class="panel planning-panel"><div class="planning-toolbar"><label class="field">Semana de<input type="date" data-planning-week value="${planningMonday(planningWeek)}"></label><span>${days[0]} — ${days[6]}</span></div>
+        ${workers.length ? `<div class="planning-grid-scroll"><div class="planning-grid"><strong>Trabalhador</strong>${days.map((day) => `<strong>${new Date(`${day}T12:00:00Z`).toLocaleDateString("pt-PT", { weekday: "short", day: "numeric", month: "short" })}</strong>`).join("")}${workers.map((worker) => `<strong class="planning-worker-name">${escapeHtml(worker.name)}</strong>${days.map((day) => cell(worker, day)).join("")}`).join("")}</div></div>` : '<p class="empty">Ainda não há trabalhadores com vínculo ativo para planear.</p>'}
+        ${selected ? `<form class="planning-editor" data-planning-form><h3>${escapeHtml(selected.name)} · ${planningSelection.date}</h3><input type="hidden" name="workerId" value="${escapeHtml(selected.id)}"><input type="hidden" name="workDate" value="${planningSelection.date}"><label class="field">Hora de entrada<input type="time" name="startTime" value="${escapeHtml(selectedSlot?.startTime || "")}" required></label><label class="field">Morada do trabalho<input name="address" value="${escapeHtml(selectedSlot?.address || "")}" maxlength="500" required></label><label class="field">Nota curta (opcional)<input name="note" value="${escapeHtml(selectedSlot?.note || "")}" maxlength="500"></label><div class="planning-editor-actions"><button class="btn primary" type="submit" ${state.data.planningAvailable === false ? "disabled" : ""}>Guardar horário</button>${selectedSlot ? '<button class="btn ghost" type="button" data-planning-remove>Limpar dia</button>' : ""}</div></form>` : ""}
+      </section>
+      <section class="panel planning-requests"><h2>Pedidos de folga ${pending.length ? `(${pending.length} por decidir)` : ""}</h2>${pending.length ? pending.map((item) => `<article class="planning-request"><div><strong>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${item.workDate}</strong><p>${escapeHtml(item.reason || "Sem motivo indicado")}</p><small>Pedido em ${formatDate(item.requestedAt)}</small></div><div class="planning-editor-actions"><button class="btn primary" type="button" data-day-off-decision="approved" data-request-id="${escapeHtml(item.id)}">Aprovar</button><button class="btn ghost" type="button" data-day-off-decision="rejected" data-request-id="${escapeHtml(item.id)}">Recusar</button></div></article>`).join("") : '<p class="empty">Sem pedidos pendentes.</p>'}<details><summary>Pedidos decididos</summary>${requests.filter((item) => item.status !== "pending").slice(0, 30).map((item) => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${item.workDate} · ${item.status === "approved" ? "Aprovado" : "Recusado"}</p>`).join("") || "Sem decisões."}</details></section>`;
+  }
+
+  function renderPlanningNotice() {
+    const pending = isManager() ? Number(state.data.pendingDayOffCount || 0) : 0;
+    if (!pending || state.view === "planning") return "";
+    return `<div class="notice planning-pending-notice" role="status"><strong>${pending === 1 ? "1 pedido de folga por decidir" : `${pending} pedidos de folga por decidir`}</strong><button type="button" class="btn ghost" data-view="planning">Ver planeamento</button></div>`;
   }
 
   function renderOrders() {
@@ -2993,6 +3060,46 @@
 
   function bindAppEvents() {
     recruitmentUI.bind();
+    document.querySelector("[data-planning-week]")?.addEventListener("change", (event) => {
+      planningWeek = planningMonday(event.target.value);
+      planningSelection = null;
+      renderApp();
+    });
+    document.querySelectorAll("[data-planning-worker]").forEach((button) => button.addEventListener("click", () => {
+      planningSelection = { workerId: button.dataset.planningWorker, date: button.dataset.planningDate };
+      renderApp();
+      document.querySelector("[data-planning-form]")?.scrollIntoView({ block: "nearest" });
+    }));
+    document.querySelector("[data-planning-form]")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submit = event.currentTarget.querySelector('[type="submit"]');
+      submit.disabled = true;
+      try {
+        const body = Object.fromEntries(new FormData(event.currentTarget));
+        const result = await api("/api/planning/schedules", { method: "PUT", body });
+        state.data = result.bootstrap;
+        setNotice("Horário guardado. O trabalhador já o pode consultar.");
+        renderApp();
+      } catch (error) { setNotice(error.message, "error"); renderApp(); }
+    });
+    document.querySelector("[data-planning-remove]")?.addEventListener("click", async () => {
+      if (!planningSelection) return;
+      try {
+        const result = await api("/api/planning/schedules", { method: "PUT", body: { ...planningSelection, startTime: "", address: "", note: "" } });
+        state.data = result.bootstrap;
+        setNotice("Dia removido do planeamento.");
+        renderApp();
+      } catch (error) { setNotice(error.message, "error"); renderApp(); }
+    });
+    document.querySelectorAll("[data-day-off-decision]").forEach((button) => button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        const result = await api(`/api/planning/day-off/${encodeURIComponent(button.dataset.requestId)}/decision`, { method: "POST", body: { decision: button.dataset.dayOffDecision } });
+        state.data = result.bootstrap;
+        setNotice(button.dataset.dayOffDecision === "approved" ? "Folga aprovada. O horário desse dia foi retirado." : "Pedido de folga recusado.");
+        renderApp();
+      } catch (error) { setNotice(error.message, "error"); renderApp(); }
+    }));
     const editForm = document.querySelector('[data-form="create-job"][data-edit-id]');
     const editing = state.data.jobOffers.find(j => j.id === editForm?.dataset.editId);
     if (editing) for (const key of ["title", "position", "location", "contractType", "salary", "schedule", "description", "requirements"]) editForm.elements[key].value = editing[key] || "";
@@ -3007,6 +3114,10 @@
       button.addEventListener("click", async () => {
         if (button.closest(".company-quick-nav")) state.selectedTaskId = null;
         state.view = button.dataset.view;
+        if (state.view === "planning") {
+          try { state.data = await api("/api/bootstrap"); }
+          catch (error) { setNotice(error.message, "error"); }
+        }
         if (button.dataset.filterOrder) {
           state.filters.query = orderById(button.dataset.filterOrder)?.title || "";
         }

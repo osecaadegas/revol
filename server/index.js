@@ -37,7 +37,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20261020-worker-task-status";
+const PUBLIC_ASSET_VERSION = "20261023-worker-planning";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -274,6 +274,14 @@ const TABLES = [
     table: "meo_attendance_justifications",
     idKey: "id",
     fields: { id: "id", companyId: "company_id", workerId: "worker_id", employmentId: "employment_id", absenceDate: "absence_date", reason: "reason", originalName: "original_name", mimeType: "mime_type", storedName: "stored_name", createdAt: "created_at" }
+  },
+  {
+    key: "workSchedules", table: "meo_work_schedules", idKey: "id",
+    fields: { id: "id", companyId: "company_id", workerId: "worker_id", employmentId: "employment_id", workDate: "work_date", startTime: "start_time", address: "address", note: "note", createdBy: "created_by", createdAt: "created_at", updatedAt: "updated_at" }
+  },
+  {
+    key: "dayOffRequests", table: "meo_day_off_requests", idKey: "id",
+    fields: { id: "id", companyId: "company_id", workerId: "worker_id", employmentId: "employment_id", workDate: "work_date", reason: "reason", status: "status", requestedAt: "requested_at", decidedAt: "decided_at", decidedBy: "decided_by", decisionNote: "decision_note" }
   },
   {
     key: "auditLogs",
@@ -578,6 +586,7 @@ function verifyGoogleState(value) {
 function createEmptyDb() {
   return {
     attendanceSchemaReady: true,
+    planningSchemaReady: true,
     meta: {
       version: 1,
       createdAt: now(),
@@ -602,6 +611,8 @@ function createEmptyDb() {
     evidences: [],
     attendanceEntries: [],
     attendanceJustifications: [],
+    workSchedules: [],
+    dayOffRequests: [],
     auditLogs: [],
     jobOffers: [],
     jobApplications: [],
@@ -628,6 +639,8 @@ function ensureShape(db) {
     "evidences",
     "attendanceEntries",
     "attendanceJustifications",
+    "workSchedules",
+    "dayOffRequests",
     "auditLogs",
     "jobOffers",
     "jobApplications",
@@ -800,8 +813,9 @@ async function readSupabaseDb() {
       try {
         page = await supabaseRest(`${definition.table}?select=*&order=${definition.fields[definition.idKey]}.asc&limit=500&offset=${offset}`);
       } catch (error) {
-        if (["attendanceEntries", "attendanceJustifications"].includes(definition.key) && /PGRST205|42P01/.test(error.message)) {
-          db.attendanceSchemaReady = false;
+        if (["attendanceEntries", "attendanceJustifications", "workSchedules", "dayOffRequests"].includes(definition.key) && /PGRST205|42P01/.test(error.message)) {
+          if (["workSchedules", "dayOffRequests"].includes(definition.key)) db.planningSchemaReady = false;
+          else db.attendanceSchemaReady = false;
           break;
         }
         throw error;
@@ -1432,6 +1446,19 @@ function portugalToday() {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+function portugalDayStartMs(date) {
+  const midnightUtc = Date.parse(`${date}T00:00:00.000Z`);
+  const localHour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Lisbon", hour: "2-digit", hourCycle: "h23" }).format(new Date(midnightUtc)));
+  return midnightUtc - localHour * 60 * 60 * 1000;
+}
+
+function activePlanningEmployment(db, companyId, workerId, date) {
+  const worker = db.users.find((user) => user.id === workerId && user.role === "worker" && user.active !== false);
+  if (!worker) return null;
+  return db.employmentRelationships.find((item) => item.companyId === companyId && item.workerId === workerId &&
+    item.verificationStatus === "verified" && item.employmentStatus === "active" && item.startDate <= date && (!item.endDate || item.endDate >= date)) || null;
+}
+
 function validatedWorkOrderAssignees(db, companyId, value) {
   if (!Array.isArray(value) || value.length < 1 || value.length > 20) {
     const error = new Error("Escolha entre 1 e 20 pessoas para a ordem.");
@@ -1619,6 +1646,15 @@ function buildBootstrap(db, auth) {
     workOrders: workOrders.map((order) => publicWorkOrder(order, auth)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     tasks: tasks.map((task) => publicTask(task, db)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     attendanceAvailable: db.attendanceSchemaReady !== false,
+    planningAvailable: db.planningSchemaReady !== false,
+    pendingDayOffCount: isManager ? db.dayOffRequests.filter((item) => item.companyId === auth.company.id && item.status === "pending").length : 0,
+    planningWorkers: isManager ? companyUsers.filter((user) => user.role === "worker" && db.employmentRelationships.some((item) =>
+      item.companyId === auth.company.id && item.workerId === user.id && item.verificationStatus === "verified" && item.employmentStatus === "active" &&
+      (!item.endDate || item.endDate >= portugalToday()))) : [],
+    workSchedules: db.workSchedules.filter((item) => item.workDate >= portugalToday() && (isManager ? item.companyId === auth.company.id : item.workerId === auth.user.id))
+      .sort((a, b) => a.workDate.localeCompare(b.workDate)),
+    dayOffRequests: db.dayOffRequests.filter((item) => isManager ? item.companyId === auth.company.id : item.workerId === auth.user.id)
+      .sort((a, b) => Number(b.status === "pending") - Number(a.status === "pending") || b.workDate.localeCompare(a.workDate)).slice(0, 100),
     attendanceEntries: db.attendanceEntries.filter((entry) => isManager ? entry.companyId === auth.company.id : entry.workerId === auth.user.id).sort((a, b) => b.clockedInAt.localeCompare(a.clockedInAt)).slice(0, 100),
     attendanceJustifications: db.attendanceJustifications.filter((item) => isManager ? item.companyId === auth.company.id : item.workerId === auth.user.id).map(({ storedName, ...item }) => ({ ...item, downloadUrl: storedName ? `/api/attendance/justifications/${encodeURIComponent(item.id)}/file` : null })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 100),
     evidences: evidences.map(publicEvidence).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
@@ -3147,7 +3183,7 @@ async function handleApi(req, res, pathname) {
     const db = await readDb();
     const auth = requireAuth(db, req);
     requireManager(auth);
-    sendJson(res, 200, { alerts: buildOperationalAlerts(db, auth.company.id) });
+    sendJson(res, 200, { alerts: buildOperationalAlerts(db, auth.company.id), pendingDayOffCount: db.dayOffRequests.filter((item) => item.companyId === auth.company.id && item.status === "pending").length });
     return;
   }
 
@@ -3473,6 +3509,99 @@ async function handleApi(req, res, pathname) {
       return { invite: publicInvite(invite), token, bootstrap: buildBootstrap(db, auth) };
     });
     sendJson(res, 201, result);
+    return;
+  }
+
+  if (req.method === "PUT" && pathname === "/api/planning/schedules") {
+    const body = await readBody(req);
+    const result = await mutateDb((db) => {
+      const auth = requireAuth(db, req);
+      requireManager(auth);
+      if (db.planningSchemaReady === false) throw Object.assign(new Error("A migração do planeamento ainda não foi aplicada."), { status: 503 });
+      const workerId = cleanString(body.workerId, 80);
+      const workDate = workOrderDate(body.workDate);
+      const startTime = cleanString(body.startTime, 5);
+      const address = cleanString(body.address, 500);
+      const note = cleanString(body.note, 500);
+      const employment = workDate && activePlanningEmployment(db, auth.company.id, workerId, workDate);
+      if (!employment || workDate < portugalToday()) throw Object.assign(new Error("Escolha um trabalhador com vínculo ativo e uma data presente ou futura."), { status: 400 });
+      if (portugalDayStartMs(workDate) > Date.now() + 90 * 86400000) throw Object.assign(new Error("Planeie até 90 dias de antecedência."), { status: 400 });
+      const existing = db.workSchedules.find((item) => item.companyId === auth.company.id && item.workerId === workerId && item.workDate === workDate);
+      if (!startTime && !address && !note) {
+        if (existing) {
+          db.workSchedules = db.workSchedules.filter((item) => item.id !== existing.id);
+          audit(db, auth, "work_schedule", existing.id, "planning.schedule_removed", { workerId, workDate }, req);
+        }
+      } else {
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !address) throw Object.assign(new Error("Indique uma hora e uma morada válidas."), { status: 400 });
+        if (db.dayOffRequests.some((item) => item.companyId === auth.company.id && item.workerId === workerId && item.workDate === workDate && item.status === "approved")) {
+          throw Object.assign(new Error("Este dia já tem uma folga aprovada."), { status: 409 });
+        }
+        const timestamp = now();
+        if (existing) Object.assign(existing, { employmentId: employment.id, startTime, address, note, updatedAt: timestamp });
+        else db.workSchedules.push({ id: nextId(db, "workSchedules", "sched"), companyId: auth.company.id, workerId, employmentId: employment.id,
+          workDate, startTime, address, note, createdBy: auth.user.id, createdAt: timestamp, updatedAt: timestamp });
+        audit(db, auth, "work_schedule", existing?.id || db.workSchedules.at(-1).id, existing ? "planning.schedule_updated" : "planning.schedule_created", { workerId, workDate, startTime, address }, req);
+      }
+      return { bootstrap: buildBootstrap(db, auth) };
+    });
+    sendJson(res, 200, result);
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/planning/day-off") {
+    const body = await readBody(req);
+    const result = await mutateDb((db) => {
+      const auth = requireAuth(db, req);
+      requireWorker(auth);
+      if (db.planningSchemaReady === false) throw Object.assign(new Error("A migração do planeamento ainda não foi aplicada."), { status: 503 });
+      const workDate = workOrderDate(body.workDate);
+      const employment = db.employmentRelationships.find((item) => item.id === body.employmentId && item.workerId === auth.user.id &&
+        item.verificationStatus === "verified" && item.employmentStatus === "active" && workDate && item.startDate <= workDate && (!item.endDate || item.endDate >= workDate));
+      if (!employment) throw Object.assign(new Error("Escolha uma data dentro de um vínculo ativo."), { status: 400 });
+      if (portugalDayStartMs(workDate) - Date.now() < 24 * 60 * 60 * 1000) {
+        throw Object.assign(new Error("Peça a folga pelo menos 24 horas antes do início desse dia (hora de Portugal)."), { status: 400 });
+      }
+      if (portugalDayStartMs(workDate) > Date.now() + 90 * 86400000) throw Object.assign(new Error("Peça folgas até 90 dias de antecedência."), { status: 400 });
+      if (db.dayOffRequests.some((item) => item.companyId === employment.companyId && item.workerId === auth.user.id && item.workDate === workDate && ["pending", "approved"].includes(item.status))) {
+        throw Object.assign(new Error("Já existe um pedido pendente ou aprovado para esse dia."), { status: 409 });
+      }
+      const item = { id: nextId(db, "dayOffRequests", "off"), companyId: employment.companyId, workerId: auth.user.id,
+        employmentId: employment.id, workDate, reason: cleanString(body.reason, 500), status: "pending", requestedAt: now(), decidedAt: null, decidedBy: null, decisionNote: "" };
+      db.dayOffRequests.push(item);
+      audit(db, { ...auth, company: { ...auth.company, id: employment.companyId } }, "day_off_request", item.id, "planning.day_off_requested", { workDate }, req);
+      return { bootstrap: buildBootstrap(db, auth) };
+    });
+    sendJson(res, 201, result);
+    return;
+  }
+
+  const dayOffDecisionMatch = pathname.match(/^\/api\/planning\/day-off\/([^/]+)\/decision$/);
+  if (req.method === "POST" && dayOffDecisionMatch) {
+    const body = await readBody(req);
+    const result = await mutateDb((db) => {
+      const auth = requireAuth(db, req);
+      requireManager(auth);
+      if (db.planningSchemaReady === false) throw Object.assign(new Error("A migração do planeamento ainda não foi aplicada."), { status: 503 });
+      const item = db.dayOffRequests.find((request) => request.id === decodeURIComponent(dayOffDecisionMatch[1]) && request.companyId === auth.company.id);
+      if (!item) throw Object.assign(new Error("Pedido não encontrado."), { status: 404 });
+      if (item.status !== "pending") throw Object.assign(new Error("Este pedido já foi decidido."), { status: 409 });
+      if (!["approved", "rejected"].includes(body.decision)) throw Object.assign(new Error("Decisão inválida."), { status: 400 });
+      item.status = body.decision;
+      item.decidedAt = now();
+      item.decidedBy = auth.user.id;
+      item.decisionNote = cleanString(body.note, 500);
+      if (item.status === "approved") {
+        const previous = db.workSchedules.find((slot) => slot.companyId === item.companyId && slot.workerId === item.workerId && slot.workDate === item.workDate);
+        if (previous) {
+          db.workSchedules = db.workSchedules.filter((slot) => slot.id !== previous.id);
+          audit(db, auth, "work_schedule", previous.id, "planning.schedule_removed_for_day_off", { workerId: item.workerId, workDate: item.workDate }, req);
+        }
+      }
+      audit(db, auth, "day_off_request", item.id, `planning.day_off_${item.status}`, { workerId: item.workerId, workDate: item.workDate, note: item.decisionNote }, req);
+      return { bootstrap: buildBootstrap(db, auth) };
+    });
+    sendJson(res, 200, result);
     return;
   }
 

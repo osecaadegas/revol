@@ -180,6 +180,13 @@ These are documented in the source PDFs as excluded or future-phase concepts and
   Fixed worksite coordinates are planning data only. This requires a separate
   lawful-basis/DPIA review, accuracy and dispute rules before implementation.
 
+### 2026-10-23 change request: weekly worker schedule and day-off approval
+
+- Managers can publish one start time, work address and optional note per worker/day in a weekly grid. Only verified active employment for that date is accepted server-side.
+- A worker sees only their own forthcoming schedule and leave requests. A request remains pending until the originating company approves or rejects it; another company and the worker cannot decide it.
+- A request must reach the server at least 24 hours before the beginning of the requested day in `Europe/Lisbon`; duplicates are rejected. Approval removes a conflicting daily schedule and prevents re-scheduling that approved day.
+- Schedule changes, requests and decisions are audited. Existing task assignments, clock entries and absence justifications remain separate and unchanged.
+
 1. Manager creates or invites an authorized user.
 2. Manager creates a work order with team and expected dates; assigned people can see it without a separate task.
 3. Manager creates an optional task with responsible user, planned start, work location, notes and deadline; an external worker must have a verified relationship with that company.

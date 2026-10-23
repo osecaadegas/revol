@@ -20,7 +20,7 @@
       : [];
     const activeEmployments = () => (h.state.data?.professional?.employments || []).filter(item => item.verificationStatus === "verified" && item.employmentStatus === "active");
     function tabItems() {
-      const items = h.isWorker() ? [...(activeEmployments().length ? [["home", "Perfil"]] : []), ["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Correspondência"], ["chat", "Conversas"], ["settings", "Privacidade"]]
+      const items = h.isWorker() ? [...(activeEmployments().length ? [["home", "Perfil"], ["planning", "Planeamento"]] : []), ["jobs", "Vagas"], ["applications", "Candidaturas"], ["profile", "Meu CV"], ["employment", "Percurso profissional"], ["saved", "Guardadas"], ["messages", "Correspondência"], ["chat", "Conversas"], ["settings", "Privacidade"]]
         : [["jobs", "Vagas"], ["applications", "Candidaturas"], ["employment", "Trabalhadores"], ["evaluations", "Percurso e avaliações"], ["candidates", "Procurar candidatos"], ["create", "Criar vaga"], ["company", "Empresa"], ["messages", "Correspondência"], ["chat", "Conversas"]];
       if (h.isWorker() && h.state.data.workOrders?.length) items.splice(4, 0, ["orders", "Ordens"]);
       if (h.isWorker()) items.splice(4, 0, ["tasks", "Tarefas"]);
@@ -29,7 +29,7 @@
     }
     function tabs() {
       const items = tabItems();
-      const symbols = {home:"user-round",jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",orders:"folder",tasks:"clipboard-list",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"mail",chat:"message-circle",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
+      const symbols = {home:"user-round",planning:"clipboard-list",jobs:"briefcase-business",applications:"file-text",profile:"user-round",employment:"history",orders:"folder",tasks:"clipboard-list",evaluations:"clipboard-check",access:"shield-check",saved:"bookmark",messages:"mail",chat:"message-circle",settings:"settings-2",candidates:"users",create:"plus",company:"building-2",admin:"shield-check"};
       const pendingCount = pendingEmploymentRequests().length;
       const activeTasks = (h.state.data.tasks || []).filter(item => ["assigned", "in_progress", "blocked"].includes(item.status)).length;
       return `<nav class="recruitment-tabs" aria-label="Recrutamento">${items.map(([id, name]) => {
@@ -177,6 +177,7 @@
     }
     function content() {
       if (tab === "home") return workerHome();
+      if (tab === "planning") return workerPlanning();
       if (tab === "profile") return professional.cv();
       if (tab === "orders") return h.renderOrders();
       if (tab === "tasks") return h.renderTasks();
@@ -221,8 +222,20 @@
           <form class="form-grid" data-recruitment-form="attendance-justification"><label class="field">Empresa<select name="employmentId" required>${activeEmployments().map(item => `<option value="${e(item.id)}">${e(item.companyName)}</option>`).join("")}</select></label><label class="field">Dia de ausência<input type="date" name="absenceDate" required></label><label class="field">Motivo (opcional com documento)<textarea name="reason" maxlength="1200" rows="2"></textarea></label><label class="field">Documento privado (PDF, PNG ou JPEG; até 6 MB)<input type="file" name="document" accept="application/pdf,image/png,image/jpeg"></label><button class="btn primary" type="submit" ${attendanceAvailable ? "" : "disabled"}>Enviar justificação</button></form>
           <details><summary>Justificações enviadas (${justifications.length})</summary>${justifications.map(item => `<p>${e(item.absenceDate)} · ${e(item.reason || "Documento enviado")}${item.downloadUrl ? ` · <a href="${e(item.downloadUrl)}">Descarregar anexo</a>` : ""}</p>`).join("") || '<p>Ainda não há justificações.</p>'}</details>
         </section>
+        <section class="panel worker-planning-preview"><h3>Próximos dias de trabalho</h3>${(h.state.data.workSchedules || []).filter(item => item.workDate >= new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Lisbon" }).format(new Date())).slice(0, 3).map(item => `<p><strong>${e(item.workDate)} · ${e(item.startTime)}</strong><br>${e(item.address)}</p>`).join("") || '<p>Ainda não há horários comunicados.</p>'}<button class="btn ghost" type="button" data-recruitment="tab" data-id="planning">Ver planeamento e pedir folga</button></section>
         <section class="panel"><h3>Avaliações profissionais</h3><p>Mostradas por empresa, sem pontuação universal ou decisão automática.</p>${reports.map(report => `<article class="worker-rating-card"><strong>${e(report.companyName)} · ${e(report.workerRole || "Função")}</strong><small>${e(new Date(report.submittedAt || report.createdAt).toLocaleDateString("pt-PT"))}</small><div>${(report.categoryAverages || []).map(category => `<span>${e(category.label)}: <b>${e(category.average)}/10</b> (${category.scoredAnswerCount})</span>`).join("") || "Sem dados suficientes"}</div></article>`).join("") || '<p class="empty">Ainda não existem avaliações submetidas.</p>'}<button class="btn ghost" type="button" data-recruitment="tab" data-id="employment">Ver percurso e responder</button></section>
       </section>`;
+    }
+
+    function workerPlanning() {
+      const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Lisbon" }).format(new Date());
+      const slots = (h.state.data.workSchedules || []).filter(item => item.workDate >= today).slice(0, 30);
+      const requests = h.state.data.dayOffRequests || [];
+      return `<section class="worker-planning"><header><p class="eyebrow">Área do trabalhador</p><h2>Planeamento</h2><p>Consulta a hora e o local de trabalho dos próximos dias. Uma folga só fica confirmada depois da aprovação da empresa.</p></header>
+        ${h.state.data.planningAvailable === false ? '<p class="notice error">O planeamento ainda não está disponível. Falta aplicar a migração da base de dados.</p>' : ""}
+        <section class="panel"><h3>Os teus próximos dias</h3>${slots.map(item => `<article class="worker-planning-day"><strong>${e(new Date(`${item.workDate}T12:00:00Z`).toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" }))} · ${e(item.startTime)}</strong><p>${e(item.address)}</p>${item.note ? `<small>${e(item.note)}</small>` : ""}<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}" target="_blank" rel="noopener noreferrer">Abrir morada no mapa</a></article>`).join("") || '<p class="empty">Ainda não há horários planeados.</p>'}</section>
+        <section class="panel"><h3>Pedir um dia de folga</h3><p>Envia o pedido pelo menos 24 horas antes do início do dia pretendido. Aguarda a decisão da empresa antes de faltar.</p><form class="form-grid" data-recruitment-form="day-off"><label class="field">Empresa<select name="employmentId" required>${activeEmployments().map(item => `<option value="${e(item.id)}">${e(item.companyName)}</option>`).join("")}</select></label><label class="field">Dia pretendido<input type="date" name="workDate" required></label><label class="field">Motivo (opcional)<textarea name="reason" maxlength="500" rows="2"></textarea></label><button class="btn primary" type="submit" ${h.state.data.planningAvailable === false ? "disabled" : ""}>Enviar pedido</button></form></section>
+        <section class="panel"><h3>Pedidos de folga</h3>${requests.slice(0, 30).map(item => `<p class="worker-day-off-status"><strong>${e(item.workDate)}</strong> · ${item.status === "pending" ? "Pendente de aprovação" : item.status === "approved" ? "Aprovado" : "Recusado"}${item.decisionNote ? ` · ${e(item.decisionNote)}` : ""}</p>`).join("") || '<p class="empty">Ainda não fizeste pedidos.</p>'}</section></section>`;
     }
     function jobFields(job = {}) {
       const p = job.recruitment || {};
@@ -312,6 +325,11 @@
             const result = await h.api("/api/attendance/justifications", { method: "POST", body: data });
             h.state.data = result.bootstrap;
             h.setNotice("Justificação enviada em privado.");
+          }
+          if (type === "day-off") {
+            const result = await h.api("/api/planning/day-off", { method: "POST", body: data });
+            h.state.data = result.bootstrap;
+            h.setNotice("Pedido enviado. Aguarda a aprovação da empresa.");
           }
           if (type === "preferences") {
             data.coordinates = { latitude: data.latitude, longitude: data.longitude };

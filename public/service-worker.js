@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v29-company-camera";
+const CACHE_NAME = "tratapro-shell-v30-worker-planning";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

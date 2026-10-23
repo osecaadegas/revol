@@ -4230,6 +4230,41 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
 .company-mobile-menu, .company-quick-nav { display: none; }
 .attendance-records { display: grid; gap: 0; }
 .attendance-records p { margin: 0; padding: 12px 0; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); overflow-wrap: anywhere; }
+
+.planning-panel, .planning-requests, .worker-planning { min-width: 0; }
+.planning-pending-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.planning-toolbar { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.planning-toolbar .field { max-width: 220px; }
+.planning-grid-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+.planning-grid { display: grid; grid-template-columns: minmax(150px, 1.3fr) repeat(7, minmax(124px, 1fr)); gap: 5px; min-width: 1060px; }
+.planning-grid > strong { padding: 9px; align-content: center; background: var(--surface-soft, #e8e0d0); font-size: 12px; }
+.planning-grid > strong.planning-worker-name { font-size: 14px; overflow-wrap: anywhere; }
+.planning-cell { display: grid; align-content: center; gap: 4px; min-height: 72px; padding: 9px; border: 1px solid var(--text-primary); background: var(--surface, #f7f3e9); color: var(--text-primary); text-align: left; cursor: pointer; }
+.planning-cell-date { display: none; }
+.planning-cell:hover, .planning-cell:focus-visible { background: var(--brand-primary); outline: 2px solid var(--text-primary); }
+.planning-cell small { overflow-wrap: anywhere; line-height: 1.25; }
+.planning-cell.day-off-approved { background: #dceada; cursor: default; }
+.planning-editor { display: grid; grid-template-columns: 140px minmax(220px, 2fr) minmax(180px, 1.5fr); gap: 12px; margin-top: 20px; padding: 16px; border: 1px solid var(--text-primary); }
+.planning-editor h3, .planning-editor-actions { grid-column: 1 / -1; margin: 0; }
+.planning-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.planning-request { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--border-subtle); padding: 14px 0; }
+.planning-request p { margin: 5px 0; overflow-wrap: anywhere; }
+.worker-planning { display: grid; gap: 16px; }
+.worker-planning-day { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border-subtle); }
+.worker-planning-day p { margin: 0; overflow-wrap: anywhere; }
+.worker-planning-day a { width: fit-content; }
+.worker-day-off-status, .worker-planning-preview p { padding: 8px 0; border-top: 1px solid var(--border-subtle); overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .planning-grid-scroll { overflow: visible; }
+  .planning-grid { display: block; min-width: 0; }
+  .planning-grid > strong:nth-child(-n+8) { display: none; }
+  .planning-grid > strong.planning-worker-name { display: block; margin-top: 16px; }
+  .planning-cell { width: 100%; min-height: 52px; margin-top: 5px; grid-template-columns: minmax(86px, .35fr) minmax(0, 1fr); align-items: center; }
+  .planning-cell-date { display: block; grid-row: span 2; font-size: 12px; }
+  .planning-editor { grid-template-columns: 1fr; }
+  .planning-editor h3, .planning-editor-actions { grid-column: auto; }
+  .planning-request { display: grid; }
+}
 .evidence-mobile-capture { display: none; }
 .evidence-existing-list { margin-top: 14px; border: 1px solid var(--border-subtle); }
 .evidence-existing-list > summary { padding: 12px; font-family: "Courier New", monospace; font-size: 12px; text-transform: uppercase; }

@@ -2,6 +2,7 @@
 
 ## 2026-10-23
 
+- A empresa dispõe de uma grelha semanal de planeamento por trabalhador, com hora de entrada, morada e nota opcional por dia. O trabalhador consulta os próximos horários no perfil e na nova área Planeamento. Pode pedir uma folga com pelo menos 24 horas antes do início do dia em Portugal; só a aprovação explícita da empresa a confirma e remove o horário desse dia. Pedidos, decisões e alterações à grelha ficam auditados. A migração aditiva `20261023120000_worker_planning_and_day_off.sql` protege estes dados com RLS e é necessária para ativar a funcionalidade em Supabase.
 - No telemóvel, as provas finais mostram apenas os botões para captar as
   fotografias ainda necessárias (até três), um controlo de GPS pontual e o
   envio. A observação e o seletor múltiplo mantêm-se disponíveis no computador;
