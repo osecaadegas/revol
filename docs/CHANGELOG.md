@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-23
+
+- Adicionado um botão contextual «Instalar app» ao website existente. Em
+  Android/Chrome abre a instalação nativa; em iPhone/iPad apresenta os passos
+  do Safari para adicionar a TrataPro ao ecrã principal. O botão não aparece
+  quando a aplicação já está instalada. O manifesto inclui ícones PNG próprios,
+  escopo e identidade estável; não foi criada uma aplicação separada nem foi
+  acrescentada sincronização offline avançada.
+
 ## 2026-10-20
 
 - No espaço do trabalhador, o botão «Tarefas» fica vermelho enquanto existir

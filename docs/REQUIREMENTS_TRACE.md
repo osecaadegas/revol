@@ -83,7 +83,7 @@ The app must first behave like a public labor-market board:
 
 | Requirement | Implementation |
 | --- | --- |
-| Mobile-first webapp accessible from phone, tablet, and computer | `public/index.html`, `public/styles.css`, responsive app shell |
+| Mobile-first webapp accessible from phone, tablet, and computer | `public/index.html`, `public/styles.css`, responsive app shell, and a contextual PWA installation action for Android/iOS without a separate native app |
 | Frontend separated from backend/API | Static frontend in `public/`, REST API in `server/index.js` |
 | Public SEO shell | Server-generated canonical/social metadata, robots, sitemap, noindex reserved-route handling and public vacancy detail pages in `server/index.js`; SPA remains in `public/app.js` |
 | Authentication | `/api/setup`, `/api/auth/login`, `/api/auth/google/start`, `/api/auth/google/callback`, `/api/session`, bearer sessions and same-origin session cookie |

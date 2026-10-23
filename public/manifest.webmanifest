@@ -2,11 +2,27 @@
   "name": "TrataPro",
   "short_name": "TrataPro",
   "description": "Trabalho certo. Prova feita. Mercado publico de vagas com acesso reservado para cliente e operacoes autenticadas.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#080d17",
+  "orientation": "any",
+  "background_color": "#e9e2d4",
   "theme_color": "#080d17",
+  "categories": ["business", "productivity"],
   "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/icon.svg",
       "sizes": "any",

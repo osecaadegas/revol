@@ -840,6 +840,7 @@
             })
             .join("")}
           ${activeRoute === "home" ? `
+            <button class="pwa-install-button" type="button" data-pwa-install hidden>${icon("download")}<span>Instalar app</span></button>
             <button class="public-nav-login" type="button" data-auth-preset="login" aria-label="Abrir login e registo">Login / Registar</button>
             <button class="public-nav-button" type="button" data-auth-preset="company">Publicar vaga</button>
           ` : ""}
@@ -1572,6 +1573,7 @@
           <div class="session-card">
             <strong>${escapeHtml(user.name)}</strong>
             <span>${escapeHtml(roleLabels[user.role] || user.role)}</span>
+            <button class="btn ghost full pwa-install-button" type="button" data-pwa-install hidden>${icon("download")}<span>Instalar app</span></button>
             <button class="btn ghost full" style="margin-top: 12px" data-action="logout">Sair</button>
           </div>
         </aside>
@@ -1585,6 +1587,7 @@
               </div>
             </div>
             ${isWorker() ? recruitmentUI.mobileTabs() : ""}
+            ${!isWorker() ? `<button class="btn ghost pwa-install-button" type="button" data-pwa-install hidden>${icon("download")}<span>Instalar app</span></button>` : ""}
             <button class="btn ghost topbar-logout" data-action="logout">Sair</button>
           </div>
           ${isManager() ? `<div data-mobile-recruitment-navigation>${recruitmentUI.mobileTabs()}</div>` : ""}

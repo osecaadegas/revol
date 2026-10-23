@@ -22,6 +22,8 @@ The engineering manuals and manifesto inform terminology and auditability princi
 - Bearer-token authentication with server-side session validation.
 - Server-enforced role access for internal worker, company, manager, employee, contractor, client, and developer profiles. Public UI labels the worker role as `Trabalhador`.
 - PWA metadata and shell caching without advanced offline synchronization.
+- Contextual PWA installation controls reuse the website on Android and iOS;
+  there is no separate native application or app-store package.
 
 This keeps the MVP fully runnable without external services while also supporting a real Supabase backend for deployment. The API boundary remains suitable for future Vercel functions or a native mobile client.
 

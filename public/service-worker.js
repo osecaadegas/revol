@@ -1,9 +1,10 @@
-const CACHE_NAME = "tratapro-shell-v26-worker-task-status";
+const CACHE_NAME = "tratapro-shell-v27-install-app";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
   "/styles.css",
   "/app.js",
+  "/pwa-install.js",
   "/recruitment-ui.js",
   "/professional-profile-ui.js",
   "/direct-chat-ui.js",
@@ -12,6 +13,8 @@ const SHELL_ASSETS = [
   "/fonts/InterVariable.woff2",
   "/manifest.webmanifest",
   "/icon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
   "/logo.svg",
   "/social-card.svg"
 ];

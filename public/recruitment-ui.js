@@ -39,7 +39,7 @@
     }
     function mobileTabs() {
       const label = tabItems().find(([id]) => id === tab)?.[1] || "Vagas";
-      if (h.isWorker()) return `<details class="mobile-recruitment-menu worker-mobile-menu"><summary aria-label="Menu de navegação"><span class="worker-menu-icon" aria-hidden="true"><i></i><i></i><i></i></span><span>Menu</span></summary><div class="worker-mobile-menu-content">${tabs()}<button class="btn ghost worker-mobile-logout" type="button" data-action="logout">${icon("log-out")}<span>Sair</span></button></div></details>`;
+      if (h.isWorker()) return `<details class="mobile-recruitment-menu worker-mobile-menu"><summary aria-label="Menu de navegação"><span class="worker-menu-icon" aria-hidden="true"><i></i><i></i><i></i></span><span>Menu</span></summary><div class="worker-mobile-menu-content">${tabs()}<button class="btn ghost worker-mobile-logout pwa-install-button" type="button" data-pwa-install hidden>${icon("download")}<span>Instalar app</span></button><button class="btn ghost worker-mobile-logout" type="button" data-action="logout">${icon("log-out")}<span>Sair</span></button></div></details>`;
       return `<details class="mobile-recruitment-menu"><summary><span>${h.state.view === "marketplace" ? `Área atual: <strong>${e(label)}</strong>` : "Áreas de recrutamento"}</span></summary>${tabs()}</details>`;
     }
     function quickTabs() {
