@@ -3759,6 +3759,8 @@ input::file-selector-button { border: 1px solid var(--text-primary); border-radi
 .evaluation-question-copy > strong { display: inline; font-size: 16px; line-height: 1.25; }
 .evaluation-question-copy > p { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; }
 .evaluation-question-copy .chip { margin-left: 8px; }
+.evaluation-evidence-note { margin: 0; padding: 8px 10px; border-left: 3px solid var(--brand-primary); background: var(--surface-primary); color: var(--text-secondary); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.evaluation-evidence-note strong { color: var(--text-primary); }
 .rating-scale { width: min(100%,700px); min-width: 0; margin: 0; padding: 0; border: 0; }
 .rating-scale legend { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 .rating-extremes { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 8px; font-weight: 800; }

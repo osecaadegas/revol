@@ -117,6 +117,26 @@
       </section>`;
     }
 
+    function attendanceReference(questionKey, employmentId) {
+      if (!employmentId) return "Escolha um vínculo para consultar os registos deste trabalhador.";
+      const employment = (data().employments || []).find(item => item.id === employmentId && item.verificationStatus === "verified");
+      if (!employment) return "Não há um vínculo verificado selecionado.";
+      const punctuality = h.state.data?.punctuality;
+      const summary = punctuality?.enabled ? (punctuality.summaries || []).find(item => item.companyId === employment.companyId && item.workerId === employment.workerId) : null;
+      if (questionKey === "attendance_schedule") {
+        if (!punctuality?.enabled) return "Indicador de pontualidade indisponível. O regresso das pausas não é registado.";
+        if (!summary?.scoredShifts) return "Sem turnos válidos para calcular a pontualidade. O regresso das pausas não é registado.";
+        const rating = Number(summary.rating).toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        const status = summary.status === "confirmed" ? "confirmada" : "provisória";
+        return `Pontualidade na entrada: ${rating}/10 (${status}; ${summary.scoredShifts} turnos nos últimos ${summary.rules.windowDays} dias). O regresso das pausas não é registado.`;
+      }
+      if (questionKey === "attendance_days") {
+        if (!punctuality?.enabled || !summary) return "O registo de entrada não comprova, por si só, a presença em todos os dias acordados. Confirme horários, faltas e justificações.";
+        return `${summary.scoredShifts} turnos com entrada pontuada; ${summary.approvedExclusions} justificações aprovadas e ${summary.pendingExceptions} pendentes. A falta de registo não prova uma ausência injustificada.`;
+      }
+      return "A plataforma regista quando atrasos ou contratempos são comunicados, mas não determina automaticamente se o aviso foi atempado. Analise o contexto.";
+    }
+
     function evaluations() {
       const verified = (data().employments || []).filter(item => item.verificationStatus === "verified");
       const editing = openReport?.status === "draft" ? openReport : null, answerMap = new Map((editing?.answers || []).map(item => [item.question.questionKey,item]));
@@ -125,7 +145,9 @@
       const answerFields = (key, question, source="standard", customId="") => {
         const current = answerMap.get(key), value = current?.answerState === "score" ? String(current.score) : "", comment = current?.comment || "";
         const commentId = `evaluation-comment-${String(key).replace(/[^a-zA-Z0-9_-]/g,"-")}`;
-        return `<div class="evaluation-question" data-source="${source}" ${customId ? `data-custom-id="${e(customId)}"` : ""}><div class="evaluation-question-copy"><strong>${e(question)}</strong>${source === "custom" ? '<span class="chip">Pergunta da empresa</span>' : ""}<p>Dê uma nota de 0 a 10 com base no comportamento profissional observado.</p></div>${ratingScale(key,value)}<button class="evaluation-comment-toggle" type="button" data-evaluation-comment-toggle aria-expanded="${comment ? "true" : "false"}" aria-controls="${e(commentId)}">${comment ? "Ocultar comentário" : "Adicionar comentário"}</button><label class="field evaluation-comment" id="${e(commentId)}" ${comment ? "" : "hidden"}><span>Comentário adicional (opcional)</span><small>Descreva apenas observações relacionadas com o trabalho, sem dados pessoais sensíveis.</small><textarea name="comment:${e(key)}" maxlength="900">${e(comment)}</textarea></label></div>`;
+        const reference = source === "standard" && key.startsWith("attendance_")
+          ? `<p class="evaluation-evidence-note" data-attendance-reference="${e(key)}"><strong>Referência do sistema:</strong> <span>${e(attendanceReference(key,editing?.employmentId || ""))}</span></p>` : "";
+        return `<div class="evaluation-question" data-source="${source}" ${customId ? `data-custom-id="${e(customId)}"` : ""}><div class="evaluation-question-copy"><strong>${e(question)}</strong>${source === "custom" ? '<span class="chip">Pergunta da empresa</span>' : ""}<p>Dê uma nota de 0 a 10 com base no comportamento profissional observado.</p></div>${reference}${ratingScale(key,value)}<button class="evaluation-comment-toggle" type="button" data-evaluation-comment-toggle aria-expanded="${comment ? "true" : "false"}" aria-controls="${e(commentId)}">${comment ? "Ocultar comentário" : "Adicionar comentário"}</button><label class="field evaluation-comment" id="${e(commentId)}" ${comment ? "" : "hidden"}><span>Comentário adicional (opcional)</span><small>Descreva apenas observações relacionadas com o trabalho, sem dados pessoais sensíveis.</small><textarea name="comment:${e(key)}" maxlength="900">${e(comment)}</textarea></label></div>`;
       };
       return `<section class="professional-workspace"><div class="workspace-toolbar"><div><p class="eyebrow">Comportamento profissional observável</p><h2>Percurso Profissional e Avaliações</h2><p>25 perguntas padrão, sem perfis de personalidade, listas negras, ranking universal ou decisão automática.</p></div></div>
         <section class="panel"><div class="panel-header"><div><h3>${editing ? "Editar rascunho" : "Nova avaliação"}</h3><p>A avaliação fica registada automaticamente com a data de hoje e não pode ser alterada depois da submissão.</p></div></div><form class="form-grid evaluation-form" data-professional-form="evaluation"><input type="hidden" name="reportId" value="${e(editing?.id || "")}">${select("employmentId","Vínculo verificado",[["","Selecionar"],...verified.map(item => [item.id,`${item.workerName} · ${item.position}`])],editing?.employmentId || "","required")}${field("workerRole","Função do trabalhador",editing?.workerRole || "","text","required maxlength=180")}${area("assessmentContext","Contexto da avaliação",editing?.assessmentContext || "","maxlength=1600")}${area("strengths","Pontos fortes",editing?.strengths || "","maxlength=1600")}${area("improvements","Aspetos a melhorar",editing?.improvements || "","maxlength=1600")}
@@ -173,6 +195,12 @@
     const documentRoot = () => window.document;
 
     function bind() {
+      document.querySelectorAll('[data-professional-form="evaluation"] select[name="employmentId"]').forEach(selectElement => selectElement.addEventListener("change", () => {
+        const form = selectElement.closest("form");
+        form.querySelectorAll("[data-attendance-reference]").forEach(note => {
+          note.querySelector("span").textContent = attendanceReference(note.dataset.attendanceReference, selectElement.value);
+        });
+      }));
       document.querySelectorAll("[data-evaluation-category-select]").forEach(selectElement => selectElement.addEventListener("change",() => {
         const form = selectElement.closest("form");
         form.querySelectorAll("[data-evaluation-category]").forEach(section => { section.hidden = section.dataset.evaluationCategory !== selectElement.value; });
