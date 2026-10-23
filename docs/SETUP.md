@@ -110,6 +110,14 @@ PUBLIC_SITE_URL=
 
 `MAX_UPLOAD_MB` limits each uploaded image.
 
+No envio de provas finais pelo telemóvel, o navegador prepara imagens grandes
+em JPEG (até 900 KiB por fotografia) e envia até três por pedido para respeitar
+o limite de 4,5 MB das funções Vercel. A data original do ficheiro e o GPS
+pontual autorizado continuam associados à prova; o hash refere-se ao JPEG
+efetivamente guardado. Se um envio expirar, abra novamente a tarefa e confirme
+as fotografias já guardadas antes de repetir. O servidor evita duplicar o mesmo
+ficheiro da mesma pessoa/tarefa durante o período de retenção.
+
 `MAX_CV_UPLOAD_MB` limits each private PDF or DOCX CV upload.
 
 `APP_STORAGE_DRIVER` selects persistence. Use `local` for development and `supabase` for deployment.

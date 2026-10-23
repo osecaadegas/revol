@@ -3092,11 +3092,11 @@
       <form class="form-grid evidence-form ${remaining ? "" : "evidence-minimum-met"}" data-form="evidence" data-task-id="${escapeHtml(task.id)}" data-remaining="${remaining}">
         <div class="field evidence-desktop-files">
           <label>Fotografias finais com GPS</label>
-          <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" multiple>
+          <input name="photo" type="file" accept="image/*" capture="environment" multiple>
           <p class="muted">Pode selecionar varias fotos. Cada envio fica guardado 7 dias e precisa de localizacao autorizada.</p>
         </div>
         <div class="evidence-mobile-capture">
-          ${remaining ? `<p class="evidence-capture-help">Tira ${remaining} ${remaining === 1 ? "fotografia" : "fotografias"} para concluir a tarefa.</p>${Array.from({ length: remaining }, (_, index) => `<label class="evidence-camera-slot">${icon("plus")}<span>Tirar fotografia ${finalEvidenceMinimum - remaining + index + 1}</span><input type="file" accept="image/png,image/jpeg,image/webp" capture="environment" data-evidence-mobile-photo><small data-evidence-photo-status>Toque para abrir a câmara</small></label>`).join("")}` : '<p class="notice success">As três fotografias necessárias já foram submetidas.</p>'}
+          ${remaining ? `<p class="evidence-capture-help">Tira ${remaining} ${remaining === 1 ? "fotografia" : "fotografias"} para concluir a tarefa.</p>${Array.from({ length: remaining }, (_, index) => `<label class="evidence-camera-slot">${icon("plus")}<span>Tirar fotografia ${finalEvidenceMinimum - remaining + index + 1}</span><input type="file" accept="image/*" capture="environment" data-evidence-mobile-photo><small data-evidence-photo-status>Toque para abrir a câmara</small></label>`).join("")}` : '<p class="notice success">As três fotografias necessárias já foram submetidas.</p>'}
         </div>
         <div class="field evidence-optional-note">
           <label>Observacao</label>
@@ -3107,6 +3107,7 @@
           <span class="chip" id="location-status" role="status">${locationLabel(state.locationDraft)}</span>
         </div>
         <button class="btn primary evidence-submit" type="submit">Enviar fotografias</button>
+        <p class="muted" data-evidence-upload-status role="status" aria-live="polite"></p>
       </form>
     `;
   }
@@ -3641,23 +3642,46 @@
       ? [...form.querySelectorAll("[data-evidence-mobile-photo]")].flatMap(input => [...(input.files || [])])
       : [...(form.querySelector(".evidence-desktop-files input[type='file']")?.files || [])];
     if (mobile && selectedFiles.length < Number(form.dataset.remaining)) throw new Error(`Tire ${form.dataset.remaining} fotografia(s) antes de enviar.`);
-    const photos = await filesToPhotos(selectedFiles, 12);
-    if (!photos.length) throw new Error("Escolha pelo menos uma fotografia.");
+    if (!selectedFiles.length) throw new Error("Escolha pelo menos uma fotografia.");
     if (state.locationDraft?.status !== "granted") {
       throw new Error("Autorize o GPS pontual antes de submeter fotografias finais.");
     }
     const data = Object.fromEntries(new FormData(form).entries());
-    const payload = await api(`/api/tasks/${form.dataset.taskId}/evidence`, {
-      method: "POST",
-      body: {
-        photos,
-        note: data.note,
-        location: state.locationDraft || { status: "not_requested" }
+    const status = form.querySelector("[data-evidence-upload-status]");
+    const initialCount = taskEvidence(form.dataset.taskId).length;
+    try {
+      for (let start = 0; start < selectedFiles.length; start += 3) {
+        const photos = [];
+        for (const file of selectedFiles.slice(start, start + 3)) {
+          if (status) status.textContent = `A preparar fotografia ${start + photos.length + 1} de ${selectedFiles.length}…`;
+          photos.push(await window.TrataEvidencePhoto.prepare(file));
+        }
+        if (status) status.textContent = `A enviar fotografias ${start + 1}–${start + photos.length} de ${selectedFiles.length}…`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 90000);
+        try {
+          const payload = await api(`/api/tasks/${form.dataset.taskId}/evidence`, {
+            method: "POST", signal: controller.signal,
+            body: { photos, note: data.note, location: state.locationDraft }
+          });
+          state.data = payload.bootstrap;
+        } finally {
+          clearTimeout(timeout);
+        }
       }
-    });
-    state.data = payload.bootstrap;
-    state.locationDraft = { status: "not_requested" };
-    setNotice(`${payload.evidences?.length || photos.length} fotografia(s) submetida(s).`);
+      state.locationDraft = { status: "not_requested" };
+      const added = taskEvidence(form.dataset.taskId).length - initialCount;
+      setNotice(added ? `${added} fotografia(s) submetida(s).` : "Estas fotografias já tinham sido enviadas.");
+    } catch (error) {
+      if (status) status.textContent = "Envio interrompido.";
+      const refreshController = new AbortController();
+      const refreshTimeout = setTimeout(() => refreshController.abort(), 10000);
+      try { state.data = await api("/api/bootstrap", { signal: refreshController.signal }); }
+      catch { /* Keep the last confirmed state if the connection is unavailable. */ }
+      finally { clearTimeout(refreshTimeout); }
+      const added = Math.max(0, taskEvidence(form.dataset.taskId).length - initialCount);
+      setNotice(`${added ? `${added} fotografia(s) guardada(s). ` : ""}${error.name === "AbortError" ? "O envio demorou demasiado." : error.message} Confirme as fotografias enviadas antes de tentar novamente.`, "error");
+    }
   }
 
   async function blockTask(form) {

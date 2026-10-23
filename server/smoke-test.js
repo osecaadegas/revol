@@ -558,6 +558,15 @@ async function run() {
       note: "Provas de teste.",
       location: gpsLocation
     }, employeeToken);
+    const repeatedEvidence = await request(baseUrl, "POST", `/api/tasks/${taskId}/evidence`, {
+      photos: [smokePhoto("proof-1.png")],
+      note: "Repetição após falha de ligação.",
+      location: gpsLocation
+    }, employeeToken);
+    if (repeatedEvidence.evidences[0].id !== firstEvidence.evidences[0].id ||
+        repeatedEvidence.bootstrap.evidences.filter((item) => item.taskId === taskId).length !== 2) {
+      throw new Error("Repeating a photo must not create a duplicate task evidence record.");
+    }
 
     const earlyValidation = await requestRaw(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
       status: "pending_validation"

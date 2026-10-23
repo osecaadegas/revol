@@ -1,9 +1,10 @@
-const CACHE_NAME = "tratapro-shell-v31-important-push";
+const CACHE_NAME = "tratapro-shell-v32-mobile-photo-upload";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
   "/styles.css",
   "/app.js",
+  "/evidence-photo.js",
   "/pwa-install.js",
   "/recruitment-ui.js",
   "/professional-profile-ui.js",

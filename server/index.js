@@ -39,7 +39,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20261023-attendance-reference";
+const PUBLIC_ASSET_VERSION = "20261023-mobile-photo-upload";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -1888,6 +1888,12 @@ async function storePhoto(db, auth, body, options) {
   }
   const capturedAt = photoCaptureTimestamp(body.photo, uploadedAt);
   const fileHash = crypto.createHash("sha256").update(parsed.buffer).digest("hex");
+  if (options.kind === "task_evidence" && options.taskId) {
+    const existing = db.evidences.find((item) => item.taskId === options.taskId &&
+      item.userId === auth.user.id && item.fileHash === fileHash &&
+      item.originalName === parsed.name && !isEvidenceExpired(item));
+    if (existing) return existing;
+  }
   const evidence = {
     id: nextId(db, "evidences", "ev"),
     companyId: options.companyId || auth.company.id,
@@ -1910,6 +1916,8 @@ async function storePhoto(db, auth, body, options) {
       originalName: parsed.name,
       mimeType: parsed.mimeType,
       byteSize: parsed.buffer.length,
+      clientOriginalByteSize: Number.isSafeInteger(body.photo?.originalByteSize) ? body.photo.originalByteSize : null,
+      clientImageProcessing: body.photo?.processed === true ? "resized_on_device" : "original_file",
       clientDeclaredType: cleanString(body.photo?.type, 120),
       clientFileLastModified: capturedAt.source === "browser_file_last_modified" ? capturedAt.value : null,
       captureTimeSource: capturedAt.source,
@@ -4096,6 +4104,7 @@ async function handleApi(req, res, pathname) {
       }
       const stored = [];
       for (const photo of photos.slice(0, 12)) {
+        const evidenceCount = db.evidences.length;
         const evidence = await storePhoto(db, auth, { ...body, photo }, {
           kind: "task_evidence",
           taskId: task.id,
@@ -4105,12 +4114,14 @@ async function handleApi(req, res, pathname) {
           req
         });
         stored.push(evidence);
-        audit(db, taskScopedAuth(auth, task), "evidence", evidence.id, "evidence.created", {
-          taskId: task.id,
-          locationStatus: evidence.location.status,
-          expiresAt: evidence.expiresAt,
-          authenticity: evidence.authenticity.status
-        }, req);
+        if (db.evidences.length > evidenceCount) {
+          audit(db, taskScopedAuth(auth, task), "evidence", evidence.id, "evidence.created", {
+            taskId: task.id,
+            locationStatus: evidence.location.status,
+            expiresAt: evidence.expiresAt,
+            authenticity: evidence.authenticity.status
+          }, req);
+        }
       }
       task.updatedAt = now();
       return {
