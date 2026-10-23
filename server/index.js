@@ -10,6 +10,7 @@ const { renderPrivateProjectHtml } = require("./private-project");
 const recruitment = require("./recruitment");
 const professionalProfile = require("./professional-profile");
 const directChat = require("./direct-chat");
+const { createPushNotifications } = require("./push-notifications");
 const { createPublicMarketplace } = require("./public-marketplace");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
@@ -37,7 +38,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20261023-worker-planning";
+const PUBLIC_ASSET_VERSION = "20261023-important-push";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -355,6 +356,8 @@ const professionalProfileApi = professionalProfile.createProfessionalProfile({ r
   requireCompanyAccount, publicUser, publicCompany, audit, buildBootstrap, readBody, sendJson, responseHeaders,
   readPrivateUploadFile, savePrivateUploadFile, deletePrivateUploadFile });
 const directChatApi = directChat.createDirectChat({ readDb, mutateDb, requireAuth, readBody, sendJson, audit });
+const pushApi = createPushNotifications({ readDb, mutateDb, requireAuth, readBody, sendJson, supabaseRest, storageDriver: APP_STORAGE_DRIVER });
+directChatApi.setPushNotifier((userId) => pushApi.sendToUsers([userId], "message"));
 const publicMarketplace = createPublicMarketplace({ htmlEscape, publicJobPath, publicOpenJobs, renderPublicTopbarStatic, safeHttpUrl });
 
 function now() {
@@ -613,6 +616,7 @@ function createEmptyDb() {
     attendanceJustifications: [],
     workSchedules: [],
     dayOffRequests: [],
+    pushSubscriptions: [],
     auditLogs: [],
     jobOffers: [],
     jobApplications: [],
@@ -641,6 +645,7 @@ function ensureShape(db) {
     "attendanceJustifications",
     "workSchedules",
     "dayOffRequests",
+    "pushSubscriptions",
     "auditLogs",
     "jobOffers",
     "jobApplications",
@@ -2785,6 +2790,7 @@ function routeNotFound() {
 }
 
 async function handleApi(req, res, pathname) {
+  if (await pushApi.handle(req, res, pathname)) return;
   if (await directChatApi.handle(req, res, pathname)) return;
   if (await professionalProfileApi.handle(req, res, pathname)) return;
   if (await recruitmentApi.handle(req, res, pathname)) return;
@@ -3545,6 +3551,7 @@ async function handleApi(req, res, pathname) {
       }
       return { bootstrap: buildBootstrap(db, auth) };
     });
+    await pushApi.sendToUsers([body.workerId], "schedule");
     sendJson(res, 200, result);
     return;
   }
@@ -3570,8 +3577,11 @@ async function handleApi(req, res, pathname) {
         employmentId: employment.id, workDate, reason: cleanString(body.reason, 500), status: "pending", requestedAt: now(), decidedAt: null, decidedBy: null, decisionNote: "" };
       db.dayOffRequests.push(item);
       audit(db, { ...auth, company: { ...auth.company, id: employment.companyId } }, "day_off_request", item.id, "planning.day_off_requested", { workDate }, req);
-      return { bootstrap: buildBootstrap(db, auth) };
+      return { companyId: employment.companyId, bootstrap: buildBootstrap(db, auth) };
     });
+    const db = await readDb();
+    await pushApi.sendToUsers(db.users.filter(user => user.companyId === result.companyId && user.active !== false && isCompanyAdmin(user)).map(user => user.id), "dayOffRequest");
+    delete result.companyId;
     sendJson(res, 201, result);
     return;
   }
@@ -3601,6 +3611,8 @@ async function handleApi(req, res, pathname) {
       audit(db, auth, "day_off_request", item.id, `planning.day_off_${item.status}`, { workerId: item.workerId, workDate: item.workDate, note: item.decisionNote }, req);
       return { bootstrap: buildBootstrap(db, auth) };
     });
+    const decidedRequest = result.bootstrap.dayOffRequests.find(item => item.id === decodeURIComponent(dayOffDecisionMatch[1]));
+    if (decidedRequest) await pushApi.sendToUsers([decidedRequest.workerId], "dayOff");
     sendJson(res, 200, result);
     return;
   }
@@ -3780,6 +3792,7 @@ async function handleApi(req, res, pathname) {
       audit(db, auth, "work_order", order.id, "work_order.created", { title, address, assignedUserIds, expectedStartDate, expectedEndDate }, req);
       return { workOrder: publicWorkOrder(order), tasks: createdTasks.map((task) => publicTask(task, db)), bootstrap: buildBootstrap(db, auth) };
     });
+    await pushApi.sendToUsers(result.workOrder.assignedUserIds, "assignment");
     sendJson(res, 201, result);
     return;
   }
@@ -3919,6 +3932,7 @@ async function handleApi(req, res, pathname) {
       }, req);
       return { task: publicTask(task, db), bootstrap: buildBootstrap(db, auth) };
     });
+    await pushApi.sendToUsers([result.task.assigneeId], "assignment");
     sendJson(res, 201, result);
     return;
   }
@@ -4045,6 +4059,10 @@ async function handleApi(req, res, pathname) {
       }, req);
       return { task: publicTask(task, db), bootstrap: buildBootstrap(db, auth) };
     });
+    if (result.task?.status === "blocked") {
+      const db = await readDb();
+      await pushApi.sendToUsers(db.users.filter(user => user.companyId === result.task.companyId && user.active !== false && isCompanyAdmin(user)).map(user => user.id), "setback");
+    }
     sendJson(res, 200, result);
     return;
   }
@@ -4080,6 +4098,7 @@ async function handleApi(req, res, pathname) {
       }, req);
       return { task: publicTask(task, db), bootstrap: buildBootstrap(db, auth) };
     });
+    await pushApi.sendToUsers([result.task.assigneeId], "resolution");
     sendJson(res, 200, result);
     return;
   }

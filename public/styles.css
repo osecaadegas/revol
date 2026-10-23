@@ -286,7 +286,7 @@ a {
 }
 
 .pwa-install-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
-.pwa-install-button[hidden] { display: none !important; }
+.pwa-install-button[hidden], [data-push-toggle][hidden] { display: none !important; }
 .public-nav .pwa-install-button { min-height: 38px; border: 1px solid var(--text-primary); padding: 9px 11px; color: var(--text-primary); background: var(--brand-primary); font: 700 12px "Courier New", monospace; text-transform: uppercase; }
 .public-nav .pwa-install-button svg, .pwa-install-button svg { width: 17px; height: 17px; }
 .session-card .pwa-install-button { margin-top: 12px; }
@@ -2893,6 +2893,8 @@ td span:not(.status-badge) {
 }
 
 @media (max-width: 980px) {
+  .push-topbar-button { min-width: 44px; min-height: 44px; padding: 10px; }
+  .push-topbar-button span { display: none; }
   .auth-layout,
   .main-layout,
   .section-grid,

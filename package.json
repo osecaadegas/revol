@@ -16,9 +16,13 @@
     "test:storage-cache": "node server/storage-cache-test.js",
     "test:worker-home": "node server/worker-home-ui-test.js",
     "test:pwa": "node server/pwa-install-test.js",
+    "test:push": "node server/push-notifications-test.js",
     "seed:demo": "node server/seed-demo-data.js"
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "web-push": "3.6.7"
   }
 }

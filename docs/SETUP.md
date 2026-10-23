@@ -278,6 +278,32 @@ apenas a uma instalação nova ou reposição deliberada.
 
 ## Production Notes
 
+### Notificações importantes no dispositivo (Web Push, opt-in)
+
+Esta extensão Web Push foi pedida expressamente depois do âmbito inicial da
+Fase 1. Não é uma app nativa e não faz vigilância em segundo plano. Execute a
+migração aditiva `supabase/migrations/20261023180000_important_web_push.sql`
+no mesmo projeto Supabase da aplicação. Gere **uma única vez** as chaves VAPID
+com `npx web-push generate-vapid-keys --json` e configure
+`WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY` e `WEB_PUSH_SUBJECT`
+(`mailto:contacto@dominio-da-empresa.pt`) nas variáveis do servidor/Vercel.
+Guarde a chave privada apenas no servidor; não a coloque no repositório nem no
+frontend. Se rodar as chaves, cada dispositivo terá de voltar a ativar os
+avisos. Sem as três variáveis, o botão de ativação fica oculto e os avisos
+dentro da aplicação continuam a funcionar.
+
+O utilizador ativa/desativa os avisos por dispositivo no botão com o sino.
+No iPhone/iPad, deve primeiro instalar a aplicação no ecrã principal e aceitar
+a permissão apresentada pelo iOS. O navegador e o sistema operativo podem
+atrasar ou suprimir entregas; o push é complementar, não substitui o registo
+de mensagens, horários, decisões ou contratempos na aplicação. O conteúdo
+no ecrã bloqueado não inclui nomes, motivos, moradas ou texto de mensagens.
+
+Teste com duas contas e dois dispositivos: confirme que só o destinatário
+recebe cada categoria de aviso, que desligar os avisos e terminar sessão
+impede novas entregas e que uma falha do serviço push não impede a gravação
+da ação principal.
+
 This build is ready for a Phase 1 test environment on a persistent Node host or on a Node host backed by Supabase.
 
 For production:

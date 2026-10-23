@@ -8,6 +8,8 @@ const files = [
   "server/recruitment.js",
   "server/professional-profile.js",
   "server/direct-chat.js",
+  "server/push-notifications.js",
+  "server/push-notifications-test.js",
   "server/professional-profile-test.js",
   "server/professional-profile-ui-test.js",
   "server/recruitment-test.js",

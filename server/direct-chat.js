@@ -64,6 +64,7 @@ function snapshot(db,auth) {
 }
 
 function createDirectChat(h) {
+  let notifyRecipient = async () => {};
   async function handle(req,res,pathname) {
     if (!pathname.startsWith("/api/direct-chat")) return false;
     if (req.method === "GET" && pathname === "/api/direct-chat") {
@@ -109,7 +110,7 @@ function createDirectChat(h) {
         const message = { id:uid("chatmsg"),conversationId:conversation.id,senderId:auth.user.id,body:messageBody,readAt:null,createdAt:stamp() };
         db.directMessages.push(message); conversation.updatedAt = message.createdAt;
         h.audit(db,auditContext(auth,conversation.companyId),"direct_conversation",conversation.id,"direct_message.sent",{ messageId:message.id },req);
-        return { message,chat:snapshot(db,auth) };
+        return { message,recipientId:auth.user.id === conversation.workerId ? conversation.companyUserId : conversation.workerId,chat:snapshot(db,auth) };
       }
       if (req.method === "PATCH" && readMatch) {
         const conversation = conversationFor(db,auth,decodeURIComponent(readMatch[1]));
@@ -120,9 +121,11 @@ function createDirectChat(h) {
       }
       fail("Operação não encontrada.",404);
     });
+    if (result.message) await notifyRecipient(result.recipientId);
+    if (result.recipientId) delete result.recipientId;
     h.sendJson(res,req.method === "POST" && pathname === "/api/direct-chat/conversations" ? 201 : 200,result); return true;
   }
-  return { handle,snapshot };
+  return { handle,snapshot,setPushNotifier:fn => { notifyRecipient = fn; } };
 }
 
 module.exports = { EMPTY_KEYS,TABLES,createDirectChat };

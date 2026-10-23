@@ -147,7 +147,8 @@ These are documented in the source PDFs as excluded or future-phase concepts and
 
 - Native Android/iOS apps and app store publishing.
 - Full offline operation and advanced synchronization.
-- Native push notifications.
+- Native push notifications (Web Push opt-in para eventos importantes é uma
+  extensão posteriormente solicitada; não implica app nativa).
 - Continuous/background location tracking.
 - AI photo analysis.
 - Tiers, integrity scores, reputation, professional passports, automated disputes.

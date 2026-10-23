@@ -36,6 +36,95 @@
   let planningWeek = "";
   let planningSelection = null;
   let operationalAlertsRefreshInFlight = false;
+  let pushConfig = null;
+  let pushEnabled = false;
+  let pushSyncInFlight = false;
+
+  function pushSupported() {
+    return window.isSecureContext && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+  }
+
+  function updatePushButton() {
+    document.querySelectorAll("[data-push-toggle]").forEach(button => {
+      button.hidden = !pushSupported() || !pushConfig?.available;
+      button.setAttribute("aria-label", pushEnabled ? "Desativar notificações neste dispositivo" : "Ativar notificações importantes neste dispositivo");
+      button.setAttribute("aria-pressed", String(pushEnabled));
+      button.title = pushEnabled ? "Notificações ativas · tocar para desativar" : "Ativar notificações importantes";
+      const label = button.querySelector("span");
+      if (label) label.textContent = pushEnabled ? "Avisos ativos" : "Ativar avisos";
+    });
+  }
+
+  async function syncPushButton() {
+    if (!pushSupported() || pushSyncInFlight || !state.data?.user) return;
+    pushSyncInFlight = true;
+    try {
+      if (!pushConfig) pushConfig = await api("/api/push/config");
+      if (pushConfig.available) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        const subscription = await registration?.pushManager.getSubscription();
+        pushEnabled = Boolean(subscription && Notification.permission === "granted" &&
+          (await api("/api/push/subscriptions/status", { method: "POST", body: { subscription: subscription.toJSON() } })).subscribed);
+      }
+    } catch { if (!pushConfig) pushConfig = { available: false }; }
+    finally { pushSyncInFlight = false; updatePushButton(); }
+  }
+
+  async function togglePush() {
+    if (!pushSupported() || !pushConfig?.available) return;
+    try {
+      // Ask in the direct user gesture; iOS requires installed Home Screen apps.
+      if (!pushEnabled && Notification.permission !== "granted") {
+        if (await Notification.requestPermission() !== "granted") throw new Error("Permissão recusada. Podes alterá-la nas definições do dispositivo.");
+      }
+      const registration = await navigator.serviceWorker.register("/service-worker.js");
+      const existing = await registration.pushManager.getSubscription();
+      if (pushEnabled) {
+        if (existing) {
+          await api("/api/push/subscriptions", { method: "DELETE", body: { subscription: existing.toJSON() } });
+          await existing.unsubscribe();
+        }
+        pushEnabled = false;
+        setNotice("Notificações deste dispositivo desativadas.");
+      } else {
+        const subscription = existing || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushConfig.publicKey });
+        try { await api("/api/push/subscriptions", { method: "POST", body: { subscription: subscription.toJSON() } }); }
+        catch (error) { if (!existing) await subscription.unsubscribe(); throw error; }
+        pushEnabled = true;
+        setNotice("Notificações importantes ativadas neste dispositivo.");
+      }
+      updatePushButton();
+      renderApp();
+    } catch (error) { setNotice(error.message || "Não foi possível alterar as notificações.", "error"); renderApp(); }
+  }
+
+  async function disconnectPush() {
+    if (!pushSupported()) return;
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const subscription = await registration?.pushManager.getSubscription();
+      if (subscription) {
+        await api("/api/push/subscriptions", { method: "DELETE", body: { subscription: subscription.toJSON() } });
+        await subscription.unsubscribe();
+      }
+    } catch (error) { console.warn("Não foi possível remover a subscrição push:", error); }
+    pushEnabled = false;
+  }
+
+  function openPushDestination(kind) {
+    if (!kind) return;
+    if (kind === "message") { state.view = "marketplace"; recruitmentUI.openTab("chat"); }
+    else if (kind === "schedule" || kind === "dayOff" || kind === "dayOffRequest") {
+      if (isWorker()) { state.view = "marketplace"; recruitmentUI.openTab("planning"); }
+      else state.view = "planning";
+    } else if (kind === "assignment" || kind === "setback" || kind === "resolution") {
+      if (isWorker()) { state.view = "marketplace"; recruitmentUI.openTab("tasks"); }
+      else state.view = "tasks";
+    }
+    const url = new URL(location.href);
+    url.searchParams.delete("push");
+    history.replaceState(null, "", url.pathname + url.search + url.hash);
+  }
 
   const roleLabels = {
     manager: "Gestor",
@@ -1384,6 +1473,7 @@
         state.data = payload.bootstrap;
         state.view = defaultViewForUser();
         recruitmentUI.defaultWorkerHome();
+        openPushDestination(new URLSearchParams(location.search).get("push"));
         if (["project", "mvp"].includes(state.view)) {
           try {
             await refreshActivePrivateView();
@@ -1598,6 +1688,7 @@
             <strong>${escapeHtml(user.name)}</strong>
             <span>${escapeHtml(roleLabels[user.role] || user.role)}</span>
             <button class="btn ghost full pwa-install-button" type="button" data-pwa-install hidden>${icon("download")}<span>Instalar app</span></button>
+            <button class="btn ghost full" type="button" data-push-toggle hidden>${icon("bell")}<span>Ativar avisos</span></button>
             <button class="btn ghost full" style="margin-top: 12px" data-action="logout">Sair</button>
           </div>
         </aside>
@@ -1612,6 +1703,7 @@
             </div>
             ${isWorker() ? recruitmentUI.mobileTabs() : isManager() ? renderCompanyMobileMenu() : ""}
             ${!isWorker() ? `<button class="btn ghost pwa-install-button" type="button" data-pwa-install hidden>${icon("download")}<span>Instalar app</span></button>` : ""}
+            <button class="btn ghost push-topbar-button" type="button" data-push-toggle hidden>${icon("bell")}<span>Ativar avisos</span></button>
             <button class="btn ghost topbar-logout" data-action="logout">Sair</button>
           </div>
           ${noticeHtml()}
@@ -1628,6 +1720,8 @@
     bindAppEvents();
     window.TrataDesign.enhance();
     window.TrataPwaInstall?.sync();
+    updatePushButton();
+    if (!pushConfig) syncPushButton();
     syncOperationalAlertIndicators();
   }
 
@@ -3059,6 +3153,7 @@
   }
 
   function bindAppEvents() {
+    document.querySelectorAll("[data-push-toggle]").forEach(button => button.addEventListener("click", togglePush));
     recruitmentUI.bind();
     document.querySelector("[data-planning-week]")?.addEventListener("change", (event) => {
       planningWeek = planningMonday(event.target.value);
@@ -3145,6 +3240,7 @@
 
     document.querySelectorAll("[data-action='logout']").forEach((button) => {
       button.addEventListener("click", async () => {
+        await disconnectPush();
         try {
           await api("/api/auth/logout", { method: "POST" });
         } catch {}
@@ -3630,6 +3726,7 @@
           await refreshData();
           state.view = defaultViewForUser();
           recruitmentUI.defaultWorkerHome();
+          openPushDestination(entryParams.get("push"));
           if (["project", "mvp"].includes(state.view)) {
             try {
               await refreshActivePrivateView();

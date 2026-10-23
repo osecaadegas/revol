@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v30-worker-planning";
+const CACHE_NAME = "tratapro-shell-v31-important-push";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
@@ -73,4 +73,40 @@ self.addEventListener("fetch", (event) => {
       })
       .catch(() => caches.match(event.request).then((cached) => cached || (event.request.mode === "navigate" ? caches.match("/index.html") : Response.error())))
   );
+});
+
+self.addEventListener("push", (event) => {
+  event.waitUntil((async () => {
+    let message = {};
+    try { message = event.data?.json() || {}; } catch { /* Show a generic notice for malformed payloads. */ }
+    const allowed = {
+      assignment: ["Novo trabalho atribuído", "Consulta a tua ordem ou tarefa na TrataPro."],
+      schedule: ["Horário atualizado", "Consulta o teu planeamento na TrataPro."],
+      dayOff: ["Pedido de folga decidido", "Consulta a decisão na TrataPro."],
+      dayOffRequest: ["Novo pedido de folga", "Um pedido precisa de decisão no planeamento."],
+      setback: ["Contratempo comunicado", "Uma tarefa precisa da atenção da empresa."],
+      resolution: ["Contratempo resolvido", "Podes consultar a tarefa e retomar o trabalho."],
+      message: ["Nova conversa", "Recebeste uma mensagem de trabalho na TrataPro."]
+    };
+    const kind = Object.hasOwn(allowed, message.kind) ? message.kind : "message";
+    const [title, body] = allowed[kind];
+    await self.registration.showNotification(title, { body, icon: "/icon-192.png", badge: "/icon-192.png",
+      tag: `tratapro-${kind}`, data: { kind }, renotify: false });
+  })());
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const kind = event.notification.data?.kind;
+    const target = new URL("/", self.location.origin);
+    if (["assignment", "schedule", "dayOff", "dayOffRequest", "setback", "resolution", "message"].includes(kind)) target.searchParams.set("push", kind);
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const existing = windows.find(client => new URL(client.url).origin === self.location.origin);
+    if (existing) {
+      await existing.navigate(target.href);
+      return existing.focus();
+    }
+    return self.clients.openWindow(target.href);
+  })());
 });
