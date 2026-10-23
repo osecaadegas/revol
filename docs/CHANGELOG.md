@@ -2,6 +2,16 @@
 
 ## 2026-10-23
 
+- No telemóvel, as provas finais mostram apenas os botões para captar as
+  fotografias ainda necessárias (até três), um controlo de GPS pontual e o
+  envio. A observação e o seletor múltiplo mantêm-se disponíveis no computador;
+  as fotografias já enviadas ficam num painel expansível. O GPS é associado aos
+  registos das provas, sem vigilância contínua nem alteração dos ficheiros.
+- A navegação móvel da empresa reúne recrutamento e operações num único menu
+  de topo. Quatro atalhos fixos dão acesso a Conversas, Tarefas, Candidaturas
+  e Presenças; o aviso visual de contratempo mantém-se no atalho Tarefas.
+  Presenças e justificações têm agora uma categoria própria, fora do Painel,
+  reutilizando os registos e as permissões já existentes.
 - Bloqueado o arrastamento horizontal do documento em iPhone/iPad, preservando
   a deslocação vertical e o zoom. Os controlos táteis respondem sem atraso de
   toque. O instalador PWA deixou de observar todas as alterações da página e

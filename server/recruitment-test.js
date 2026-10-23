@@ -149,6 +149,28 @@ async function run() {
         assert.equal(await page.locator('.mobile-recruitment-menu .recruitment-tabs .btn').evaluateAll(elements => elements.filter(element => getComputedStyle(element).backgroundColor === "rgb(217, 241, 33)").length), 1, `Only the current company section may use the yellow highlight: ${id}`);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Company mobile overflow: ${id}`);
       }
+      assert.equal(await page.locator('#app > .company-quick-nav button').count(), 4, 'the company has four phone shortcuts');
+      for (const width of [320, 390, 768]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        assert.ok(await page.locator('#app > .company-quick-nav').evaluate(el => Math.abs(el.getBoundingClientRect().bottom - innerHeight) < 2), `company shortcuts stay visible at ${width}px`);
+        assert.ok(await page.locator('#app > .company-quick-nav button').evaluateAll(elements => elements.every(element => {
+          const box = element.getBoundingClientRect();
+          return box.left >= -1 && box.right <= innerWidth + 1;
+        })), `all four company shortcuts fit at ${width}px`);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `company shortcuts do not overflow at ${width}px`);
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.locator('.company-quick-nav [data-view="attendance"]').click();
+      await page.getByRole('heading', { name: 'Presenças e justificações' }).waitFor();
+      assert.equal(await page.locator('.company-quick-nav [data-view="attendance"]').getAttribute('aria-current'), 'page');
+      await page.locator('.company-quick-nav [data-recruitment="tab"][data-id="chat"]').click();
+      await page.getByRole('heading', { name: 'Conversas' }).first().waitFor();
+      await page.locator('.company-quick-nav [data-view="tasks"]').click();
+      await page.getByRole('heading', { name: 'Tarefas' }).first().waitFor();
+      await page.locator('.company-quick-nav [data-recruitment="tab"][data-id="applications"]').click();
+      await page.getByRole('heading', { name: 'Candidaturas' }).first().waitFor();
+      await selectMobileTab('jobs');
       await page.locator('[data-recruitment="edit-job"]').click();
       assert.equal(await page.locator('[data-form="create-job"] input[name="title"]').inputValue(), job.title);
       await page.locator('[data-recruitment="preview-job"]').click();
@@ -175,7 +197,7 @@ async function run() {
       await alertPage.locator('.company-operational-notice').waitFor();
       assert.match(await alertPage.locator('.company-operational-notice').innerText(), /Prioridade alta[\s\S]*Colaborador alerta[\s\S]*Obra de alerta[\s\S]*Material em falta[\s\S]*fornecedor/i);
       assert.equal(await alertPage.locator('.company-operational-notice').evaluate(element => getComputedStyle(element).borderLeftColor), 'rgb(196, 48, 28)', 'A setback must use the urgent alert color');
-      assert.equal(await alertPage.locator('.mobile-workspace-menu').evaluate(element => element.classList.contains('has-operational-alert')), true);
+      assert.equal(await alertPage.locator('.company-quick-nav [data-view="tasks"]').evaluate(element => element.classList.contains('operational-siren')), true);
       assert.equal(await alertPage.locator('.sidebar [data-operational-alert-badge]').textContent(), '1');
       assert.match(await alertPage.title(), /^⚠ 1 contratempo/);
       assert.equal(await alertPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'High-priority alert must fit on a phone');

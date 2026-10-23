@@ -89,6 +89,7 @@
     ["dashboard", "Painel"],
     ["orders", "Ordens"],
     ["tasks", "Tarefas"],
+    ["attendance", "Presenças e justificações"],
     ["team", "Equipa"],
     ["history", "Historico"]
   ];
@@ -1579,7 +1580,7 @@
           </div>
         </aside>
         <main class="content" id="main-content" tabindex="-1">
-          <div class="topbar ${isWorker() ? "worker-topbar" : ""}">
+          <div class="topbar ${isWorker() ? "worker-topbar" : isManager() ? "company-topbar" : ""}">
             <div class="side-brand" style="color: var(--ink)">
               <img class="brand-logo-mark" src="/icon.svg" alt="">
               <div>
@@ -1587,11 +1588,10 @@
                 <span style="color: var(--muted)">${escapeHtml(state.data.company.name)}</span>
               </div>
             </div>
-            ${isWorker() ? recruitmentUI.mobileTabs() : ""}
+            ${isWorker() ? recruitmentUI.mobileTabs() : isManager() ? renderCompanyMobileMenu() : ""}
             ${!isWorker() ? `<button class="btn ghost pwa-install-button" type="button" data-pwa-install hidden>${icon("download")}<span>Instalar app</span></button>` : ""}
             <button class="btn ghost topbar-logout" data-action="logout">Sair</button>
           </div>
-          ${isManager() ? `<div data-mobile-recruitment-navigation>${recruitmentUI.mobileTabs()}</div>` : ""}
           ${noticeHtml()}
           <div data-operational-notice aria-live="assertive">${renderOperationalNotice()}</div>
           ${renderView()}
@@ -1600,6 +1600,7 @@
       ${renderMobileNav()}
       ${renderTaskDrawer()}
       ${isWorker() ? recruitmentUI.quickTabs() : ""}
+      ${isManager() ? renderCompanyQuickNav() : ""}
     `;
     bindAppEvents();
     window.TrataDesign.enhance();
@@ -1615,14 +1616,14 @@
             if (view === "marketplace" && (isWorker() || isManager())) return false;
             if (view === "project") return canViewPrivateProject();
             if (view === "mvp") return canViewPrivateProject();
-            if (view === "team") return isManager();
+            if (["team", "attendance"].includes(view)) return isManager();
             if (["orders", "tasks", "dashboard", "history"].includes(view)) return canUseOperations();
             return true;
           })
           .map(
             ([view, label]) => `
               <button type="button" data-view="${view}" ${view === "tasks" && isManager() ? "data-operational-alert-target" : ""} class="${state.view === view ? "active" : ""} ${view === "tasks" && operationalAlertCount() ? "operational-siren" : ""}">
-                ${icon(({project:"folder",mvp:"layout-dashboard",dashboard:"layout-dashboard",orders:"folder",tasks:"clipboard-list",team:"users",history:"history"})[view] || "briefcase-business")}<span>${label}</span><span>${view === "tasks" ? state.data.tasks.length : ""}</span>${view === "tasks" && isManager() ? renderOperationalAlertBadge() : ""}
+                ${icon(({project:"folder",mvp:"layout-dashboard",dashboard:"layout-dashboard",orders:"folder",tasks:"clipboard-list",attendance:"history",team:"users",history:"history"})[view] || "briefcase-business")}<span>${label}</span><span>${view === "tasks" ? state.data.tasks.length : ""}</span>${view === "tasks" && isManager() ? renderOperationalAlertBadge() : ""}
               </button>
             `
           )
@@ -1632,7 +1633,7 @@
   }
 
   function renderMobileNav() {
-    if (isWorker()) return "";
+    if (isWorker() || isManager()) return "";
     return `
       <details class="mobile-workspace-menu ${operationalAlertCount() ? "has-operational-alert" : ""}">
       <summary>${icon("layout-dashboard")} ${canViewPrivateProject() ? "Workspace" : "Operações"}${isManager() ? renderOperationalAlertBadge() : ""}</summary>
@@ -1641,7 +1642,7 @@
           .filter(([view]) => {
             if (view === "project") return canViewPrivateProject();
             if (view === "mvp") return canViewPrivateProject();
-            if (view === "team") return isManager();
+            if (["team", "attendance"].includes(view)) return isManager();
             if (["orders", "tasks", "dashboard", "history"].includes(view)) return canUseOperations();
             return true;
           })
@@ -1656,12 +1657,36 @@
     `;
   }
 
+  function renderCompanyMobileMenu() {
+    return `<details class="mobile-recruitment-menu worker-mobile-menu company-mobile-menu"><summary aria-label="Menu de navegação"><span class="worker-menu-icon" aria-hidden="true"><i></i><i></i><i></i></span><span>Menu</span></summary>
+      <div class="worker-mobile-menu-content company-mobile-menu-content">
+        <p class="company-menu-heading">Empresa</p>${recruitmentUI.tabs()}
+        <p class="company-menu-heading">Trabalho</p>${renderNav("nav company-mobile-operational-nav")}
+        <button class="btn ghost worker-mobile-logout pwa-install-button" type="button" data-pwa-install hidden>${icon("download")}<span>Instalar app</span></button>
+        <button class="btn ghost worker-mobile-logout" type="button" data-action="logout">${icon("log-out")}<span>Sair</span></button>
+      </div></details>`;
+  }
+
+  function renderCompanyQuickNav() {
+    const items = [
+      ["chat", "Conversas", "message-square", "recruitment"],
+      ["tasks", "Tarefas", "clipboard-list", "view"],
+      ["applications", "Candidaturas", "file-text", "recruitment"],
+      ["attendance", "Presenças<br>Justificações", "history", "view"]
+    ];
+    return `<nav class="company-quick-nav" aria-label="Acesso rápido da empresa">${items.map(([id, label, symbol, type]) => {
+      const active = type === "view" ? state.view === id : state.view === "marketplace" && recruitmentUI.current() === id;
+      return `<button type="button" ${type === "view" ? `data-view="${id}"` : `data-recruitment="tab" data-id="${id}"`} ${id === "tasks" ? "data-operational-alert-target" : ""} class="${id === "tasks" && operationalAlertCount() ? "operational-siren" : ""}" aria-current="${active ? "page" : "false"}" aria-label="${id === "attendance" ? "Presenças e justificações" : label}">${icon(symbol)}<span>${label}</span>${id === "tasks" ? renderOperationalAlertBadge() : ""}</button>`;
+    }).join("")}</nav>`;
+  }
+
   function renderView() {
     if (state.view === "project") return canViewPrivateProject() ? renderPrivateProjectView() : renderMarketplace();
     if (state.view === "mvp") return canViewPrivateProject() ? renderPrivateMvpView() : renderMarketplace();
     if (state.view === "marketplace") return renderMarketplace();
     if (state.view === "orders") return canUseOperations() ? renderOrders() : renderMarketplace();
     if (state.view === "tasks") return canUseOperations() ? renderTasks() : renderMarketplace();
+    if (state.view === "attendance") return isManager() ? renderAttendance() : renderMarketplace();
     if (state.view === "team") return renderTeam();
     if (state.view === "history") return canUseOperations() ? renderHistory() : renderMarketplace();
     return canUseOperations() ? renderDashboard() : renderMarketplace();
@@ -2227,8 +2252,6 @@
       .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))
       .slice(0, 6);
     const pending = state.data.tasks.filter((task) => task.status === "pending_validation").slice(0, 5);
-    const attendance = state.data.attendanceEntries || [];
-    const justifications = state.data.attendanceJustifications || [];
 
     return `
       <section class="view-heading">
@@ -2264,12 +2287,6 @@
               </div>
             </div>
           ` : ""}
-          ${isManager() ? `<div class="panel"><div class="panel-header"><h2>Presenças e justificações</h2></div>
-            <p class="muted">Registos factuais; não são classificações de desempenho. Documentos reservados aos responsáveis da empresa.</p>
-            ${state.data.attendanceAvailable === false ? '<p class="notice error">Migração do registo horário ainda pendente.</p>' : ""}
-            <details><summary>Entradas e saídas recentes (${attendance.length})</summary>${attendance.slice(0, 15).map(item => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${formatDate(item.clockedInAt)} — ${item.clockedOutAt ? formatDate(item.clockedOutAt) : "Em curso"}</p>`).join("") || '<p>Sem registos.</p>'}</details>
-            <details><summary>Justificações recebidas (${justifications.length})</summary>${justifications.slice(0, 15).map(item => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${escapeHtml(item.absenceDate)} · ${escapeHtml(item.reason || "Documento entregue")}${item.downloadUrl ? ` · <a href="${escapeHtml(item.downloadUrl)}">Descarregar anexo</a>` : ""}</p>`).join("") || '<p>Sem justificações.</p>'}</details>
-          </div>` : ""}
           <div class="panel">
             <div class="panel-header"><h2>A aguardar validacao</h2></div>
             <div class="list">
@@ -2285,6 +2302,17 @@
         </div>
       </section>
     `;
+  }
+
+  function renderAttendance() {
+    const attendance = state.data.attendanceEntries || [];
+    const justifications = state.data.attendanceJustifications || [];
+    return `<section class="view-heading"><div><h1>Presenças e justificações</h1><p>Entradas, saídas e ausências comunicadas pelos trabalhadores.</p></div></section>
+      <div class="panel"><p class="muted">Registos factuais; não são classificações de desempenho. Documentos reservados aos responsáveis da empresa.</p>
+        ${state.data.attendanceAvailable === false ? '<p class="notice error">Migração do registo horário ainda pendente.</p>' : ""}
+        <details open><summary>Entradas e saídas recentes (${attendance.length})</summary><div class="attendance-records">${attendance.map(item => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${formatDate(item.clockedInAt)} — ${item.clockedOutAt ? formatDate(item.clockedOutAt) : "Em curso"}</p>`).join("") || '<p>Sem registos.</p>'}</div></details>
+        <details open><summary>Justificações recebidas (${justifications.length})</summary><div class="attendance-records">${justifications.map(item => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${escapeHtml(item.absenceDate)} · ${escapeHtml(item.reason || "Documento entregue")}${item.downloadUrl ? ` · <a href="${escapeHtml(item.downloadUrl)}">Descarregar anexo</a>` : ""}</p>`).join("") || '<p>Sem justificações.</p>'}</div></details>
+      </div>`;
   }
 
   function renderOrders() {
@@ -2812,9 +2840,7 @@
             <div class="panel-header"><h2>Provas finais</h2><span class="chip">${acceptedEvidence.length}/${finalEvidenceMinimum}</span></div>
             ${acceptedEvidence.length < finalEvidenceMinimum && !["pending_validation", "approved"].includes(task.status) ? `<div class="notice error">Para concluir, submeta pelo menos ${finalEvidenceMinimum} fotografias com GPS autorizado.</div>` : ""}
             ${renderEvidenceForm(task)}
-            <div class="evidence-grid" style="margin-top: 14px">
-              ${evidence.length ? evidence.map(renderEvidenceCard).join("") : empty("Sem fotografias submetidas.")}
-            </div>
+            ${evidence.length ? `<details class="evidence-existing-list"><summary>Fotografias enviadas (${evidence.length})</summary><div class="evidence-grid">${evidence.map(renderEvidenceCard).join("")}</div></details>` : ""}
           </div>
           <details class="task-history-disclosure">
             <summary>Ver histórico da tarefa${logs.length ? ` (${logs.length})` : ""}</summary>
@@ -2884,22 +2910,26 @@
   function renderEvidenceForm(task) {
     const canAdd = (isManager() || task.assigneeId === currentUser().id) && !["pending_validation", "approved"].includes(task.status);
     if (!canAdd) return `<p class="muted">Esta tarefa ja nao aceita novas provas.</p>`;
+    const remaining = Math.max(0, finalEvidenceMinimum - qualifyingEvidence(task.id).length);
     return `
-      <form class="form-grid" data-form="evidence" data-task-id="${escapeHtml(task.id)}">
-        <div class="field">
+      <form class="form-grid evidence-form ${remaining ? "" : "evidence-minimum-met"}" data-form="evidence" data-task-id="${escapeHtml(task.id)}" data-remaining="${remaining}">
+        <div class="field evidence-desktop-files">
           <label>Fotografias finais com GPS</label>
-          <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" multiple required>
+          <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" multiple>
           <p class="muted">Pode selecionar varias fotos. Cada envio fica guardado 7 dias e precisa de localizacao autorizada.</p>
         </div>
-        <div class="field">
+        <div class="evidence-mobile-capture">
+          ${remaining ? `<p class="evidence-capture-help">Tira ${remaining} ${remaining === 1 ? "fotografia" : "fotografias"} para concluir a tarefa.</p>${Array.from({ length: remaining }, (_, index) => `<label class="evidence-camera-slot">${icon("plus")}<span>Tirar fotografia ${finalEvidenceMinimum - remaining + index + 1}</span><input type="file" accept="image/png,image/jpeg,image/webp" capture="environment" data-evidence-mobile-photo><small data-evidence-photo-status>Toque para abrir a câmara</small></label>`).join("")}` : '<p class="notice success">As três fotografias necessárias já foram submetidas.</p>'}
+        </div>
+        <div class="field evidence-optional-note">
           <label>Observacao</label>
           <textarea name="note" placeholder="Nota curta sobre a prova"></textarea>
         </div>
-        <div class="card-actions">
-          <button class="btn ghost" type="button" data-action="capture-location">Autorizar GPS pontual</button>
-          <span class="chip" id="location-status">${locationLabel(state.locationDraft)}</span>
+        <div class="card-actions evidence-gps-action">
+          <button class="btn ghost" type="button" data-action="capture-location">Ativar GPS nas fotografias</button>
+          <span class="chip" id="location-status" role="status">${locationLabel(state.locationDraft)}</span>
         </div>
-        <button class="btn primary" type="submit">Submeter fotografias</button>
+        <button class="btn primary evidence-submit" type="submit">Enviar fotografias</button>
       </form>
     `;
   }
@@ -2975,6 +3005,7 @@
 
     document.querySelectorAll("[data-view]").forEach((button) => {
       button.addEventListener("click", async () => {
+        if (button.closest(".company-quick-nav")) state.selectedTaskId = null;
         state.view = button.dataset.view;
         if (button.dataset.filterOrder) {
           state.filters.query = orderById(button.dataset.filterOrder)?.title || "";
@@ -3073,6 +3104,12 @@
 
     document.querySelectorAll("[data-action='capture-location']").forEach((button) => {
       button.addEventListener("click", captureLocation);
+    });
+    document.querySelectorAll("[data-evidence-mobile-photo]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const status = input.closest(".evidence-camera-slot")?.querySelector("[data-evidence-photo-status]");
+        if (status) status.textContent = input.files?.length ? "Fotografia pronta" : "Toque para abrir a câmara";
+      });
     });
     document.querySelectorAll("[data-toggle-user]").forEach((button) => {
       button.addEventListener("click", () => toggleUser(button.dataset.toggleUser));
@@ -3293,8 +3330,12 @@
   }
 
   async function submitEvidence(form) {
-    const input = form.querySelector("input[type='file']");
-    const photos = await filesToPhotos(input.files, 12);
+    const mobile = window.matchMedia("(max-width: 640px)").matches;
+    const selectedFiles = mobile
+      ? [...form.querySelectorAll("[data-evidence-mobile-photo]")].flatMap(input => [...(input.files || [])])
+      : [...(form.querySelector(".evidence-desktop-files input[type='file']")?.files || [])];
+    if (mobile && selectedFiles.length < Number(form.dataset.remaining)) throw new Error(`Tire ${form.dataset.remaining} fotografia(s) antes de enviar.`);
+    const photos = await filesToPhotos(selectedFiles, 12);
     if (!photos.length) throw new Error("Escolha pelo menos uma fotografia.");
     if (state.locationDraft?.status !== "granted") {
       throw new Error("Autorize o GPS pontual antes de submeter fotografias finais.");
@@ -3433,7 +3474,7 @@
         state.locationDraft = { status: "denied" };
         if (status) status.textContent = locationLabel(state.locationDraft);
       },
-      { enableHighAccuracy: false, timeout: 9000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   }
 

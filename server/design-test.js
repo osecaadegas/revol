@@ -112,14 +112,25 @@ async function reviewDesign(browser, base, accounts, jobPath, companyPath) {
       }
     }
     await signIn(accounts.company);
-    for (const view of ['dashboard', 'orders', 'tasks', 'team', 'history']) {
-      if (width < 981) await page.locator('.mobile-workspace-menu').evaluate(el => el.open = true);
-      await page.locator(`.nav [data-view="${view}"], .mobile-nav [data-view="${view}"]`).filter({ visible: true }).first().click();
+    if (width < 981) {
+      assert.equal(await page.locator('.company-topbar .company-mobile-menu > summary').isVisible(), true, 'company burger menu is in the top bar');
+      assert.equal(await page.locator('#app > .company-quick-nav button').count(), 4, 'company phone navigation has four destinations');
+    }
+    for (const view of ['dashboard', 'orders', 'tasks', 'attendance', 'team', 'history']) {
+      if (width < 981) await page.locator('.company-mobile-menu').evaluate(el => el.open = true);
+      await page.locator(`${width < 981 ? '.company-mobile-operational-nav' : '.sidebar .nav'} [data-view="${view}"]`).click();
       await page.locator('.view-heading').waitFor();
       await capture(`operations-${view}`, width);
       if (view === 'tasks') {
         await page.locator('[data-open-task]').first().click();
         await page.locator('.detail-panel').waitFor();
+        if (width <= 640) {
+          assert.equal(await page.locator('.detail-panel [data-evidence-mobile-photo]').count(), 3, 'phone evidence flow offers three camera slots');
+          assert.equal(await page.locator('.detail-panel .evidence-optional-note').isVisible(), false, 'phone evidence flow hides optional notes');
+          assert.equal(await page.locator('.detail-panel [data-action="capture-location"]').isVisible(), true, 'phone evidence flow offers point-in-time GPS');
+          await page.locator('.detail-panel .evidence-form').scrollIntoViewIfNeeded();
+          await page.screenshot({ path: path.join(directory, `operations-evidence-${width}.png`) });
+        }
         await capture('operations-task-detail', width);
         await page.keyboard.press('Escape');
         await page.locator('.detail-panel').waitFor({state:'detached'});

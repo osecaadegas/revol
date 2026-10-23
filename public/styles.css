@@ -4227,9 +4227,31 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
 .task-history-entry p { margin: 0; overflow-wrap: anywhere; }
 
 .worker-mobile-menu, .worker-quick-nav { display: none; }
+.company-mobile-menu, .company-quick-nav { display: none; }
+.attendance-records { display: grid; gap: 0; }
+.attendance-records p { margin: 0; padding: 12px 0; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); overflow-wrap: anywhere; }
+.evidence-mobile-capture { display: none; }
+.evidence-existing-list { margin-top: 14px; border: 1px solid var(--border-subtle); }
+.evidence-existing-list > summary { padding: 12px; font-family: "Courier New", monospace; font-size: 12px; text-transform: uppercase; }
+.evidence-existing-list .evidence-grid { padding: 12px; }
+@media (max-width: 640px) {
+  .evidence-form .evidence-desktop-files, .evidence-form .evidence-optional-note { display: none; }
+  .evidence-mobile-capture { display: grid; gap: 8px; }
+  .evidence-capture-help { margin: 0 0 4px; }
+  .evidence-camera-slot { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 4px 8px; min-height: 56px; padding: 8px 12px; border: 1px solid var(--text-primary); background: var(--surface-primary); cursor: pointer; }
+  .evidence-camera-slot > span { font-weight: 700; }
+  .evidence-camera-slot > small { grid-column: 1 / -1; color: var(--text-secondary); }
+  .evidence-camera-slot input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+  .evidence-camera-slot:focus-within { outline: 3px solid var(--text-primary); outline-offset: 2px; }
+  .evidence-gps-action { display: grid; grid-template-columns: minmax(0,1fr); }
+  .evidence-gps-action .btn, .evidence-submit { width: 100%; min-height: 52px; }
+  .evidence-gps-action .chip { justify-self: start; }
+  .evidence-minimum-met .evidence-gps-action, .evidence-minimum-met .evidence-submit { display: none; }
+}
 @media (max-width: 980px) {
-  .worker-topbar .topbar-logout { display: none; }
-  .worker-topbar .worker-mobile-menu { display: block; flex: 0 0 auto; position: relative; border: 0; background: transparent; }
+  .worker-topbar .topbar-logout, .company-topbar .topbar-logout,
+  .company-topbar > .pwa-install-button { display: none; }
+  .worker-topbar .worker-mobile-menu, .company-topbar .company-mobile-menu { display: block; flex: 0 0 auto; position: relative; border: 0; background: transparent; }
   .worker-mobile-menu > summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 58px; min-height: 48px; padding: 7px 10px; border: 1px solid var(--text-primary); font-family: "Courier New", monospace; font-size: 11px; text-transform: uppercase; }
   .worker-mobile-menu > summary::after { display: none; }
   .worker-mobile-menu[open] > summary { background: var(--brand-primary); }
@@ -4253,4 +4275,28 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
   .worker-quick-nav .nav-alert-count { position: absolute; top: 1px; right: 2px; }
   body:has(.app-shell > .worker-quick-nav) .content,
   body:has(.app-shell > .worker-quick-nav) .detail-panel { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .company-topbar:has(.company-mobile-menu[open]) { z-index: 90; }
+  .company-mobile-menu-content { max-height: min(78dvh, 660px); overflow-y: auto; overscroll-behavior: contain; }
+  .company-mobile-menu .recruitment-tabs { max-height: none; }
+  .company-menu-heading { margin: 6px 8px 2px; font: 700 11px "Courier New", monospace; text-transform: uppercase; }
+  .company-mobile-operational-nav { display: grid; gap: 2px; padding: 8px; border-top: 1px solid var(--border-subtle); }
+  .company-mobile-operational-nav button { min-width: 0; min-height: 44px; padding: 8px; border: 1px solid var(--border-subtle); color: var(--text-primary); background: var(--bg-secondary); font: 700 11px "Courier New", monospace; text-transform: uppercase; text-align: left; }
+  .company-mobile-operational-nav button.active { color: var(--text-primary); background: var(--brand-primary); }
+  .company-mobile-operational-nav button.operational-siren,
+  .company-quick-nav button.operational-siren { color: white; animation: operational-siren 2s steps(1,end) infinite; }
+  .company-mobile-operational-nav button > span:nth-last-child(2):empty { display: none; }
+  .company-quick-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 80; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 3px; width: 100%; max-width: 100%; padding: 4px max(6px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left)); border-top: 2px solid var(--text-primary); background: var(--surface-primary); box-shadow: 0 -3px 14px rgba(0,0,0,.12); transform: translateZ(0); -webkit-transform: translateZ(0); }
+  .company-quick-nav button { position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 2px; min-width: 0; min-height: 48px; padding: 3px 1px; border: 1px solid var(--border-subtle); color: var(--text-primary); background: var(--bg-secondary); font: 700 9px "Courier New", monospace; text-transform: uppercase; cursor: pointer; }
+  .company-quick-nav button .ui-icon { width: 17px; height: 17px; flex: 0 0 17px; }
+  .company-quick-nav button > span:not(.operational-alert-badge) { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .company-quick-nav button:last-child > span:not(.operational-alert-badge) { white-space: normal; line-height: 1.05; text-align: center; }
+  .company-quick-nav button[aria-current="page"] { border-color: var(--text-primary); background: var(--brand-primary); }
+  .company-quick-nav .operational-alert-badge { position: absolute; top: 1px; right: 2px; min-width: 17px; min-height: 17px; font-size: 10px; }
+  body:has(.app-shell > .company-quick-nav) .content,
+  body:has(.app-shell > .company-quick-nav) .detail-panel { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .company-quick-nav button:focus-visible, .company-mobile-menu > summary:focus-visible { outline: 3px solid var(--text-primary); outline-offset: 2px; }
+}
+@media (max-width: 980px) and (prefers-reduced-motion: reduce) {
+  .company-mobile-operational-nav button.operational-siren,
+  .company-quick-nav button.operational-siren { animation: none; color: white; background: #a71919; }
 }

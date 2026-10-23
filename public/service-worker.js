@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v28-ios-response";
+const CACHE_NAME = "tratapro-shell-v29-company-camera";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
