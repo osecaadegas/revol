@@ -109,6 +109,6 @@
     }
   });
 
-  new MutationObserver(syncButtons).observe(document.documentElement, { childList: true, subtree: true });
+  window.TrataPwaInstall = Object.freeze({ sync: syncButtons });
   document.addEventListener("DOMContentLoaded", syncButtons);
 })();

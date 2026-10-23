@@ -17,11 +17,13 @@ assert.equal(manifest.scope, "/");
 assert.ok(manifest.icons.some((icon) => icon.src === "/icon-192.png" && icon.sizes === "192x192"));
 assert.ok(manifest.icons.some((icon) => icon.src === "/icon-512.png" && icon.sizes === "512x512"));
 assert.match(index, /apple-touch-icon/);
-assert.match(index, /pwa-install\.js\?v=20261023-install-app/);
+assert.match(index, /pwa-install\.js\?v=20261023-ios-response/);
 assert.match(app, /data-pwa-install hidden/);
 assert.match(recruitment, /data-pwa-install hidden/);
 assert.match(installer, /beforeinstallprompt/);
 assert.match(installer, /Adicionar ao ecrã principal/);
+assert.doesNotMatch(installer, /MutationObserver/);
+assert.match(installer, /TrataPwaInstall/);
 assert.match(serviceWorker, /icon-192\.png/);
 assert.match(serviceWorker, /icon-512\.png/);
 

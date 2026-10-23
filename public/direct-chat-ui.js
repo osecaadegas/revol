@@ -6,31 +6,40 @@
     let activeConversation = null;
     let messages = [];
     let pollTimer = null;
-    let loading = false;
+    let loadSequence = 0;
 
     const state = () => h.state.data?.directChat || { conversations:[],contacts:[],unreadCount:0 };
     const dateTime = value => value ? new Date(value).toLocaleString("pt-PT",{ dateStyle:"short",timeStyle:"short" }) : "";
 
-    async function load(conversationId = activeId,{ render = false, useSnapshot = false } = {}) {
-      if (loading) return;
-      loading = true;
+    async function load(conversationId = activeId,{ render = false, useSnapshot = false, forceDetail = false } = {}) {
+      const sequence = ++loadSequence;
       try {
         const chat = useSnapshot && h.state.data.directChat
           ? h.state.data.directChat
           : (await h.api("/api/direct-chat")).chat;
+        if (sequence !== loadSequence) return;
         h.state.data.directChat = chat;
         if (conversationId && chat.conversations.some(item => item.id === conversationId)) {
           activeId = conversationId;
-          const read = await h.api(`/api/direct-chat/conversations/${encodeURIComponent(activeId)}/read`,{ method:"PATCH",body:{} });
+          const summary = chat.conversations.find(item => item.id === activeId);
+          const lastLoadedAt = messages.at(-1)?.createdAt || "";
+          if (!forceDetail && activeConversation && !summary.unreadCount && String(summary.lastMessage?.createdAt || "") === lastLoadedAt) {
+            if (render) h.renderApp();
+            return;
+          }
+          const [read, detail] = await Promise.all([
+            h.api(`/api/direct-chat/conversations/${encodeURIComponent(activeId)}/read`,{ method:"PATCH",body:{} }),
+            h.api(`/api/direct-chat/conversations/${encodeURIComponent(activeId)}`)
+          ]);
+          if (sequence !== loadSequence) return;
           h.state.data.directChat = read.chat;
-          const detail = await h.api(`/api/direct-chat/conversations/${encodeURIComponent(activeId)}`);
           activeConversation = detail.conversation;
           messages = detail.messages;
         } else if (activeId) {
           activeId = null; activeConversation = null; messages = [];
         }
         if (render) h.renderApp();
-      } finally { loading = false; }
+      } finally { /* A sequência mais recente controla o estado apresentado. */ }
     }
 
     function conversationList() {
@@ -69,8 +78,15 @@
       document.querySelectorAll("[data-direct-chat]").forEach(button => button.addEventListener("click",async () => {
         button.disabled = true;
         try {
-          if (button.dataset.directChat === "open") { activeId = button.dataset.id; await load(activeId,{ render:true,useSnapshot:true }); return; }
-          if (button.dataset.directChat === "refresh") { await load(activeId,{ render:true }); return; }
+          if (button.dataset.directChat === "open") {
+            activeId = button.dataset.id;
+            activeConversation = state().conversations.find(item => item.id === activeId) || null;
+            messages = [];
+            h.renderApp();
+            await load(activeId,{ render:true,useSnapshot:true,forceDetail:true });
+            return;
+          }
+          if (button.dataset.directChat === "refresh") { await load(activeId,{ render:true,forceDetail:true }); return; }
         } catch (error) { h.setNotice(error.message,"error"); h.renderApp(); }
         finally { button.disabled = false; }
       }));
@@ -79,11 +95,17 @@
         try {
           const data = Object.fromEntries(new FormData(form));
           if (form.dataset.directChatForm === "new") {
-            const result = await h.api("/api/direct-chat/conversations",{ method:"POST",body:data }); activeId = result.conversation.id; h.state.data.directChat = result.chat;
+            const result = await h.api("/api/direct-chat/conversations",{ method:"POST",body:data });
+            activeId = result.conversation.id;
+            h.state.data.directChat = result.chat;
+            activeConversation = result.chat.conversations.find(item => item.id === activeId) || null;
+            messages = [];
           } else {
-            const result = await h.api("/api/direct-chat/messages",{ method:"POST",body:data }); h.state.data.directChat = result.chat;
+            const result = await h.api("/api/direct-chat/messages",{ method:"POST",body:data });
+            h.state.data.directChat = result.chat;
+            messages = [...messages, result.message];
           }
-          await load(activeId,{ render:true,useSnapshot:true });
+          h.renderApp();
         } catch (error) {
           let notice = form.querySelector(".form-error"); if (!notice) { notice = document.createElement("p"); notice.className = "notice error form-error"; notice.setAttribute("role","alert"); form.prepend(notice); }
           notice.textContent = error.message;
@@ -93,6 +115,6 @@
       schedulePoll();
     }
 
-    return { load,render,bind,unreadCount:() => state().unreadCount || 0,reset:() => { clearTimeout(pollTimer);activeId=null;activeConversation=null;messages=[];loading=false; } };
+    return { load,render,bind,unreadCount:() => state().unreadCount || 0,reset:() => { clearTimeout(pollTimer);loadSequence += 1;activeId=null;activeConversation=null;messages=[]; } };
   };
 })();

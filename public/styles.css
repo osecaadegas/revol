@@ -145,14 +145,22 @@
 
 html {
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
   scroll-behavior: smooth;
   background: var(--bg-primary);
 }
 
 body {
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
   margin: 0;
   overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y pinch-zoom;
   color: var(--ink);
   background: var(--bg-primary);
   font-size: 15px;
@@ -170,6 +178,14 @@ button {
   cursor: pointer;
 }
 
+button,
+a,
+summary,
+label {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(217, 241, 33, 0.22);
+}
+
 a {
   color: inherit;
 }
@@ -181,6 +197,9 @@ a {
 
 .app-shell {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .boot-card {
@@ -4081,14 +4100,20 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
 @media (max-width: 640px) {
   .direct-chat-layout { grid-template-columns: minmax(0,1fr); min-height: 0; }
   .chat-sidebar { border-right: 0; border-bottom: 1px solid var(--border-primary); }
-  .chat-list { max-height: 270px; }
-  .chat-window, .chat-placeholder { min-height: 520px; }
-  .chat-message-list { min-height: 350px; max-height: 58vh; padding: 14px; }
+  .chat-new-form { padding: 10px; }
+  .chat-list { display: flex; max-height: none; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-snap-type: x proximity; }
+  .chat-list-item { flex: 0 0 min(78vw,280px); min-height: 64px; padding: 9px 10px; scroll-snap-align: start; }
+  .chat-window, .chat-placeholder { min-height: min(500px,calc(100dvh - 230px)); }
+  .chat-message-list { min-height: 260px; max-height: calc(100dvh - 330px); padding: 12px; }
   .chat-bubble { max-width: 88%; }
-  .chat-window-head { padding: 12px; }
-  .chat-refresh { padding-inline: 10px; }
-  .chat-composer { grid-template-columns: minmax(0,1fr); }
-  .chat-composer .btn { width: 100%; }
+  .chat-window-head { position: sticky; top: 68px; z-index: 2; padding: 9px 10px; }
+  .chat-window-head .chat-avatar { width: 36px; height: 36px; flex-basis: 36px; }
+  .chat-refresh { min-width: 44px; padding: 8px; font-size: 0; }
+  .chat-refresh .ui-icon { margin: 0; }
+  .chat-composer { position: sticky; bottom: calc(58px + env(safe-area-inset-bottom)); z-index: 3; grid-template-columns: minmax(0,1fr) auto; gap: 6px; padding: 8px; }
+  .chat-composer textarea { min-height: 44px; height: 44px; }
+  .chat-composer .btn { width: auto; min-width: 48px; padding-inline: 10px; font-size: 0; }
+  .chat-composer .btn .ui-icon { margin: 0; }
 }
 
 /* Compact, discoverable workspace navigation on small screens. */
@@ -4215,16 +4240,17 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
   .worker-mobile-menu .recruitment-tabs .btn { min-height: 44px; }
   .worker-mobile-logout { display: flex; align-items: center; gap: 8px; width: calc(100% - 16px); min-height: 44px; margin: 0 8px 8px; text-align: left; }
   .worker-mobile-menu .pwa-install-button { color: var(--text-primary); background: var(--brand-primary); }
-  .worker-quick-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 25; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; padding: 6px max(8px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)); border-top: 2px solid var(--text-primary); background: var(--surface-primary); box-shadow: 0 -3px 14px rgba(0,0,0,.12); }
-  .worker-quick-nav button { position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 3px; min-width: 0; min-height: 54px; border: 1px solid var(--border-subtle); padding: 5px 2px; color: var(--text-primary); background: var(--bg-secondary); font: 700 10px "Courier New", monospace; text-transform: uppercase; cursor: pointer; }
+  .worker-quick-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 80; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 3px; width: 100%; max-width: 100%; padding: 4px max(6px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left)); border-top: 2px solid var(--text-primary); background: var(--surface-primary); box-shadow: 0 -3px 14px rgba(0,0,0,.12); transform: translateZ(0); -webkit-transform: translateZ(0); }
+  .worker-quick-nav button { position: relative; display: flex; align-items: center; justify-content: center; flex-direction: row; gap: 5px; min-width: 0; min-height: 46px; border: 1px solid var(--border-subtle); padding: 4px 3px; color: var(--text-primary); background: var(--bg-secondary); font: 700 9px "Courier New", monospace; text-transform: uppercase; cursor: pointer; }
+  .worker-quick-nav button .ui-icon { width: 16px; height: 16px; flex: 0 0 16px; }
+  .worker-quick-nav button span:not(.nav-alert-count) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .worker-quick-nav button[aria-current="page"] { border-color: var(--text-primary); background: var(--brand-primary); }
   .worker-quick-nav button.task-attention-active,
   .worker-mobile-menu .recruitment-tabs .btn.task-attention-active { border-color: #8f1f12; color: white; background: #c4301c; }
   .worker-quick-nav button.task-attention-resolved,
   .worker-mobile-menu .recruitment-tabs .btn.task-attention-resolved { border-color: #1f5f38; color: white; background: #2f7a4a; }
   .worker-quick-nav button:focus-visible, .worker-mobile-menu > summary:focus-visible { outline: 3px solid var(--text-primary); outline-offset: 2px; }
-  .worker-quick-nav .nav-alert-count { position: absolute; top: 2px; right: 2px; }
-  .content:has(.worker-quick-nav) { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
-  .detail-panel:has(> .worker-quick-nav) { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
-  body:has(.detail-panel > .worker-quick-nav) .main-layout .worker-quick-nav { display: none; }
+  .worker-quick-nav .nav-alert-count { position: absolute; top: 1px; right: 2px; }
+  body:has(.app-shell > .worker-quick-nav) .content,
+  body:has(.app-shell > .worker-quick-nav) .detail-panel { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
 }

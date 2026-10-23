@@ -24,6 +24,8 @@ The engineering manuals and manifesto inform terminology and auditability princi
 - PWA metadata and shell caching without advanced offline synchronization.
 - Contextual PWA installation controls reuse the website on Android and iOS;
   there is no separate native application or app-store package.
+- The installed mobile shell locks document interaction to vertical pan while
+  retaining pinch zoom, and schedules PWA maintenance outside critical startup.
 
 This keeps the MVP fully runnable without external services while also supporting a real Supabase backend for deployment. The API boundary remains suitable for future Vercel functions or a native mobile client.
 

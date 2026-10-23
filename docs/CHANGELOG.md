@@ -2,6 +2,19 @@
 
 ## 2026-10-23
 
+- Bloqueado o arrastamento horizontal do documento em iPhone/iPad, preservando
+  a deslocação vertical e o zoom. Os controlos táteis respondem sem atraso de
+  toque. O instalador PWA deixou de observar todas as alterações da página e
+  passa a sincronizar apenas depois de cada renderização; o registo/atualização
+  do service worker decorre após o carregamento, durante tempo ocioso, para não
+  competir com os dados necessários ao primeiro ecrã.
+- Os três atalhos do trabalhador passam a existir uma única vez diretamente no
+  viewport, permanecendo visíveis durante scroll e dentro do detalhe de tarefa.
+  A barra ficou mais baixa e compacta. Em Conversas, os contactos são uma faixa
+  horizontal compacta, o cabeçalho/compositor permanecem acessíveis e abrir um
+  chat faz transição imediata; leitura e mensagens são carregadas em paralelo,
+  o envio confirmado aparece sem um segundo pedido e a atualização automática
+  evita recarregar o histórico quando nada mudou.
 - Adicionado um botão contextual «Instalar app» ao website existente. Em
   Android/Chrome abre a instalação nativa; em iPhone/iPad apresenta os passos
   do Safari para adicionar a TrataPro ao ecrã principal. O botão não aparece

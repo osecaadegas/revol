@@ -889,6 +889,7 @@
     bindPublicEvents();
     bindAuthForms();
     window.TrataDesign.enhance();
+    window.TrataPwaInstall?.sync();
   }
 
   function renderPublicFooter() {
@@ -1594,14 +1595,15 @@
           ${noticeHtml()}
           <div data-operational-notice aria-live="assertive">${renderOperationalNotice()}</div>
           ${renderView()}
-          ${isWorker() ? recruitmentUI.quickTabs() : ""}
         </main>
       </div>
       ${renderMobileNav()}
       ${renderTaskDrawer()}
+      ${isWorker() ? recruitmentUI.quickTabs() : ""}
     `;
     bindAppEvents();
     window.TrataDesign.enhance();
+    window.TrataPwaInstall?.sync();
     syncOperationalAlertIndicators();
   }
 
@@ -2820,7 +2822,6 @@
               ${logs.length ? logs.map(renderTaskHistoryCard).join("") : empty("Ainda não há acontecimentos registados nesta tarefa.")}
             </div>
           </details>
-          ${isWorker() ? recruitmentUI.quickTabs() : ""}
         </aside>
       </div>
     `;
@@ -3451,10 +3452,16 @@
     state.marketFilters.query = entryParams.get("q") || "";
     state.marketFilters.location = entryParams.get("location") || "";
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
+      const registerServiceWorker = () => navigator.serviceWorker
         .register("/service-worker.js")
         .then((registration) => registration.update().catch(() => {}))
         .catch(() => {});
+      const scheduleRegistration = () => {
+        if ("requestIdleCallback" in window) window.requestIdleCallback(registerServiceWorker, { timeout: 1500 });
+        else window.setTimeout(registerServiceWorker, 0);
+      };
+      if (document.readyState === "complete") scheduleRegistration();
+      else window.addEventListener("load", scheduleRegistration, { once: true });
     }
 
     const googleSessionStarted = consumeAuthQuery();
