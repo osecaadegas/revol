@@ -35,6 +35,8 @@
   };
   let planningWeek = "";
   let planningSelection = null;
+  let planningClipboard = null;
+  let planningShortcutsBound = false;
   let operationalAlertsRefreshInFlight = false;
   let pushConfig = null;
   let pushEnabled = false;
@@ -2454,18 +2456,26 @@
     const schedules = state.data.workSchedules || [];
     const requests = state.data.dayOffRequests || [];
     const pending = requests.filter((item) => item.status === "pending");
+    const taskFor = (workerId) => (state.data.tasks || []).filter((task) => task.assigneeId === workerId && !["approved", "rejected"].includes(task.status) && (task.workAddress || state.data.workOrders?.find((order) => order.id === task.workOrderId)?.address));
+    const taskName = (slot) => (state.data.tasks || []).find((task) => task.id === slot?.taskId)?.title || slot?.address || "";
     const cell = (worker, date) => {
       const slot = schedules.find((item) => item.workerId === worker.id && item.workDate === date);
       const request = requests.find((item) => item.workerId === worker.id && item.workDate === date && item.status !== "rejected");
-      return `<button type="button" class="planning-cell ${request?.status === "approved" ? "day-off-approved" : ""}" data-planning-worker="${escapeHtml(worker.id)}" data-planning-date="${date}" ${request?.status === "approved" ? "disabled" : ""} aria-label="${escapeHtml(`${worker.name} · ${date} · ${slot ? `${slot.startTime}, ${slot.address}` : request?.status === "approved" ? "folga aprovada" : "sem horário"}`)}"><span class="planning-cell-date">${new Date(`${date}T12:00:00Z`).toLocaleDateString("pt-PT", { weekday: "short", day: "numeric", month: "short" })}</span><strong>${request?.status === "approved" ? "Folga" : slot?.startTime || "+ Definir"}</strong>${slot ? `<small>${escapeHtml(slot.address)}</small>` : request?.status === "pending" ? "<small>Folga pedida</small>" : ""}</button>`;
+      return `<button type="button" class="planning-cell ${request?.status === "approved" ? "day-off-approved" : ""}" data-planning-worker="${escapeHtml(worker.id)}" data-planning-date="${date}" ${request?.status === "approved" ? "disabled" : ""} aria-label="${escapeHtml(`${worker.name} · ${date} · ${slot ? `${slot.startTime}, ${taskName(slot)}` : request?.status === "approved" ? "folga aprovada" : "sem horário"}`)}"><span class="planning-cell-date">${new Date(`${date}T12:00:00Z`).toLocaleDateString("pt-PT", { weekday: "short", day: "numeric", month: "short" })}</span><strong>${request?.status === "approved" ? "Folga" : slot?.startTime || "+ Definir"}</strong>${slot ? `<small>${escapeHtml(taskName(slot))}</small>` : request?.status === "pending" ? "<small>Folga pedida</small>" : ""}</button>`;
     };
     const selected = planningSelection && workers.find((worker) => worker.id === planningSelection.workerId);
     const selectedSlot = selected && schedules.find((item) => item.workerId === selected.id && item.workDate === planningSelection.date);
-    return `<section class="view-heading"><div><h1>Planeamento da equipa</h1><p>Defina a hora de entrada e a morada de cada trabalhador. A equipa vê o plano no telemóvel.</p></div></section>
+    const selectedTasks = selected ? taskFor(selected.id) : [];
+    const selectedTask = (state.data.tasks || []).find((task) => task.id === selectedSlot?.taskId);
+    const selectedTime = selectedSlot?.startTime || "07:00";
+    const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "0"));
+    const minutes = Array.from({ length: 60 }, (_, minute) => String(minute).padStart(2, "0"));
+    return `<section class="view-heading"><div><h1>Planeamento da equipa</h1><p>Escolha a tarefa e a hora de entrada de cada trabalhador. A morada vem da tarefa.</p></div></section>
       ${state.data.planningAvailable === false ? '<p class="notice error">A migração do planeamento ainda não foi aplicada à base de dados.</p>' : ""}
       <section class="panel planning-panel"><div class="planning-toolbar"><label class="field">Semana de<input type="date" data-planning-week value="${planningMonday(planningWeek)}"></label><span>${days[0]} — ${days[6]}</span></div>
+        <p class="planning-copy-help">Clique num dia para o editar. Com o dia selecionado, use Ctrl+C e Ctrl+V (ou ⌘ no Mac) para repetir o horário; também pode usar os botões abaixo.</p>
         ${workers.length ? `<div class="planning-grid-scroll"><div class="planning-grid"><strong>Trabalhador</strong>${days.map((day) => `<strong>${new Date(`${day}T12:00:00Z`).toLocaleDateString("pt-PT", { weekday: "short", day: "numeric", month: "short" })}</strong>`).join("")}${workers.map((worker) => `<strong class="planning-worker-name">${escapeHtml(worker.name)}</strong>${days.map((day) => cell(worker, day)).join("")}`).join("")}</div></div>` : '<p class="empty">Ainda não há trabalhadores com vínculo ativo para planear.</p>'}
-        ${selected ? `<form class="planning-editor" data-planning-form><h3>${escapeHtml(selected.name)} · ${planningSelection.date}</h3><input type="hidden" name="workerId" value="${escapeHtml(selected.id)}"><input type="hidden" name="workDate" value="${planningSelection.date}"><label class="field">Hora de entrada<input type="time" name="startTime" value="${escapeHtml(selectedSlot?.startTime || "")}" required></label><label class="field">Morada do trabalho<input name="address" value="${escapeHtml(selectedSlot?.address || "")}" maxlength="500" required></label><label class="field">Nota curta (opcional)<input name="note" value="${escapeHtml(selectedSlot?.note || "")}" maxlength="500"></label><div class="planning-editor-actions"><button class="btn primary" type="submit" ${state.data.planningAvailable === false ? "disabled" : ""}>Guardar horário</button>${selectedSlot ? '<button class="btn ghost" type="button" data-planning-remove>Limpar dia</button>' : ""}</div></form>` : ""}
+        ${selected ? `<form class="planning-editor" data-planning-form><h3>${escapeHtml(selected.name)} · ${planningSelection.date}</h3><input type="hidden" name="workerId" value="${escapeHtml(selected.id)}"><input type="hidden" name="workDate" value="${planningSelection.date}"><div class="planning-time"><label class="field">Hora<select name="startHour">${hours.map((hour) => `<option value="${hour}" ${selectedTime.slice(0, 2) === hour ? "selected" : ""}>${hour}</option>`).join("")}</select></label><label class="field">Minutos<select name="startMinute">${minutes.map((minute) => `<option value="${minute}" ${selectedTime.slice(3) === minute ? "selected" : ""}>${minute}</option>`).join("")}</select></label></div><label class="field">Tarefa<select name="taskId" required><option value="">Escolher tarefa</option>${selectedTasks.map((task) => `<option value="${escapeHtml(task.id)}" ${task.id === selectedSlot?.taskId ? "selected" : ""}>${escapeHtml(task.title)}</option>`).join("")}</select></label><label class="field">Nota curta (opcional)<input name="note" value="${escapeHtml(selectedSlot?.note || "")}" maxlength="500"></label>${selectedTask ? `<p class="planning-task-address">Morada da tarefa: ${escapeHtml(selectedSlot.address)}</p>` : selectedSlot ? '<p class="planning-task-address">Horário antigo: escolha uma tarefa antes de guardar.</p>' : ""}<div class="planning-editor-actions"><button class="btn primary" type="submit" ${state.data.planningAvailable === false || !selectedTasks.length ? "disabled" : ""}>Guardar horário</button>${selectedSlot?.taskId ? '<button class="btn ghost" type="button" data-planning-copy>Copiar dia</button>' : ""}<button class="btn ghost" type="button" data-planning-paste ${planningClipboard ? "" : "disabled"}>Colar neste dia</button>${selectedSlot ? '<button class="btn ghost" type="button" data-planning-remove>Limpar dia</button>' : ""}</div>${!selectedTasks.length ? '<p class="notice">Atribua primeiro uma tarefa ativa com morada a este trabalhador.</p>' : ""}</form>` : ""}
       </section>
       <section class="panel planning-requests"><h2>Pedidos de folga ${pending.length ? `(${pending.length} por decidir)` : ""}</h2>${pending.length ? pending.map((item) => `<article class="planning-request"><div><strong>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${item.workDate}</strong><p>${escapeHtml(item.reason || "Sem motivo indicado")}</p><small>Pedido em ${formatDate(item.requestedAt)}</small></div><div class="planning-editor-actions"><button class="btn primary" type="button" data-day-off-decision="approved" data-request-id="${escapeHtml(item.id)}">Aprovar</button><button class="btn ghost" type="button" data-day-off-decision="rejected" data-request-id="${escapeHtml(item.id)}">Recusar</button></div></article>`).join("") : '<p class="empty">Sem pedidos pendentes.</p>'}<details><summary>Pedidos decididos</summary>${requests.filter((item) => item.status !== "pending").slice(0, 30).map((item) => `<p>${escapeHtml(userById(item.workerId)?.name || "Trabalhador")} · ${item.workDate} · ${item.status === "approved" ? "Aprovado" : "Recusado"}</p>`).join("") || "Sem decisões."}</details></section>`;
   }
@@ -3160,17 +3170,58 @@
       planningSelection = null;
       renderApp();
     });
-    document.querySelectorAll("[data-planning-worker]").forEach((button) => button.addEventListener("click", () => {
-      planningSelection = { workerId: button.dataset.planningWorker, date: button.dataset.planningDate };
+    function selectedPlanningSlot() {
+      return (state.data.workSchedules || []).find((item) => item.workerId === planningSelection?.workerId && item.workDate === planningSelection?.date);
+    }
+    function copyPlanningDay() {
+      const slot = selectedPlanningSlot();
+      if (!slot?.taskId) { setNotice("Só é possível copiar dias associados a uma tarefa.", "error"); return; }
+      planningClipboard = { workerId: slot.workerId, taskId: slot.taskId, startTime: slot.startTime, note: slot.note || "" };
+      setNotice("Dia copiado. Selecione outro dia e cole o horário.");
       renderApp();
-      document.querySelector("[data-planning-form]")?.scrollIntoView({ block: "nearest" });
-    }));
+    }
+    async function pastePlanningDay() {
+      if (!planningClipboard || !planningSelection) return;
+      if (planningClipboard.workerId !== planningSelection.workerId) { setNotice("Para outro trabalhador, escolha uma tarefa atribuída a essa pessoa.", "error"); return; }
+      try {
+        const result = await api("/api/planning/schedules", { method: "PUT", body: { workerId: planningSelection.workerId, workDate: planningSelection.date, taskId: planningClipboard.taskId, startTime: planningClipboard.startTime, note: planningClipboard.note } });
+        state.data = result.bootstrap;
+        setNotice("Dia colado e guardado.");
+        renderApp();
+      } catch (error) { setNotice(error.message, "error"); renderApp(); }
+    }
+    document.querySelectorAll("[data-planning-worker]").forEach((button) => {
+      button.addEventListener("click", () => {
+        planningSelection = { workerId: button.dataset.planningWorker, date: button.dataset.planningDate };
+        renderApp();
+        [...document.querySelectorAll("[data-planning-worker]")].find((cell) => cell.dataset.planningWorker === planningSelection.workerId && cell.dataset.planningDate === planningSelection.date)?.focus();
+        document.querySelector("[data-planning-form]")?.scrollIntoView({ block: "nearest" });
+      });
+    });
+    if (!planningShortcutsBound) {
+      planningShortcutsBound = true;
+      document.addEventListener("keydown", (event) => {
+        if (state.view !== "planning" || !(event.ctrlKey || event.metaKey) || !planningSelection) return;
+        if (["INPUT", "TEXTAREA", "SELECT"].includes(event.target?.tagName)) return;
+        const key = event.key.toLowerCase();
+        if (key !== "c" && key !== "v") return;
+        const focusedCell = event.target?.closest?.("[data-planning-worker]");
+        if (focusedCell) planningSelection = { workerId: focusedCell.dataset.planningWorker, date: focusedCell.dataset.planningDate };
+        event.preventDefault();
+        if (key === "c") copyPlanningDay(); else pastePlanningDay();
+      });
+    }
+    document.querySelector("[data-planning-copy]")?.addEventListener("click", copyPlanningDay);
+    document.querySelector("[data-planning-paste]")?.addEventListener("click", pastePlanningDay);
     document.querySelector("[data-planning-form]")?.addEventListener("submit", async (event) => {
       event.preventDefault();
       const submit = event.currentTarget.querySelector('[type="submit"]');
       submit.disabled = true;
       try {
         const body = Object.fromEntries(new FormData(event.currentTarget));
+        body.startTime = `${body.startHour}:${body.startMinute}`;
+        delete body.startHour;
+        delete body.startMinute;
         const result = await api("/api/planning/schedules", { method: "PUT", body });
         state.data = result.bootstrap;
         setNotice("Horário guardado. O trabalhador já o pode consultar.");
@@ -3180,7 +3231,7 @@
     document.querySelector("[data-planning-remove]")?.addEventListener("click", async () => {
       if (!planningSelection) return;
       try {
-        const result = await api("/api/planning/schedules", { method: "PUT", body: { ...planningSelection, startTime: "", address: "", note: "" } });
+        const result = await api("/api/planning/schedules", { method: "PUT", body: { workerId: planningSelection.workerId, workDate: planningSelection.date, startTime: "", taskId: "", note: "" } });
         state.data = result.bootstrap;
         setNotice("Dia removido do planeamento.");
         renderApp();

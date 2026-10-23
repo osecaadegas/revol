@@ -4,6 +4,8 @@
 
 Depois das migrações anteriores, aplique `supabase/migrations/20261023120000_worker_planning_and_day_off.sql` no mesmo projeto Supabase configurado para esta aplicação. Até lá, a grelha e os pedidos de folga surgem indisponíveis, sem interferir com tarefas ou presenças existentes. No armazenamento local, as coleções são criadas automaticamente. A empresa define horários por dia/trabalhador; as folgas pedidas com menos de 24 horas antes do início do dia em `Europe/Lisbon` são recusadas pelo servidor. A aprovação é explícita e retira o horário planeado nesse dia; não altera tarefas nem justificações de ausência.
 
+Depois desta migração, aplique também `supabase/migrations/20261023140042_schedule_task_link.sql` antes de publicar a versão que guarda `task_id`. A coluna é opcional para preservar horários antigos; novos horários exigem uma tarefa atribuída ao trabalhador e com morada. As notificações de alteração no dispositivo requerem a configuração Web Push já descrita neste documento; os avisos dentro da aplicação não dependem dela. Não existe comprovativo de abertura/leitura do aviso pelo trabalhador.
+
 ## Requirements
 
 For the recruitment release, apply

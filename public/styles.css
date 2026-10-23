@@ -4249,6 +4249,12 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
 .planning-editor { display: grid; grid-template-columns: 140px minmax(220px, 2fr) minmax(180px, 1.5fr); gap: 12px; margin-top: 20px; padding: 16px; border: 1px solid var(--text-primary); }
 .planning-editor h3, .planning-editor-actions { grid-column: 1 / -1; margin: 0; }
 .planning-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.planning-time { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.planning-time select { min-width: 0; }
+.planning-copy-help { margin: 0 0 12px; font-size: 13px; }
+.planning-task-address { grid-column: 1 / -1; margin: 0; overflow-wrap: anywhere; }
+.worker-planning-changes { display: grid; gap: 5px; }
+.worker-planning-changes p { margin: 0; }
 .planning-request { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--border-subtle); padding: 14px 0; }
 .planning-request p { margin: 5px 0; overflow-wrap: anywhere; }
 .worker-planning { display: grid; gap: 16px; }

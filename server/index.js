@@ -278,7 +278,7 @@ const TABLES = [
   },
   {
     key: "workSchedules", table: "meo_work_schedules", idKey: "id",
-    fields: { id: "id", companyId: "company_id", workerId: "worker_id", employmentId: "employment_id", workDate: "work_date", startTime: "start_time", address: "address", note: "note", createdBy: "created_by", createdAt: "created_at", updatedAt: "updated_at" }
+    fields: { id: "id", companyId: "company_id", workerId: "worker_id", employmentId: "employment_id", taskId: "task_id", workDate: "work_date", startTime: "start_time", address: "address", note: "note", createdBy: "created_by", createdAt: "created_at", updatedAt: "updated_at" }
   },
   {
     key: "dayOffRequests", table: "meo_day_off_requests", idKey: "id",
@@ -1658,6 +1658,10 @@ function buildBootstrap(db, auth) {
       (!item.endDate || item.endDate >= portugalToday()))) : [],
     workSchedules: db.workSchedules.filter((item) => item.workDate >= portugalToday() && (isManager ? item.companyId === auth.company.id : item.workerId === auth.user.id))
       .sort((a, b) => a.workDate.localeCompare(b.workDate)),
+    planningChanges: isManager ? [] : db.auditLogs.filter((entry) => entry.entityType === "work_schedule" &&
+      ["planning.schedule_updated", "planning.schedule_removed"].includes(entry.action) && entry.detail?.workerId === auth.user.id &&
+      entry.detail?.workDate >= portugalToday() && Date.parse(entry.createdAt) >= Date.now() - 7 * 86400000)
+      .slice(0, 20).map((entry) => ({ id: entry.id, workDate: entry.detail.workDate, action: entry.action, createdAt: entry.createdAt })),
     dayOffRequests: db.dayOffRequests.filter((item) => isManager ? item.companyId === auth.company.id : item.workerId === auth.user.id)
       .sort((a, b) => Number(b.status === "pending") - Number(a.status === "pending") || b.workDate.localeCompare(a.workDate)).slice(0, 100),
     attendanceEntries: db.attendanceEntries.filter((entry) => isManager ? entry.companyId === auth.company.id : entry.workerId === auth.user.id).sort((a, b) => b.clockedInAt.localeCompare(a.clockedInAt)).slice(0, 100),
@@ -3520,38 +3524,59 @@ async function handleApi(req, res, pathname) {
 
   if (req.method === "PUT" && pathname === "/api/planning/schedules") {
     const body = await readBody(req);
-    const result = await mutateDb((db) => {
+    const result = await mutateDb(async (db) => {
       const auth = requireAuth(db, req);
       requireManager(auth);
       if (db.planningSchemaReady === false) throw Object.assign(new Error("A migração do planeamento ainda não foi aplicada."), { status: 503 });
+      if (APP_STORAGE_DRIVER === "supabase") {
+        try {
+          await supabaseRest("meo_work_schedules?select=task_id&limit=0");
+        } catch (error) {
+          if (/task_id|PGRST205|42703/.test(error.message)) {
+            throw Object.assign(new Error("A migração que liga o planeamento às tarefas ainda não foi aplicada."), { status: 503 });
+          }
+          throw error;
+        }
+      }
       const workerId = cleanString(body.workerId, 80);
       const workDate = workOrderDate(body.workDate);
       const startTime = cleanString(body.startTime, 5);
-      const address = cleanString(body.address, 500);
+      const taskId = cleanString(body.taskId, 80);
       const note = cleanString(body.note, 500);
       const employment = workDate && activePlanningEmployment(db, auth.company.id, workerId, workDate);
       if (!employment || workDate < portugalToday()) throw Object.assign(new Error("Escolha um trabalhador com vínculo ativo e uma data presente ou futura."), { status: 400 });
       if (portugalDayStartMs(workDate) > Date.now() + 90 * 86400000) throw Object.assign(new Error("Planeie até 90 dias de antecedência."), { status: 400 });
       const existing = db.workSchedules.find((item) => item.companyId === auth.company.id && item.workerId === workerId && item.workDate === workDate);
-      if (!startTime && !address && !note) {
+      let notifyWorker = false;
+      if (!startTime && !taskId && !note) {
         if (existing) {
           db.workSchedules = db.workSchedules.filter((item) => item.id !== existing.id);
           audit(db, auth, "work_schedule", existing.id, "planning.schedule_removed", { workerId, workDate }, req);
+          notifyWorker = true;
         }
       } else {
-        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !address) throw Object.assign(new Error("Indique uma hora e uma morada válidas."), { status: 400 });
+        const task = db.tasks.find((item) => item.id === taskId && item.companyId === auth.company.id && item.assigneeId === workerId);
+        const order = task && db.workOrders.find((item) => item.id === task.workOrderId && item.companyId === auth.company.id);
+        const address = cleanString(task?.workAddress || order?.address, 500);
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !task || !address || ["approved", "rejected"].includes(task.status)) {
+          throw Object.assign(new Error("Escolha uma tarefa ativa deste trabalhador, com morada, e uma hora válida."), { status: 400 });
+        }
         if (db.dayOffRequests.some((item) => item.companyId === auth.company.id && item.workerId === workerId && item.workDate === workDate && item.status === "approved")) {
           throw Object.assign(new Error("Este dia já tem uma folga aprovada."), { status: 409 });
         }
-        const timestamp = now();
-        if (existing) Object.assign(existing, { employmentId: employment.id, startTime, address, note, updatedAt: timestamp });
-        else db.workSchedules.push({ id: nextId(db, "workSchedules", "sched"), companyId: auth.company.id, workerId, employmentId: employment.id,
-          workDate, startTime, address, note, createdBy: auth.user.id, createdAt: timestamp, updatedAt: timestamp });
-        audit(db, auth, "work_schedule", existing?.id || db.workSchedules.at(-1).id, existing ? "planning.schedule_updated" : "planning.schedule_created", { workerId, workDate, startTime, address }, req);
+        if (!existing || existing.taskId !== taskId || existing.startTime !== startTime || existing.address !== address || existing.note !== note) {
+          const timestamp = now();
+          if (existing) Object.assign(existing, { employmentId: employment.id, taskId, startTime, address, note, updatedAt: timestamp });
+          else db.workSchedules.push({ id: nextId(db, "workSchedules", "sched"), companyId: auth.company.id, workerId, employmentId: employment.id,
+            taskId, workDate, startTime, address, note, createdBy: auth.user.id, createdAt: timestamp, updatedAt: timestamp });
+          audit(db, auth, "work_schedule", existing?.id || db.workSchedules.at(-1).id, existing ? "planning.schedule_updated" : "planning.schedule_created", { workerId, workDate, startTime, taskId, address }, req);
+          notifyWorker = Boolean(existing);
+        }
       }
-      return { bootstrap: buildBootstrap(db, auth) };
+      return { bootstrap: buildBootstrap(db, auth), notifyWorker };
     });
-    await pushApi.sendToUsers([body.workerId], "schedule");
+    if (result.notifyWorker) await pushApi.sendToUsers([body.workerId], "schedule");
+    delete result.notifyWorker;
     sendJson(res, 200, result);
     return;
   }
