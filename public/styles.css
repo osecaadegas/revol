@@ -4397,6 +4397,8 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
 .company-quick-nav .quick-nav-short { display: none; }
 
 @media (max-width: 980px) {
+  .manifesto-shell { padding-top: 78px; }
+  .public-topbar { position: fixed; top: 0; right: 0; left: 0; z-index: 35; }
   .content { padding-top: 70px; }
   .topbar {
     position: fixed;
@@ -4434,7 +4436,6 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
 
 @media (max-width: 640px) {
   .manifesto-shell { padding-top: 70px; }
-  .public-topbar { position: fixed; top: 0; right: 0; left: 0; z-index: 35; }
   .market-hero h1, .hero-copy h1 {
     max-width: 100%;
     font-size: clamp(36px, 11vw, 52px);

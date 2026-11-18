@@ -2,7 +2,7 @@
 
 ## Âmbito e método
 
-Foi inspecionada a aplicação existente em `public/`, sem alterar rotas, permissões ou dados de produção. A verificação visual utilizou Chrome em 320 × 700 e 390 × 844 px, com contas de teste locais. Foram percorridos a página pública, entrada na conta, mercado, CV, tarefas, conversas, planeamento e presenças/justificações. Também foram revistos os componentes partilhados de navegação, formulários, filtros, detalhes de tarefa e conversas, a estrutura de títulos e os nomes acessíveis dos controlos encontrados.
+Foi inspecionada a aplicação existente em `public/`, sem alterar rotas, permissões ou dados de produção. A verificação visual utilizou Chrome em 320 × 700, 390 × 844 e 768 × 900 px, com contas de teste locais. Foram percorridos a página pública, entrada na conta, mercado, CV, tarefas, conversas, planeamento e presenças/justificações. Também foram revistos os componentes partilhados de navegação, formulários, filtros, detalhes de tarefa e conversas, a estrutura de títulos e os nomes acessíveis dos controlos encontrados.
 
 ## Achados corrigidos
 
@@ -18,6 +18,6 @@ Foi inspecionada a aplicação existente em `public/`, sem alterar rotas, permis
 
 ## Verificação e limites
 
-Nos ecrãs locais inspecionados não houve deslocação horizontal do documento a 320 ou 390 px. A barra inferior e o cabeçalho mantiveram-se visíveis enquanto o conteúdo se deslocava. A interface mantém botões nativos, `<details>` e foco visível para utilização por teclado e tecnologias de apoio. Os fluxos de servidor e as permissões continuam cobertos pelos testes existentes.
+Nos ecrãs locais inspecionados não houve deslocação horizontal do documento a 320, 390 ou 768 px. A barra inferior e o cabeçalho mantiveram-se visíveis enquanto o conteúdo se deslocava. A interface mantém botões nativos, `<details>` e foco visível para utilização por teclado e tecnologias de apoio. Os fluxos de servidor e as permissões continuam cobertos pelos testes existentes.
 
 Esta auditoria não constitui uma certificação WCAG nem substitui ensaios com VoiceOver/TalkBack em dispositivos físicos. As conversas com fotografias e os estados de contratempo requerem ainda verificação funcional em dispositivo real com contas atribuídas e dados de produção. O comportamento da versão publicada depende da conclusão do deployment e da atualização da cache PWA.
