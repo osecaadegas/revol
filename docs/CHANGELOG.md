@@ -2,6 +2,7 @@
 
 ## 2026-11-18
 
+- Auditoria móvel de acessibilidade e layout: cabeçalhos público e autenticado permanecem visíveis ao deslocar, atalhos inferiores têm alvos táteis maiores e legendas legíveis, formulários evitam zoom involuntário no iPhone e o título da página pública deixa de ser cortado. A pesquisa pública ganhou altura de toque adequada. Em Tarefas foram removidos títulos principais duplicados e atribuídos nomes acessíveis aos filtros. As conversas diretas começam com o formulário de novo contacto recolhido; a conversa da tarefa recolhe opções de problema/fotografia, mantendo a mensagem à mão. A atualização periódica das conversas diretas já não redesenha o ecrã quando não há mensagens novas, preservando o texto em escrita. Sem alterações de base de dados.
 - Cada tarefa tem agora uma conversa operacional partilhada entre o responsável e a empresa, separada das conversas privadas. Mensagens e pedidos de materiais, ferramentas, acesso, segurança ou relacionados com a meteorologia ficam associados à tarefa, ao autor e à hora. Fotografias opcionais permanecem privadas durante a retenção de sete dias e não contam como provas finais.
 - Um problema marcado como impedimento ativa o contratempo e o alerta existente; a empresa resolve-o com uma explicação obrigatória, visível na mesma conversa e enviada ao trabalhador pelo canal de notificações já existente. Os botões antigos de contratempo e resolução também acrescentam entradas à conversa. A migração aditiva `20261118120000_task_work_chat.sql` é necessária em Supabase.
 

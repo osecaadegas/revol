@@ -11,6 +11,28 @@
     const state = () => h.state.data?.directChat || { conversations:[],contacts:[],unreadCount:0 };
     const dateTime = value => value ? new Date(value).toLocaleString("pt-PT",{ dateStyle:"short",timeStyle:"short" }) : "";
 
+    function renderPreservingDraft() {
+      const composer = document.querySelector('[data-direct-chat-form="message"] textarea');
+      const draft = composer?.value || "";
+      const focused = document.activeElement === composer;
+      const start = composer?.selectionStart;
+      const end = composer?.selectionEnd;
+      const newChat = document.querySelector('.chat-start-disclosure');
+      const newChatOpen = !!newChat?.open;
+      const selectedContact = newChat?.querySelector('select')?.value || "";
+      h.renderApp();
+      const nextComposer = document.querySelector('[data-direct-chat-form="message"] textarea');
+      if (nextComposer && draft) nextComposer.value = draft;
+      if (nextComposer && focused) {
+        nextComposer.focus();
+        nextComposer.setSelectionRange(start, end);
+      }
+      const nextNewChat = document.querySelector('.chat-start-disclosure');
+      if (nextNewChat && newChatOpen) nextNewChat.open = true;
+      const nextContact = nextNewChat?.querySelector('select');
+      if (nextContact && selectedContact) nextContact.value = selectedContact;
+    }
+
     async function load(conversationId = activeId,{ render = false, useSnapshot = false, forceDetail = false } = {}) {
       const sequence = ++loadSequence;
       try {
@@ -18,13 +40,15 @@
           ? h.state.data.directChat
           : (await h.api("/api/direct-chat")).chat;
         if (sequence !== loadSequence) return;
+        const chatChanged = JSON.stringify(h.state.data.directChat || {}) !== JSON.stringify(chat);
         h.state.data.directChat = chat;
         if (conversationId && chat.conversations.some(item => item.id === conversationId)) {
           activeId = conversationId;
           const summary = chat.conversations.find(item => item.id === activeId);
           const lastLoadedAt = messages.at(-1)?.createdAt || "";
           if (!forceDetail && activeConversation && !summary.unreadCount && String(summary.lastMessage?.createdAt || "") === lastLoadedAt) {
-            if (render) h.renderApp();
+            if (render && chatChanged) renderPreservingDraft();
+            else if (render) schedulePoll();
             return;
           }
           const [read, detail] = await Promise.all([
@@ -38,7 +62,8 @@
         } else if (activeId) {
           activeId = null; activeConversation = null; messages = [];
         }
-        if (render) h.renderApp();
+        if (render && (chatChanged || activeConversation || forceDetail)) renderPreservingDraft();
+        else if (render) schedulePoll();
       } finally { /* A sequência mais recente controla o estado apresentado. */ }
     }
 
@@ -50,7 +75,7 @@
 
     function newConversation() {
       const contacts = state().contacts;
-      return `<form class="chat-new-form" data-direct-chat-form="new"><label class="field">Novo contacto<select name="contactUserId" required><option value="">Selecionar pessoa</option>${contacts.map(contact => `<option value="${e(contact.id)}">${e(contact.name)} — ${e(contact.roleLabel)} · ${e(contact.companyName)}</option>`).join("")}</select></label><button class="btn ghost" ${contacts.length ? "" : "disabled"}>Iniciar conversa</button>${contacts.length ? "" : '<p class="field-help">Os contactos aparecem depois de existir um vínculo de trabalho verificado.</p>'}</form>`;
+      return `<details class="chat-start-disclosure"><summary>Nova conversa</summary><form class="chat-new-form" data-direct-chat-form="new"><label class="field">Contacto<select name="contactUserId" required><option value="">Selecionar pessoa</option>${contacts.map(contact => `<option value="${e(contact.id)}">${e(contact.name)} — ${e(contact.roleLabel)} · ${e(contact.companyName)}</option>`).join("")}</select></label><button class="btn ghost" ${contacts.length ? "" : "disabled"}>Iniciar conversa</button>${contacts.length ? "" : '<p class="field-help">Os contactos aparecem depois de existir um vínculo de trabalho verificado.</p>'}</form></details>`;
     }
 
     function conversationWindow() {

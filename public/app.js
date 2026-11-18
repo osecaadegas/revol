@@ -950,7 +950,7 @@
         <a class="public-brand" href="/" aria-label="TrataPro - Trabalho certo. Prova feita.">
           <img class="brand-logo-wordmark" src="/logo.svg" alt="TrataPro">
         </a>
-        <button class="public-menu-button" type="button" data-action="toggle-public-menu" aria-expanded="${state.publicMenuOpen ? "true" : "false"}" aria-label="Abrir navegacao">
+        <button class="public-menu-button" type="button" data-action="toggle-public-menu" aria-expanded="${state.publicMenuOpen ? "true" : "false"}" aria-label="${state.publicMenuOpen ? "Fechar navegação" : "Abrir navegação"}">
           <span></span><span></span><span></span>
         </button>
         <nav class="public-nav ${state.publicMenuOpen ? "open" : ""}" aria-label="Navegacao principal">
@@ -1802,7 +1802,8 @@
     ];
     return `<nav class="company-quick-nav" aria-label="Acesso rápido da empresa">${items.map(([id, label, symbol, type]) => {
       const active = type === "view" ? state.view === id : state.view === "marketplace" && recruitmentUI.current() === id;
-      return `<button type="button" ${type === "view" ? `data-view="${id}"` : `data-recruitment="tab" data-id="${id}"`} ${id === "tasks" ? "data-operational-alert-target" : ""} class="${id === "tasks" && operationalAlertCount() ? "operational-siren" : ""}" aria-current="${active ? "page" : "false"}" aria-label="${id === "attendance" ? "Presenças e justificações" : label}">${icon(symbol)}<span>${label}</span>${id === "tasks" ? renderOperationalAlertBadge() : ""}</button>`;
+      const shortLabel = id === "applications" ? "Candid." : id === "attendance" ? "Presenças<br>Justif." : label;
+      return `<button type="button" ${type === "view" ? `data-view="${id}"` : `data-recruitment="tab" data-id="${id}"`} ${id === "tasks" ? "data-operational-alert-target" : ""} class="${id === "tasks" && operationalAlertCount() ? "operational-siren" : ""}" aria-current="${active ? "page" : "false"}" aria-label="${id === "attendance" ? "Presenças e justificações" : id === "applications" ? "Candidaturas" : label}">${icon(symbol)}<span class="quick-nav-full" aria-hidden="true">${label}</span><span class="quick-nav-short" aria-hidden="true">${shortLabel}</span>${id === "tasks" ? renderOperationalAlertBadge() : ""}</button>`;
     }).join("")}</nav>`;
   }
 
@@ -2625,22 +2626,18 @@
   function renderTasks() {
     const tasks = filteredTasks();
     return `
-      <section class="view-heading">
-        <div>
-          <h1>Tarefas</h1>
-          <p>Atualize estados, submeta provas, comunique contratempos com a respetiva razão e acompanhe decisões.</p>
-        </div>
-      </section>
+      ${isManager() ? '<header class="view-heading"><h1>Tarefas</h1></header>' : ""}
+      <p class="task-page-intro">Atualize estados, submeta provas, comunique contratempos com a respetiva razão e acompanhe decisões.</p>
       <section class="section-grid">
         <div class="panel">
           <div class="filter-row">
-            <input data-filter="query" value="${escapeHtml(state.filters.query)}" placeholder="Pesquisar tarefa, ordem, morada">
-            <select data-filter="status">
+            <input data-filter="query" value="${escapeHtml(state.filters.query)}" placeholder="Pesquisar tarefa, ordem, morada" aria-label="Pesquisar tarefa, ordem ou morada">
+            <select data-filter="status" aria-label="Filtrar por estado">
               ${["all", ...Object.keys(defaultStatusLabels)]
                 .map((status) => `<option value="${status}" ${state.filters.status === status ? "selected" : ""}>${status === "all" ? "Todos os estados" : statusLabel(status)}</option>`)
                 .join("")}
             </select>
-            <select data-filter="assignee">
+            <select data-filter="assignee" aria-label="Filtrar por responsável">
               <option value="all">Todos os responsaveis</option>
               ${state.data.users
                 .filter((user) => ["employee", "contractor"].includes(user.role))

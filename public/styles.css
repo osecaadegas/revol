@@ -4377,3 +4377,117 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
   .company-mobile-operational-nav button.operational-siren,
   .company-quick-nav button.operational-siren { animation: none; color: white; background: #a71919; }
 }
+
+/* Phone app shell: persistent navigation, readable touch controls, compact content. */
+.chat-start-disclosure > summary,
+.task-chat-tools > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  font: 700 12px "Courier New", monospace;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.chat-start-disclosure .chat-new-form { border-bottom: 0; }
+.task-chat-tools > summary { padding-inline: 0; }
+.task-chat-tools .task-chat-controls { padding-top: 8px; }
+.task-page-intro { max-width: 68ch; margin: 0 0 18px; color: var(--text-secondary); line-height: 1.45; }
+.company-quick-nav .quick-nav-short { display: none; }
+
+@media (max-width: 980px) {
+  .content { padding-top: 70px; }
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 70;
+    min-height: 64px;
+    margin: 0;
+    padding: 8px 24px;
+    background: var(--surface-primary);
+  }
+  .worker-quick-nav button, .company-quick-nav button { min-height: 52px; line-height: 1.15; }
+  .worker-quick-nav button { font-size: 11px; }
+  .company-quick-nav button { font-size: clamp(10px, 1.35vw, 11px); }
+  .company-quick-nav button > span:not(.operational-alert-badge) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.15;
+    text-align: center;
+  }
+  .worker-mobile-menu-content { max-height: min(72dvh, 600px); overflow-y: auto; overscroll-behavior: contain; }
+  .detail-panel { height: 100dvh; overscroll-behavior: contain; }
+  .detail-head {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    padding: 12px;
+    margin: -12px -12px 14px;
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--surface-primary);
+  }
+  .detail-head .btn { min-height: 44px; }
+}
+
+@media (max-width: 640px) {
+  .manifesto-shell { padding-top: 70px; }
+  .public-topbar { position: fixed; top: 0; right: 0; left: 0; z-index: 35; }
+  .market-hero h1, .hero-copy h1 {
+    max-width: 100%;
+    font-size: clamp(36px, 11vw, 52px);
+    line-height: .98;
+    overflow-wrap: normal;
+  }
+  .market-hero { padding-top: 12px; }
+  .market-search-panel .field { padding: 7px 12px; }
+  .market-search-panel .field input { min-height: 44px; font-size: 16px; }
+  .content { padding: 70px 12px calc(86px + env(safe-area-inset-bottom)); }
+  .topbar { margin: 0; padding: 8px 12px; }
+  .topbar .side-brand { min-width: 0; }
+  .topbar .side-brand strong { font-size: 16px; }
+  .topbar .side-brand span { max-width: min(50vw, 180px); font-size: 11px; }
+  .view-heading, .workspace-page-heading { margin-bottom: 14px; padding-bottom: 12px; }
+  .view-heading h1, .workspace-page-heading h1, .marketplace-hero-panel h1 { font-size: clamp(26px, 8vw, 36px); line-height: 1; }
+  .panel, .form-card, .job-card, .task-card, .order-card, .user-card, .history-card { padding: 14px; }
+  .field input, .field select, .field textarea,
+  .form-grid input, .form-grid select, .form-grid textarea,
+  .filter-row input, .filter-row select, .chat-composer textarea,
+  .task-chat-send textarea { min-height: 48px; font-size: 16px; }
+  .field textarea, .form-grid textarea { min-height: 72px; }
+  .btn, button, summary { touch-action: manipulation; }
+  .worker-quick-nav, .company-quick-nav { gap: 2px; padding: 4px max(4px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left)); box-shadow: none; }
+  .worker-quick-nav button, .company-quick-nav button { min-height: 52px; padding: 4px 2px; font-family: Inter, Arial, sans-serif; letter-spacing: 0; }
+  .worker-quick-nav button { flex-direction: column; gap: 2px; font-size: 11px; }
+  .company-quick-nav button { font-size: 10px; }
+  body:has(.app-shell > .worker-quick-nav) .content,
+  body:has(.app-shell > .company-quick-nav) .content { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .detail-panel { padding: 12px 12px calc(92px + env(safe-area-inset-bottom)); }
+  .detail-head { gap: 8px; }
+  .detail-head h2 { font-size: clamp(23px, 7vw, 30px); overflow-wrap: anywhere; }
+  .detail-head .meta-row { font-size: 12px; }
+  .chat-mode-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .chat-mode-switch .btn { min-width: 0; min-height: 48px; padding: 7px; font-size: 11px; }
+  .direct-chat-workspace { gap: 8px; }
+  .direct-chat-heading { padding-bottom: 10px; }
+  .direct-chat-heading .eyebrow, .direct-chat-heading p:last-child { display: none; }
+  .direct-chat-heading h2 { font-size: 26px; }
+  .chat-list-item { flex-basis: min(68vw, 240px); }
+  .chat-window, .chat-placeholder { min-height: 0; }
+  .chat-window-head { top: 0; }
+  .chat-message-list { min-height: min(38dvh, 300px); max-height: calc(100dvh - 360px); padding: 10px; }
+  .task-chat-composer { position: sticky; bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 3; }
+  .task-chat-tools > summary { min-height: 44px; }
+  .task-chat-send .btn { min-width: 64px; }
+  .rating-option span { min-height: 44px; }
+  .evaluation-comment-toggle, .rating-clear { min-height: 44px; }
+}
+
+@media (max-width: 360px) {
+  .company-quick-nav button { font-size: 10px; }
+  .company-quick-nav .quick-nav-full { display: none; }
+  .company-quick-nav .quick-nav-short { display: block; }
+  .chat-mode-switch .btn { font-size: 10px; }
+}
