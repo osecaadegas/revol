@@ -1,5 +1,12 @@
 # Setup Guide
 
+## Conversas de trabalho por tarefa (18-11-2026)
+
+Aplicar `supabase/migrations/20261118120000_task_work_chat.sql` depois das migrações de tarefas, conversas diretas e planeamento no mesmo projeto Supabase da aplicação. A migração acrescenta `meo_task_messages` e atualiza a lista de tabelas autorizadas em `meo_apply_changes`; não altera registos anteriores. Antes dela, a aplicação mantém tarefas e conversas privadas, mas desativa a nova conversa operacional. Após aplicar, publicar o código e ensaiar com contas de gestor e trabalhador atribuídas à mesma tarefa. Não foi aplicada automaticamente à produção.
+
+As mensagens de trabalho são acessíveis apenas ao responsável da tarefa e ao gestor da respetiva empresa. A fotografia opcional utiliza armazenamento privado e a retenção existente de sete dias; o texto e a referência ao anexo continuam no histórico. Definir e comunicar um prazo de conservação para o texto das conversas e exportações antes de usar este fluxo em produção; evitar dados pessoais ou de saúde desnecessários. Web Push é opcional: se estiver configurado, envia avisos genéricos, sem expor o conteúdo da conversa no ecrã bloqueado.
+
+
 ## Pontualidade (23-10-2026)
 
 O indicador de pontualidade é independente das avaliações profissionais. Em armazenamento local, está disponível para ensaio; pode ser desligado com `PUNCTUALITY_ENABLED=false`. Em Supabase, permanece desligado por omissão. Para ativar no projeto de produção: (1) avaliar com apoio jurídico e de proteção de dados a necessidade de AIPD, base legal, transparência aos trabalhadores, acesso e conservação; (2) aplicar `supabase/migrations/20261023142142_punctuality_rating.sql` **após** `20261023140042_schedule_task_link.sql` no mesmo projeto Supabase da aplicação; (3) definir `PUNCTUALITY_ENABLED=true` apenas no ambiente do servidor e publicar novamente. Esta entrega não executa a migração nem ativa o indicador em produção.

@@ -17,6 +17,7 @@
     "test:worker-home": "node server/worker-home-ui-test.js",
     "test:evidence-photo": "node server/evidence-photo-test.js",
     "test:evidence-upload-ui": "node server/evidence-upload-ui-test.js",
+    "test:task-chat-ui": "node server/task-chat-ui-test.js",
     "test:pwa": "node server/pwa-install-test.js",
     "test:push": "node server/push-notifications-test.js",
     "test:punctuality": "node server/punctuality-test.js",

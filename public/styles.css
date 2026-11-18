@@ -4096,12 +4096,31 @@ details[open] > :not(summary) { animation: dropdown-reveal 130ms ease-out; }
 .chat-placeholder { display: grid; place-items: center; align-content: center; gap: 10px; min-height: 620px; padding: 32px; color: var(--text-secondary); text-align: center; }
 .chat-placeholder .ui-icon { width: 44px; height: 44px; }
 .chat-placeholder h3, .chat-placeholder p { margin: 0; max-width: 460px; }
+.chat-mode-switch { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.task-open-chat { margin: 12px 0; }
+.task-chat-workspace .chat-list { max-height: 620px; }
+.task-chat-workspace .chat-bubble strong { display: block; font-size: 13px; }
+.task-chat-workspace .task-chat-tag { display: block; margin: 5px 0; font-size: 12px; font-weight: 700; }
+.task-chat-problem { border-left: 4px solid #bd402c; }
+.task-chat-resolution { border-left: 4px solid #286a44; }
+.task-chat-file { padding: 0; border: 0; background: none; text-decoration: underline; cursor: pointer; }
+.task-chat-composer, .task-chat-resolution-form { display: grid; gap: 8px; padding: 12px; border-top: 1px solid var(--border-primary); background: var(--surface-primary); }
+.task-chat-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: end; gap: 8px; }
+.task-chat-controls .check-field { min-height: 44px; align-content: center; }
+.task-chat-controls .task-chat-photo { grid-column: span 2; }
+.task-chat-problem-control[hidden] { display: none; }
+.task-chat-send { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 8px; }
+.task-chat-send textarea { min-height: 48px; max-height: 120px; }
 
 @media (max-width: 980px) {
   .direct-chat-layout { grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); }
 }
 
 @media (max-width: 640px) {
+  .task-chat-workspace .chat-list { max-height: none; }
+  .task-chat-controls { grid-template-columns: minmax(0,1fr); }
+  .task-chat-controls .task-chat-photo { grid-column: auto; }
+  .task-chat-send .btn { min-width: 74px; min-height: 48px; }
   .direct-chat-layout { grid-template-columns: minmax(0,1fr); min-height: 0; }
   .chat-sidebar { border-right: 0; border-bottom: 1px solid var(--border-primary); }
   .chat-new-form { padding: 10px; }

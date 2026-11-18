@@ -4,6 +4,8 @@
     const icon = window.TrataDesign.icon;
     const professional = window.createProfessionalProfileUI(h);
     const chat = window.createDirectChatUI(h);
+    const taskChat = window.createTaskChatUI(h);
+    let chatMode = "tasks";
     let tab = "jobs", adminData = null, candidateQuery = "", candidateResults = null, candidateFilters = {}, candidatePage = 1, candidateTotal = 0;
     let justificationOpen = false, selectedAttendanceTaskId = "";
     const r = () => h.state.data?.recruitment || {};
@@ -187,7 +189,7 @@
       if (tab === "saved") return saved();
       if (tab === "company") return company();
       if (tab === "messages") return messages();
-      if (tab === "chat") return chat.render();
+      if (tab === "chat") return `<div class="chat-mode-switch" role="group" aria-label="Tipo de conversa"><button class="btn ${chatMode === "tasks" ? "primary" : "ghost"}" type="button" data-recruitment="chat-mode" data-id="tasks" aria-pressed="${chatMode === "tasks"}">Conversas das tarefas</button><button class="btn ${chatMode === "private" ? "primary" : "ghost"}" type="button" data-recruitment="chat-mode" data-id="private" aria-pressed="${chatMode === "private"}">Conversas privadas</button></div>${chatMode === "tasks" ? taskChat.render() : chat.render()}`;
       if (tab === "candidates") return candidates();
       if (tab === "admin") return `<section class="admin-workspace">${adminView()}</section>`;
       if (tab === "create") return h.renderJobOfferForm();
@@ -299,13 +301,21 @@
             tab = id; if (id === "create") h.state.editJobId = null;
             if (id !== "home") justificationOpen = false;
             if (id === "tasks") acknowledgeResolvedSetbacks();
-            if (id === "chat") await chat.load(undefined,{ useSnapshot:true });
+            if (id === "chat") {
+              if (h.state.data.taskChatAvailable && h.state.data.tasks?.length) await taskChat.load(undefined, false);
+              else { chatMode = "private"; await chat.load(undefined,{ useSnapshot:true }); }
+            }
             if (id === "applications" && !h.isWorker()) for (const application of h.state.data.jobApplications.filter(a => !a.recruitment?.viewedAt)) await send("application-view", "POST", { id: application.id });
           }
           if (action === "open-employment") {
             h.state.data = await h.api("/api/bootstrap");
             h.state.view = "marketplace";
             tab = "employment";
+          }
+          if (action === "chat-mode") {
+            chatMode = id;
+            if (id === "tasks") await taskChat.load(undefined, false);
+            else await chat.load(undefined, { useSnapshot: true });
           }
           if (action === "new-job") { h.state.view = "marketplace"; h.state.editJobId = null; tab = "create"; }
           if (action === "edit-job") { h.state.editJobId = id; tab = "create"; }
@@ -404,11 +414,12 @@
       }));
       professional.bind();
       chat.bind();
+      taskChat.bind();
     }
     function report(job) {
       return `<details><summary>Denunciar vaga</summary><form class="form-grid" data-recruitment-form="report"><input type="hidden" name="jobId" value="${e(job.id)}">${select("reason", "Motivo", [["fake", "Empresa falsa"], ["fraud", "Fraude"], ["salary", "Salario enganador"], ["discrimination", "Discriminacao"], ["money", "Pedido de dinheiro"], ["closed", "Vaga indisponivel"], ["spam", "Spam"], ["other", "Outro"]])}${area("detail", "Detalhes")}<button class="btn ghost">Enviar denuncia</button></form></details>`;
     }
-    return { tabs, mobileTabs, quickTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, openTab: next => { tab = next; }, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, setbackResolutionAlert, acknowledgeSetback, acknowledgeResolvedSetbacks, taskAttentionState, syncTaskAttention, reset: () => { tab = "jobs"; justificationOpen = false; selectedAttendanceTaskId = ""; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); },
+    return { tabs, mobileTabs, quickTabs, content, bind, jobFields, jobBody, screening, report, stages, button, current: () => tab, openTab: next => { tab = next; }, openPrivateChat: () => { tab = "chat"; chatMode = "private"; }, openTaskChat: async (taskId, shouldRender = true) => { tab = "chat"; chatMode = "tasks"; h.state.view = "marketplace"; h.state.selectedTaskId = null; await taskChat.load(taskId, shouldRender); }, defaultWorkerHome: () => { if (h.isWorker() && activeEmployments().length) tab = "home"; }, employmentAlert, setbackResolutionAlert, acknowledgeSetback, acknowledgeResolvedSetbacks, taskAttentionState, syncTaskAttention, reset: () => { tab = "jobs"; chatMode = "tasks"; justificationOpen = false; selectedAttendanceTaskId = ""; adminData = null; candidateResults = null; candidateFilters = {}; professional.reset(); chat.reset(); taskChat.reset(); },
       notifications: () => {
         const recruitmentNotifications = r().notifications || [], employmentRequests = pendingEmploymentRequests();
         const count = recruitmentNotifications.length + employmentRequests.length;

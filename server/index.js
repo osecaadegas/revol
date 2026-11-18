@@ -39,7 +39,7 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
 const GOOGLE_REDIRECT_URI = String(process.env.GOOGLE_REDIRECT_URI || "");
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || process.env.APP_PUBLIC_URL || "").replace(/\/+$/, "");
-const PUBLIC_ASSET_VERSION = "20261023-mobile-photo-upload";
+const PUBLIC_ASSET_VERSION = "20261118-task-chat";
 const PUBLIC_BRAND_NAME = "TrataPro";
 const PUBLIC_BRAND_SLOGAN = "Trabalho certo. Prova feita.";
 const PUBLIC_BRAND_TITLE = `${PUBLIC_BRAND_NAME} - Vagas abertas`;
@@ -266,6 +266,13 @@ const TABLES = [
       authenticity: "authenticity",
       createdAt: "created_at"
     }
+  },
+  {
+    key: "taskMessages", table: "meo_task_messages", idKey: "id",
+    fields: { id: "id", companyId: "company_id", taskId: "task_id", senderId: "sender_id",
+      senderName: "sender_name", kind: "kind", category: "category", body: "body",
+      blocksWork: "blocks_work", evidenceId: "evidence_id", relatedMessageId: "related_message_id",
+      createdAt: "created_at" }
   },
   {
     key: "attendanceEntries",
@@ -623,6 +630,8 @@ function createEmptyDb() {
     workOrders: [],
     tasks: [],
     evidences: [],
+    taskMessages: [],
+    taskChatAvailable: true,
     attendanceEntries: [],
     attendanceJustifications: [],
     workSchedules: [],
@@ -652,6 +661,7 @@ function ensureShape(db) {
     "workOrders",
     "tasks",
     "evidences",
+    "taskMessages",
     "attendanceEntries",
     "attendanceJustifications",
     "workSchedules",
@@ -829,6 +839,10 @@ async function readSupabaseDb() {
       try {
         page = await supabaseRest(`${definition.table}?select=*&order=${definition.fields[definition.idKey]}.asc&limit=500&offset=${offset}`);
       } catch (error) {
+        if (definition.key === "taskMessages" && /PGRST205|42P01/.test(error.message)) {
+          db.taskChatAvailable = false;
+          break;
+        }
         if (["attendanceEntries", "attendanceJustifications", "workSchedules", "dayOffRequests"].includes(definition.key) && /PGRST205|42P01/.test(error.message)) {
           if (["workSchedules", "dayOffRequests"].includes(definition.key)) db.planningSchemaReady = false;
           else db.attendanceSchemaReady = false;
@@ -1530,6 +1544,36 @@ function taskScopedAuth(auth, task) {
   return { ...auth, company: { ...auth.company, id: task.companyId } };
 }
 
+const TASK_PROBLEM_CATEGORIES = new Set(["materials", "tools", "weather", "access", "safety", "other"]);
+
+function requireTaskChat(db) {
+  if (db.taskChatAvailable === false) {
+    throw Object.assign(new Error("A conversa da tarefa ainda não está disponível. A empresa deve aplicar a migração de conversas de trabalho."), { status: 503 });
+  }
+}
+
+function appendTaskMessage(db, auth, task, fields, req) {
+  const message = {
+    id: nextId(db, "taskMessages", "taskmsg"), companyId: task.companyId, taskId: task.id,
+    senderId: auth.user.id, senderName: auth.user.name, kind: fields.kind,
+    category: fields.category || null, body: fields.body, blocksWork: fields.blocksWork === true,
+    evidenceId: fields.evidenceId || null, relatedMessageId: fields.relatedMessageId || null,
+    createdAt: now()
+  };
+  db.taskMessages.push(message);
+  audit(db, taskScopedAuth(auth, task), "task", task.id, "task.message_sent", {
+    messageId: message.id, kind: message.kind, category: message.category || "", blocksWork: message.blocksWork
+  }, req);
+  return message;
+}
+
+function publicTaskMessage(db, message) {
+  const evidence = message.evidenceId && db.evidences.find((item) => item.id === message.evidenceId);
+  return { ...message, attachment: message.evidenceId ? evidence && !isEvidenceExpired(evidence)
+    ? { id: evidence.id, fileUrl: `/api/evidence/${encodeURIComponent(evidence.id)}/file`, expiresAt: evidence.expiresAt }
+    : { id: message.evidenceId, expired: true } : null };
+}
+
 function validationAlertStatus(task, reference = Date.now()) {
   if (task.status !== "pending_validation" || !task.validationDueAt) return null;
   const remainingHours = hoursUntil(task.validationDueAt, reference);
@@ -1618,6 +1662,7 @@ function buildBootstrap(db, auth) {
     return isManager ? { ...summary, records: summary.records.slice(0, 10), chart: [] } : summary;
   }) : [];
   const evidences = db.evidences.filter((evidence) => {
+    if (evidence.kind === "task_chat_attachment") return false;
     if (evidence.taskId && taskIds.has(evidence.taskId)) return true;
     if (evidence.companyId !== auth.company.id) return false;
     return !evidence.taskId && visibleOrderIds.has(evidence.workOrderId);
@@ -1670,6 +1715,7 @@ function buildBootstrap(db, auth) {
     users: isManager ? companyUsers : companyUsers.filter((user) => user.id === auth.user.id),
     workOrders: workOrders.map((order) => publicWorkOrder(order, auth)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     tasks: tasks.map((task) => publicTask(task, db)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    taskChatAvailable: db.taskChatAvailable !== false,
     attendanceAvailable: db.attendanceSchemaReady !== false,
     punctuality: { enabled: PUNCTUALITY_ENABLED && db.attendanceSchemaReady !== false && db.planningSchemaReady !== false,
       rules: isManager ? punctuality.rulesFor(auth.company) : null, summaries: punctualityData },
@@ -4078,6 +4124,57 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  const taskChatMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/chat$/);
+  if (taskChatMatch && ["GET", "POST"].includes(req.method)) {
+    const taskId = decodeURIComponent(taskChatMatch[1]);
+    if (req.method === "GET") {
+      const db = await readDb();
+      const auth = requireAuth(db, req);
+      const task = db.tasks.find(item => item.id === taskId);
+      if (!canAccessTask(auth, task, db)) throw Object.assign(new Error("Tarefa não encontrada."), { status: 404 });
+      requireTaskChat(db);
+      sendJson(res, 200, { task: publicTask(task, db), messages: db.taskMessages.filter(item => item.taskId === taskId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(item => publicTaskMessage(db, item)) });
+      return;
+    }
+    const body = await readBody(req, 4 * 1024 * 1024);
+    const result = await mutateDb(async db => {
+      const auth = requireAuth(db, req);
+      const task = db.tasks.find(item => item.id === taskId);
+      if (!canAccessTask(auth, task, db)) throw Object.assign(new Error("Tarefa não encontrada."), { status: 404 });
+      requireTaskChat(db);
+      const kind = cleanString(body.kind || "message", 30);
+      if (!["message", "problem"].includes(kind)) throw Object.assign(new Error("Tipo de mensagem inválido."), { status: 400 });
+      if (body.blocksWork === true && kind !== "problem") throw Object.assign(new Error("Identifique o problema antes de assinalar um contratempo."), { status: 400 });
+      const category = kind === "problem" ? cleanString(body.category, 30) : null;
+      const blocksWork = kind === "problem" && body.blocksWork === true;
+      const messageBody = cleanString(body.body, 3000);
+      if (kind === "problem" && !TASK_PROBLEM_CATEGORIES.has(category)) throw Object.assign(new Error("Escolha o tipo de problema."), { status: 400 });
+      if (!messageBody && !body.photo) throw Object.assign(new Error("Escreva uma mensagem ou anexe uma fotografia."), { status: 400 });
+      if (blocksWork && messageBody.length < 10) throw Object.assign(new Error("Explique o contratempo em pelo menos 10 caracteres."), { status: 400 });
+      if (blocksWork && ["blocked", "approved", "pending_validation"].includes(task.status)) throw Object.assign(new Error("Esta tarefa não pode receber um novo contratempo neste estado."), { status: 409 });
+      const recent = db.taskMessages.filter(item => item.taskId === taskId && item.senderId === auth.user.id && Date.now() - Date.parse(item.createdAt) < 60000);
+      if (recent.length >= 10) throw Object.assign(new Error("Aguarde antes de enviar mais mensagens."), { status: 429 });
+      let evidence = null;
+      if (body.photo) {
+        evidence = await storePhoto(db, auth, { photo: body.photo, note: messageBody }, { kind: "task_chat_attachment", taskId: task.id, workOrderId: task.workOrderId, companyId: task.companyId, requireGps: false, req });
+        audit(db, taskScopedAuth(auth, task), "evidence", evidence.id, "evidence.created", { taskId: task.id, kind: evidence.kind, expiresAt: evidence.expiresAt }, req);
+      }
+      const message = appendTaskMessage(db, auth, task, { kind, category, body: messageBody, blocksWork, evidenceId: evidence?.id }, req);
+      if (blocksWork) {
+        task.status = "blocked";
+        task.blockReason = messageBody;
+        task.updatedAt = now();
+        audit(db, taskScopedAuth(auth, task), "task", task.id, "task.status_changed", { status: "blocked", blockReason: messageBody, messageId: message.id }, req);
+      }
+      return { message: publicTaskMessage(db, message), task: publicTask(task, db), bootstrap: buildBootstrap(db, auth), notifyCompany: auth.user.role === "worker" || !isCompanyAdmin(auth.user) };
+    });
+    const db = await readDb();
+    const recipients = result.notifyCompany ? db.users.filter(user => user.companyId === result.task.companyId && user.active !== false && isCompanyAdmin(user)).map(user => user.id) : [result.task.assigneeId];
+    await pushApi.sendToUsers(recipients, result.task.status === "blocked" && result.notifyCompany ? "setback" : "message", { taskId });
+    sendJson(res, 201, result);
+    return;
+  }
+
   const evidenceMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/evidence$/);
   if (req.method === "POST" && evidenceMatch) {
     const taskId = decodeURIComponent(evidenceMatch[1]);
@@ -4197,6 +4294,9 @@ async function handleApi(req, res, pathname) {
       }
       task.status = nextStatus;
       task.updatedAt = now();
+      if (nextStatus === "blocked" && db.taskChatAvailable !== false) {
+        appendTaskMessage(db, auth, task, { kind: "problem", category: "other", body: task.blockReason, blocksWork: true }, req);
+      }
       audit(db, taskScopedAuth(auth, task), "task", task.id, "task.status_changed", {
         status: nextStatus,
         blockReason: nextStatus === "blocked" ? task.blockReason : ""
@@ -4205,7 +4305,7 @@ async function handleApi(req, res, pathname) {
     });
     if (result.task?.status === "blocked") {
       const db = await readDb();
-      await pushApi.sendToUsers(db.users.filter(user => user.companyId === result.task.companyId && user.active !== false && isCompanyAdmin(user)).map(user => user.id), "setback");
+      await pushApi.sendToUsers(db.users.filter(user => user.companyId === result.task.companyId && user.active !== false && isCompanyAdmin(user)).map(user => user.id), "setback", { taskId });
     }
     sendJson(res, 200, result);
     return;
@@ -4235,6 +4335,10 @@ async function handleApi(req, res, pathname) {
       task.status = task.startedAt ? "in_progress" : "assigned";
       task.blockReason = "";
       task.updatedAt = now();
+      if (db.taskChatAvailable !== false) {
+        const reported = [...db.taskMessages].reverse().find(item => item.taskId === task.id && item.kind === "problem" && item.blocksWork);
+        appendTaskMessage(db, auth, task, { kind: "resolution", body: resolution, relatedMessageId: reported?.id }, req);
+      }
       audit(db, auth, "task", task.id, "task.setback_resolved", {
         reportedReason,
         resolution,
@@ -4242,7 +4346,7 @@ async function handleApi(req, res, pathname) {
       }, req);
       return { task: publicTask(task, db), bootstrap: buildBootstrap(db, auth) };
     });
-    await pushApi.sendToUsers([result.task.assigneeId], "resolution");
+    await pushApi.sendToUsers([result.task.assigneeId], "resolution", { taskId });
     sendJson(res, 200, result);
     return;
   }

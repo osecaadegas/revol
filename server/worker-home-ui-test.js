@@ -29,6 +29,8 @@ const toggle = { dataset: { recruitment: "toggle-justification" }, disabled: fal
 let focused = false;
 const stored = new Map();
 const context = {
+  clearTimeout() {},
+  setTimeout() { return 0; },
   localStorage: { getItem: key => stored.get(key) || null, setItem: (key, value) => stored.set(key, value) },
   window: {
     TrataDesign: { icon: () => "" },
@@ -40,6 +42,7 @@ const context = {
     querySelector: () => ({ focus() { focused = true; } })
   }
 };
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "public", "task-chat-ui.js"), "utf8"), context);
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "public", "recruitment-ui.js"), "utf8"), context);
 let rendered = "";
 const ui = context.window.createRecruitmentUI({

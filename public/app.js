@@ -113,18 +113,25 @@
     pushEnabled = false;
   }
 
-  function openPushDestination(kind) {
+  async function openPushDestination(kind, taskId) {
     if (!kind) return;
-    if (kind === "message") { state.view = "marketplace"; recruitmentUI.openTab("chat"); }
+    const visibleTask = taskId && state.data?.tasks?.some(task => task.id === taskId);
+    if (kind === "message") {
+      state.view = "marketplace";
+      if (visibleTask && state.data.taskChatAvailable) await recruitmentUI.openTaskChat(taskId, false);
+      else recruitmentUI.openPrivateChat();
+    }
     else if (kind === "schedule" || kind === "dayOff" || kind === "dayOffRequest") {
       if (isWorker()) { state.view = "marketplace"; recruitmentUI.openTab("planning"); }
       else state.view = "planning";
     } else if (kind === "assignment" || kind === "setback" || kind === "resolution") {
       if (isWorker()) { state.view = "marketplace"; recruitmentUI.openTab("tasks"); }
       else state.view = "tasks";
+      if (visibleTask) state.selectedTaskId = taskId;
     }
     const url = new URL(location.href);
     url.searchParams.delete("push");
+    url.searchParams.delete("task");
     history.replaceState(null, "", url.pathname + url.search + url.hash);
   }
 
@@ -3012,6 +3019,7 @@
           ${task.status === "blocked" && task.blockReason ? `<div class="notice error"><strong>Contratempo ativo:</strong> ${escapeHtml(task.blockReason)}</div>` : ""}
           ${task.status !== "blocked" && task.lastSetbackResolution ? `<div class="notice success"><strong>Contratempo resolvido por ${escapeHtml(task.lastSetbackResolution.resolvedBy)}:</strong> ${escapeHtml(task.lastSetbackResolution.text)} <small>${formatDate(task.lastSetbackResolution.resolvedAt)}</small></div>` : ""}
           ${task.validationComment ? `<div class="notice success">Decisao: ${escapeHtml(task.validationComment)}</div>` : ""}
+          ${state.data.taskChatAvailable ? `<button type="button" class="btn ghost task-open-chat" data-open-task-chat="${escapeHtml(task.id)}">${icon("message-circle")} Conversar sobre esta tarefa</button>` : ""}
           ${renderTaskActions(task)}
           <div class="panel">
             <div class="panel-header"><h2>Provas finais</h2><span class="chip">${acceptedEvidence.length}/${finalEvidenceMinimum}</span></div>
@@ -3359,6 +3367,11 @@
     });
 
     document.querySelectorAll("[data-open-task]").forEach(bindOpenTaskButton);
+    document.querySelectorAll("[data-open-task-chat]").forEach(button => button.addEventListener("click", async () => {
+      button.disabled = true;
+      try { await recruitmentUI.openTaskChat(button.dataset.openTaskChat); renderApp(); }
+      catch (error) { setNotice(error.message, "error"); renderApp(); }
+    }));
 
     document.querySelectorAll("[data-operational-notice], [data-operational-alerts-panel]").forEach((container) => {
       container.addEventListener("click", (event) => {
@@ -3849,7 +3862,7 @@
           await refreshData();
           state.view = defaultViewForUser();
           recruitmentUI.defaultWorkerHome();
-          openPushDestination(entryParams.get("push"));
+          await openPushDestination(entryParams.get("push"), entryParams.get("task"));
           if (["project", "mvp"].includes(state.view)) {
             try {
               await refreshActivePrivateView();

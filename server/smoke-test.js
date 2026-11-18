@@ -441,6 +441,20 @@ async function run() {
       throw new Error("Task planning should derive its map from the work address without requiring GPS coordinates.");
     }
 
+    const materialRequest = await request(baseUrl, "POST", `/api/tasks/${taskId}/chat`, {
+      kind: "problem", category: "materials", body: "Precisamos de mais cimento para avançar.",
+      photo: smokePhoto("material-request.png")
+    }, employeeToken);
+    if (materialRequest.message.kind !== "problem" || materialRequest.message.category !== "materials" ||
+        !materialRequest.message.attachment?.fileUrl || materialRequest.task.status !== "assigned" ||
+        materialRequest.bootstrap.evidences.some(item => item.id === materialRequest.message.evidenceId)) {
+      throw new Error("A material request must stay in the task conversation without blocking work or counting as final proof.");
+    }
+    const managerChat = await request(baseUrl, "GET", `/api/tasks/${taskId}/chat`, null, managerToken);
+    if (managerChat.messages[0]?.body !== materialRequest.message.body) throw new Error("The company must see the task's operational conversation.");
+    const deniedChat = await requestRaw(baseUrl, "GET", `/api/tasks/${taskId}/chat`, null, unassignedLogin.session.token);
+    if (deniedChat.status !== 404) throw new Error("An unassigned employee must not read another task's conversation.");
+
     await request(baseUrl, "PATCH", `/api/tasks/${taskId}/status`, {
       status: "in_progress"
     }, employeeToken);
@@ -486,6 +500,8 @@ async function run() {
     if (otherCompanyAlerts.alerts.length !== 0) {
       throw new Error("A different company must not read another company's setback alerts.");
     }
+    const otherCompanyChat = await requestRaw(baseUrl, "GET", `/api/tasks/${taskId}/chat`, null, otherCompany.session.token);
+    if (otherCompanyChat.status !== 404) throw new Error("Another company must not read the task conversation.");
 
     const setbackBootstrap = await request(baseUrl, "GET", "/api/bootstrap", null, managerToken);
     const setbackAlert = setbackBootstrap.operationalAlerts?.find((item) => item.taskId === taskId);
@@ -526,6 +542,11 @@ async function run() {
         resolved.task.lastSetbackResolution?.reportedReason !== setbackReason) {
       throw new Error("The company resolution and original reason should survive in the task history.");
     }
+    const workerChat = await request(baseUrl, "GET", `/api/tasks/${taskId}/chat`, null, employeeToken);
+    if (!workerChat.messages.some(item => item.kind === "problem" && item.body === setbackReason) ||
+        !workerChat.messages.some(item => item.kind === "resolution" && item.body === resolutionText)) {
+      throw new Error("The worker must see the reported problem and company resolution in the same task conversation.");
+    }
     const duplicateResolution = await requestRaw(baseUrl, "POST", `/api/tasks/${taskId}/resolve-setback`, {
       resolution: resolutionText
     }, managerToken);
@@ -543,6 +564,13 @@ async function run() {
     if (resolvedAlerts.alerts.some((item) => item.taskId === taskId)) {
       throw new Error("The live company alert must disappear after work resumes.");
     }
+    const chatSetback = await request(baseUrl, "POST", `/api/tasks/${taskId}/chat`, {
+      kind: "problem", category: "tools", body: "A ferramenta necessária deixou de funcionar.", blocksWork: true
+    }, employeeToken);
+    if (chatSetback.task.status !== "blocked") throw new Error("A blocking problem sent in chat must activate the task setback.");
+    await request(baseUrl, "POST", `/api/tasks/${taskId}/resolve-setback`, {
+      resolution: "Foi entregue outra ferramenta e a equipa pode continuar."
+    }, managerToken);
 
     const deniedEvidence = await requestRaw(baseUrl, "POST", `/api/tasks/${taskId}/evidence`, {
       photos: [smokePhoto("denied.png")],

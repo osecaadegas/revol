@@ -19,6 +19,7 @@ const files = [
   "server/worker-home-ui-test.js",
   "server/evidence-photo-test.js",
   "server/evidence-upload-ui-test.js",
+  "server/task-chat-ui-test.js",
   "server/pwa-install-test.js",
   "server/public-marketplace.js",
   "server/private-mvp.js",
@@ -33,6 +34,7 @@ const files = [
   "public/recruitment-ui.js",
   "public/professional-profile-ui.js",
   "public/direct-chat-ui.js",
+  "public/task-chat-ui.js",
   "public/service-worker.js"
 ];
 

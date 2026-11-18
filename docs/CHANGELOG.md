@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-18
+
+- Cada tarefa tem agora uma conversa operacional partilhada entre o responsável e a empresa, separada das conversas privadas. Mensagens e pedidos de materiais, ferramentas, acesso, segurança ou relacionados com a meteorologia ficam associados à tarefa, ao autor e à hora. Fotografias opcionais permanecem privadas durante a retenção de sete dias e não contam como provas finais.
+- Um problema marcado como impedimento ativa o contratempo e o alerta existente; a empresa resolve-o com uma explicação obrigatória, visível na mesma conversa e enviada ao trabalhador pelo canal de notificações já existente. Os botões antigos de contratempo e resolução também acrescentam entradas à conversa. A migração aditiva `20261118120000_task_work_chat.sql` é necessária em Supabase.
+
 ## 2026-10-23
 
 - Corrigido o envio de provas fotográficas no telemóvel: as imagens grandes e formatos de câmara suportados pelo navegador são preparados em JPEG no dispositivo, em lotes até três fotografias abaixo do limite do pedido em produção. O envio mostra o progresso, termina com erro legível se a ligação não responder e permite verificar fotografias já guardadas antes de repetir. Repetir a mesma prova não cria outro registo para a mesma tarefa/trabalhador; o GPS pontual, hash do ficheiro enviado, data de captura e armazenamento privado mantêm-se.

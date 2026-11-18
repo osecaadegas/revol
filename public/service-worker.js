@@ -1,4 +1,4 @@
-const CACHE_NAME = "tratapro-shell-v32-mobile-photo-upload";
+const CACHE_NAME = "tratapro-shell-v33-task-chat";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
@@ -9,6 +9,7 @@ const SHELL_ASSETS = [
   "/recruitment-ui.js",
   "/professional-profile-ui.js",
   "/direct-chat-ui.js",
+  "/task-chat-ui.js",
   "/design-system.js",
   "/vendor/lucide.svg",
   "/fonts/InterVariable.woff2",
@@ -92,7 +93,7 @@ self.addEventListener("push", (event) => {
     const kind = Object.hasOwn(allowed, message.kind) ? message.kind : "message";
     const [title, body] = allowed[kind];
     await self.registration.showNotification(title, { body, icon: "/icon-192.png", badge: "/icon-192.png",
-      tag: `tratapro-${kind}`, data: { kind }, renotify: false });
+      tag: `tratapro-${kind}-${typeof message.taskId === "string" ? message.taskId : "general"}`, data: { kind, taskId: typeof message.taskId === "string" ? message.taskId : null }, renotify: false });
   })());
 });
 
@@ -102,6 +103,7 @@ self.addEventListener("notificationclick", (event) => {
     const kind = event.notification.data?.kind;
     const target = new URL("/", self.location.origin);
     if (["assignment", "schedule", "dayOff", "dayOffRequest", "setback", "resolution", "message"].includes(kind)) target.searchParams.set("push", kind);
+    if (typeof event.notification.data?.taskId === "string") target.searchParams.set("task", event.notification.data.taskId);
     const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     const existing = windows.find(client => new URL(client.url).origin === self.location.origin);
     if (existing) {

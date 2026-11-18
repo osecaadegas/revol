@@ -1,5 +1,12 @@
 # Progressive Build Plan
 
+## Conversa operacional de trabalho (18-11-2026)
+
+- Implementado no código: conversa por tarefa com mensagens, problema categorizado, fotografia opcional, bloqueio explícito, resolução pela empresa, histórico e notificações existentes. Reutiliza tarefas, permissões, provas privadas e alertas de contratempo.
+- Operação pendente: aplicar `20261118120000_task_work_chat.sql` no Supabase da aplicação e validar com trabalhador/gestor reais, incluindo push no dispositivo. Até à migração, a conversa da tarefa fica indisponível sem afetar as conversas privadas ou as tarefas.
+- Evolução futura dependente de pedido específico: relatórios com seleção de mensagens e evidências verificadas; uma conversa por si só documenta relatos, não verifica causas nem responsabilidade.
+
+
 ## Extensão solicitada: planeamento diário e folgas
 
 - Implementado: grelha semanal da empresa, consulta pelo trabalhador, pedidos de folga com antecedência mínima de 24 horas, decisão exclusiva da empresa, isolamento por empresa/trabalhador e trilho de auditoria.

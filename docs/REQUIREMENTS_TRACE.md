@@ -1,5 +1,10 @@
 # Requirements Trace
 
+## Conversa operacional por tarefa (18-11-2026)
+
+`/api/tasks/:id/chat` restringe leitura e envio ao gestor da empresa e ao responsável da tarefa com vínculo válido. Cada entrada conserva tarefa, autor, data, tipo e texto; pedidos de materiais/ferramentas/meteorologia/acesso/segurança são relatos, não atribuições automáticas de culpa. Uma fotografia é privada, sem GPS obrigatório, e expira ao fim de sete dias; permanece uma referência de anexo expirado na conversa. O contratempo só bloqueia a tarefa se o utilizador assinalar «Impede continuar», reutilizando o alerta e o fluxo de resolução com razão obrigatória. A resolução fica ligada ao relato e é visível ao trabalhador. O chat privado direto mantém as suas permissões próprias.
+
+
 ## Indicador de pontualidade (pedido escrito de 23-10-2026)
 
 O pedido do Cliente Zero autoriza este indicador limitado, embora a reputação automática estivesse fora do âmbito original da Fase 1. A pontualidade continua independente do mérito profissional, da remuneração e de decisões disciplinares. `server/punctuality.js` classifica apenas entradas registadas pelo servidor contra um horário publicado da mesma empresa/trabalhador/tarefa ou ordem: até 5 min = 10, até 15 = 8, até 30 = 5, acima = 0. Calcula em segundos, `Europe/Lisbon`, janela móvel de 90 dias, sem turnos futuros, com 20 turnos mínimos para confirmação. Falta de entrada não equivale a atraso. Um turno não pontua duas tarefas. Horários alterados depois de iniciados e horários sem publicação segura ficam pendentes para revisão.

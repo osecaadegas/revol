@@ -21,7 +21,8 @@ assert.equal(p.localStart("2026-03-29", "01:30"), null, "non-existent DST hour m
 assert.equal(p.localStart("2026-10-25", "01:30"), "2026-10-25T00:30:00.000Z", "ambiguous DST hour uses first occurrence");
 assert.equal(p.localStart("2026-10-20", "07:00:37"), "2026-10-20T06:00:37.000Z", "manager corrections retain seconds");
 
-const asOf = p.localDate(new Date().toISOString());
+// Use a completed local workday so the test is stable before the 07:00 shift starts.
+const asOf = p.addDays(p.localDate(new Date().toISOString()), -1);
 const db = { companies: [{ id: "company", punctualityConfig: rules }], attendanceEntries: [], attendanceJustifications: [], auditLogs: [], workSchedules: [], tasks: [] };
 function addRecord(daysAgo, delaySeconds = 0, workerId = "worker") {
   const workDate = p.addDays(asOf, -daysAgo);

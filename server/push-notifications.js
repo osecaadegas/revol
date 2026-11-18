@@ -83,7 +83,7 @@ function createPushNotifications(h) {
     return true;
   }
 
-  async function sendToUsers(userIds, kind) {
+  async function sendToUsers(userIds, kind, context = {}) {
     if (!configured || !userIds?.length) return;
     const payloads = {
       assignment: { title: "Novo trabalho atribuído", body: "Consulta a tua ordem ou tarefa na TrataPro." },
@@ -101,7 +101,7 @@ function createPushNotifications(h) {
       await Promise.all(rows.map(async row => {
         try {
           await webpush.sendNotification({ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth_key } },
-            JSON.stringify({ ...notification, kind }), { TTL: 3600, timeout: 2500 });
+            JSON.stringify({ ...notification, kind, taskId: typeof context.taskId === "string" ? context.taskId : undefined }), { TTL: 3600, timeout: 2500 });
         } catch (error) {
           if ([404, 410].includes(error.statusCode)) await remove(row.endpoint, row.user_id);
           else console.error(`Web Push delivery failed (${kind}): ${error.statusCode || error.message}`);
